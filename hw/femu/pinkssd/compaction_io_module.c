@@ -23,7 +23,7 @@ static void comp_write_delay(struct ssd *ssd, struct femu_ppa *ppa)
     }
 }
 
-static void log_cvt2table(void **data, pink_l_bucket *lb, int vsize, int sidx, int n)
+static void log_cvt2table(void **data, kv_snode **targets, int n)
 {
     kv_assert(!(*data));
     *data = (char *)calloc(1, PAGESIZE);
@@ -37,10 +37,10 @@ static void log_cvt2table(void **data, pink_l_bucket *lb, int vsize, int sidx, i
 
     int i;
     for (i = 0; i < n; i++) {
-        memcpy(&ptr[data_start], lb->bucket[vsize][sidx-i]->key.key, lb->bucket[vsize][sidx-i]->key.len); 
+        memcpy(&ptr[data_start], targets[i]->key.key, targets[i]->key.len);
         offset_map[i+1] = data_start;
-        keylen_map[i+1] = lb->bucket[vsize][sidx-i]->key.len;
-        data_start += keylen_map[i+1] + vsize;
+        keylen_map[i+1] = targets[i]->key.len;
+        data_start += keylen_map[i+1] + targets[i]->value->length;
     }
     offset_map[n+1] = data_start;
     keylen_map[n+1] = -1;
@@ -64,6 +64,7 @@ void compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
     struct nand_page *pg = NULL;
     int in_page_idx;
     int written_data;
+    kv_snode *targets[256];
     while (n_vals > 0) {
         /* Get the new page from the write pointer of data segment partition manager */
         ppa = get_new_data_page(ssd);
@@ -72,11 +73,12 @@ void compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
         in_page_idx = 0;
         written_data = 0;
 
+        int n_value = 0;
+        memset(targets, 0, 256 * sizeof(kv_snode *));
         for (int vsize = MAXVALUESIZE; vsize >= 0; vsize--) {
             int sidx = lb->indices[vsize] - 1;
             if (sidx < 0)
                 continue;
-            int n_value = 0;
             while (lb->indices[vsize] > 0) {
                 /*
                  * This piece isn't fit the left space of allocated page.
@@ -94,12 +96,13 @@ void compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
                 target->private = malloc(sizeof(pink_per_snode_data));
                 *snode_ppa(target) = ppa;
                 *snode_off(target) = in_page_idx;
+                targets[in_page_idx] = target;
                 in_page_idx++;
                 n_vals--;
                 n_value++;
             }
-            log_cvt2table(&pg->data, lb, vsize, sidx, n_value);
         }
+        log_cvt2table(&pg->data, targets, n_value);
     }
 
     for(int vsize = 0; vsize <= MAXVALUESIZE; vsize++) {
