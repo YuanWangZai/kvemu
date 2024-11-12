@@ -53,9 +53,20 @@ static void log_cvt2table(void **data, kv_snode **targets, int n)
 void compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
     kv_skiplist_get_start_end_key(lnode->mem, &lnode->start, &lnode->end);
     pink_l_bucket *lb = pink_skiplist_make_length_bucket(lnode->mem);
+    int max_vsize = MAXVALUESIZE;
+    int min_vsize = 0;
 
     int n_vals = 0;
     for (int vsize = 0; vsize <= MAXVALUESIZE; vsize++) {
+        if (lb->indices[vsize] > 0) {
+            if (n_vals == 0) {
+                max_vsize = vsize;
+                min_vsize = vsize;
+            } else {
+                max_vsize = MAXVALUESIZE;
+                min_vsize = 0;
+            }
+        }
         n_vals += lb->indices[vsize];
     }
 
@@ -75,7 +86,7 @@ void compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
 
         int n_value = 0;
         memset(targets, 0, 256 * sizeof(kv_snode *));
-        for (int vsize = MAXVALUESIZE; vsize >= 0; vsize--) {
+        for (int vsize = max_vsize; vsize >= min_vsize; vsize--) {
             int sidx = lb->indices[vsize] - 1;
             if (sidx < 0)
                 continue;
