@@ -886,11 +886,6 @@ _do_lksv3_compaction2(struct ssd *ssd,
                 }
 
                 le = get_next_comp_entry(&li);
-                
-                if (!ssd->start_ramp && !ssd->start_log) {
-                    ssd->start_ramp = true;
-                    ssd->ramp_start_time = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-                }
             }
         }
 

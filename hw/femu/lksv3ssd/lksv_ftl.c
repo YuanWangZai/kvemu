@@ -1096,21 +1096,6 @@ static void *ftl_thread(void *arg)
             // FIXME: cmd.opcode and cmd_opcode; this should be merged
             switch (req->cmd_opcode) {
             case NVME_CMD_KV_STORE:
-                if (ssd->start_ramp) {
-                    uint64_t now = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-                    if (now - ssd->ramp_start_time > (40UL * 60 * 1000000000)) {
-                        qemu_mutex_lock(&ssd->comp_mu);
-                        struct lksv3_level *l = lksv_lsm->disk[LSM_LEVELN-2];
-                        if (l->n_num > (l->m_num * 0.80)) {
-                            if (lksv_lsm->data_gc_cnt > 0) {
-                                qemu_mutex_unlock(&ssd->comp_mu);
-                                break;
-                            }
-                        }
-                        qemu_mutex_unlock(&ssd->comp_mu);
-                    }
-                }
-
                 if (!qemu_mutex_trylock(&ssd->memtable_mu)) {
                     if (lksv_lsm->temptable) {
                         rc = femu_ring_enqueue(ssd->to_ftl[i], (void *)&req, 1);
@@ -1134,7 +1119,6 @@ static void *ftl_thread(void *arg)
                 if (ssd->start_log == false) {
                     kv_debug("Reset latency timer!\n");
                     ssd->start_log = true;
-                    ssd->start_ramp = false;
                     qemu_mutex_lock(&ssd->lat_mu);
                     for (int ch = 0; ch < ssd->sp.nchs; ch++) {
                         for (int lun = 0; lun < ssd->sp.luns_per_ch; lun++) {
