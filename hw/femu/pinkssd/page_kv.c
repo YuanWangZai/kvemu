@@ -219,7 +219,7 @@ int gc_data_femu(struct ssd *ssd) {
     //qemu_mutex_lock(&ssd->comp_mu);
 
     kv_log("gc_data_erased: %d, gc_data_moved: %d, moved percentage: %f\n", gc_erased, gc_moved, ((float)gc_moved) / (gc_moved + gc_erased));
-    return 0;
+    return gc_erased > 0 ? 0 : -2;
 }
 
 /*

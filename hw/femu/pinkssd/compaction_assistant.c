@@ -90,10 +90,28 @@ void pink_do_compaction(struct ssd *ssd)
             int n = ssd->lm.data.lines / 10;
             if (n < 10)
                 n = 10;
+
+            int gc_pick_err = 0;
+            int gc_pick_err_threshold = n / 3;
             for (int i = 0; i < n; i ++) {
-                if (gc_data_femu(ssd) == 0) {
-                    ssd->need_flush = true;
+                switch (gc_data_femu(ssd)) {
+                    case 0:
+                        ssd->need_flush = true;
+                        break;
+                    case -2:
+                        gc_pick_err++;
+                        break;
+                    default:
+                        kv_log("unknown return code\n");
+                        abort();
                 }
+            }
+            if (gc_pick_err > gc_pick_err_threshold) {
+                kv_log("gc_pick_err exceeds threshold: %d times\n", gc_pick_err);
+                print_level_summary(pink_lsm);
+                kv_log("line_partition meta: %d lines, %d frees, %d victims, %d fulls, %ld age\n", ssd->lm.meta.lines, ssd->lm.meta.free_line_cnt, ssd->lm.meta.victim_line_cnt, ssd->lm.meta.full_line_cnt, ssd->lm.meta.age);
+                kv_log("line_partition data: %d lines, %d frees, %d victims, %d fulls, %ld age\n", ssd->lm.data.lines, ssd->lm.data.free_line_cnt, ssd->lm.data.victim_line_cnt, ssd->lm.data.full_line_cnt, ssd->lm.data.age);
+                abort();
             }
         }
         while (pink_should_meta_gc_high(ssd)) {
