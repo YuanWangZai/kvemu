@@ -62,6 +62,20 @@ echo "Avg. throughput"
 grep "Throughput" ${FILE} | awk '{sum += $4} END {print sum/NR}'
 
 echo ""
+lat=$(grep "Latency" ${FILE} | awk '{print $5}' | sort -n | sed '5000q;d')
+echo "50% latency: ${lat} ns"
+lat=$(grep "Latency" ${FILE} | awk '{print $5}' | sort -n | sed '9500q;d')
+echo "95% latency: ${lat} ns"
+lat=$(grep "Latency" ${FILE} | awk '{print $5}' | sort -n | sed '9600q;d')
+echo "96% latency: ${lat} ns"
+lat=$(grep "Latency" ${FILE} | awk '{print $5}' | sort -n | sed '9700q;d')
+echo "97% latency: ${lat} ns"
+lat=$(grep "Latency" ${FILE} | awk '{print $5}' | sort -n | sed '9800q;d')
+echo "98% latency: ${lat} ns"
+lat=$(grep "Latency" ${FILE} | awk '{print $5}' | sort -n | sed '9900q;d')
+echo "99% latency: ${lat} ns"
+
+echo ""
 echo "Flash access count"
 for i in {0..64};
 do
