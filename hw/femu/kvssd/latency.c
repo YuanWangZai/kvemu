@@ -24,31 +24,14 @@ static void kvssd_init_mlc_page_pairing(struct kvssd_latency *nm)
 }
 
 /*
- * TLC Layout as described in the paper: "Characterization and Error-Correcting
- * Codes for TLC Flash Memories ICNC'2012" by Yaakobi et. al.
+ * Assign cell types in a simpler way: 0 for lower, 1 for center, 2 for upper
  */
 static void kvssd_init_tlc_page_pairing(struct kvssd_latency *nm)
 {
-    int i, j;
-    int rows = (MAX_SUPPORTED_PAGES_PER_BLOCK + 5) / 6;
-    int lpflag = TLC_LOWER_PAGE;
-    int page_per_row=6;
+    int i;
 
-    int lowp[] = {0, 1, 2, 3, 4, 5};
-    int centerp[] = {6, 7};
-
-    for (i = 0; i < sizeof(lowp)/sizeof(lowp[0]); i++)
-        nm->tlc_tbl[lowp[i]] = TLC_LOWER_PAGE;
-
-    for (i = 0; i < sizeof(centerp)/sizeof(centerp[0]); i++)
-        nm->tlc_tbl[centerp[i]] = TLC_CENTER_PAGE;
-
-    for (i = 0; i < rows - 2; i++) {
-        for(j = 0; j < page_per_row; j += 2) {
-            int idx = 8 + (i * page_per_row) + j;
-            nm->tlc_tbl[idx] = tlc_tbl[idx+1] = lpflag;
-            lpflag = (lpflag == TLC_UPPER_PAGE) ? TLC_LOWER_PAGE : lpflag + 1;
-        }
+    for (i = 0; i < MAX_SUPPORTED_PAGES_PER_BLOCK; i++) {
+        nm->tlc_tbl[i] = i % 3;
     }
 }
 
