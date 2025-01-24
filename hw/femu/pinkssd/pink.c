@@ -87,8 +87,6 @@ static uint16_t pink_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
       le32_to_cpu(cmd->cdw15));*/
     uint32_t value_length;
     uint32_t key_length;
-    uint32_t allocated_key_length;
-    uint8_t *key;
     uint8_t *value;
     uint64_t prp1, prp2;
     uint64_t key_prp1, key_prp2;
@@ -100,9 +98,6 @@ static uint16_t pink_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
         case NVME_CMD_KV_STORE:
             value_length = le32_to_cpu(cmd->cdw10) * 4;
             key_length = (le32_to_cpu(cmd->cdw11) & 0xFF) + 1;
-            allocated_key_length = 16;
-            if (allocated_key_length < key_length) allocated_key_length = key_length;
-            key = g_malloc0(allocated_key_length + 1);
             value = g_malloc0(value_length);
             prp1 = le64_to_cpu(cmd->dptr.prp1);
             prp2 = le64_to_cpu(cmd->dptr.prp2);
@@ -113,24 +108,24 @@ static uint16_t pink_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             status = NVME_SUCCESS;
 
             if (key_length <= 16) {
-                *((uint32_t *)key) = le32_to_cpu(cmd->cdw12);
-                *((uint32_t *)(key + 4)) = le32_to_cpu(cmd->cdw13);
-                *((uint32_t *)(key + 8)) = le32_to_cpu(cmd->cdw14);
-                *((uint32_t *)(key + 12)) = le32_to_cpu(cmd->cdw15);
+                *((uint32_t *)req->key_buf) = le32_to_cpu(cmd->cdw12);
+                *((uint32_t *)(req->key_buf + 4)) = le32_to_cpu(cmd->cdw13);
+                *((uint32_t *)(req->key_buf + 8)) = le32_to_cpu(cmd->cdw14);
+                *((uint32_t *)(req->key_buf + 12)) = le32_to_cpu(cmd->cdw15);
             } else {
                 /*
                 kv_debug("key_length: 0x%x, key_prp1: 0x%lx, key_prp2: 0x%lx\n",
                         key_length, key_prp1, key_prp2);
                         */
-                status = dma_write_prp(n, key, key_length, key_prp1, key_prp2);
+                status = dma_write_prp(n, req->key_buf, key_length, key_prp1, key_prp2);
                 if (status != NVME_SUCCESS) {
                     return status;  // XXX free the resources
                 }
             }
 #ifdef HASH_COLLISION_MODELING
-            memcpy(key+4, key, 4);
-            memcpy(key+8, key, 4);
-            memcpy(key+2, key+7, 4);
+            memcpy(req->key_buf+4, req->key_buf, 4);
+            memcpy(req->key_buf+8, req->key_buf, 4);
+            memcpy(req->key_buf+2, req->key_buf+7, 4);
 #endif
             /*
             kv_debug("keylen: %d: ", key_length);
@@ -149,19 +144,14 @@ static uint16_t pink_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
               }
               kv_debug("\n");*/
             req->key_length = key_length;
-            memset(req->key_buf, 0, key_length + 1);
-            memcpy(req->key_buf, key, key_length);
+            req->key_buf[key_length+1] = 0;
             req->value_length = value_length;
             g_free(value);
-            g_free(key);
             return NVME_SUCCESS;
         case NVME_CMD_KV_RETRIEVE:
             qatomic_inc(&n->pending_reads);
             value_length = le32_to_cpu(cmd->cdw10) * 4;
             key_length = (le32_to_cpu(cmd->cdw11) & 0xFF) + 1;
-            allocated_key_length = 16;
-            if (allocated_key_length < key_length) allocated_key_length = key_length;
-            key = g_malloc0(allocated_key_length + 1);
             value = g_malloc0(value_length);
             prp1 = le64_to_cpu(cmd->dptr.prp1);
             prp2 = le64_to_cpu(cmd->dptr.prp2);
@@ -172,24 +162,24 @@ static uint16_t pink_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             status = NVME_SUCCESS;
 
             if (key_length <= 16) {
-                *((uint32_t *)key) = le32_to_cpu(cmd->cdw12);
-                *((uint32_t *)(key + 4)) = le32_to_cpu(cmd->cdw13);
-                *((uint32_t *)(key + 8)) = le32_to_cpu(cmd->cdw14);
-                *((uint32_t *)(key + 12)) = le32_to_cpu(cmd->cdw15);
+                *((uint32_t *)req->key_buf) = le32_to_cpu(cmd->cdw12);
+                *((uint32_t *)(req->key_buf + 4)) = le32_to_cpu(cmd->cdw13);
+                *((uint32_t *)(req->key_buf + 8)) = le32_to_cpu(cmd->cdw14);
+                *((uint32_t *)(req->key_buf + 12)) = le32_to_cpu(cmd->cdw15);
             } else {
                 /*
                 kv_debug("key_length: 0x%x, key_prp1: 0x%lx, key_prp2: 0x%lx\n",
                         key_length, key_prp1, key_prp2);
                         */
-                status = dma_write_prp(n, key, key_length, key_prp1, key_prp2);
+                status = dma_write_prp(n, req->key_buf, key_length, key_prp1, key_prp2);
                 if (status != NVME_SUCCESS) {
                     return status;  // XXX free the resources
                 }
             }
 #ifdef HASH_COLLISION_MODELING
-            memcpy(key+4, key, 4);
-            memcpy(key+8, key, 4);
-            memcpy(key+2, key+7, 4);
+            memcpy(req->key_buf+4, req->key_buf, 4);
+            memcpy(req->key_buf+8, req->key_buf, 4);
+            memcpy(req->key_buf+2, req->key_buf+7, 4);
 #endif
             /*
             kv_debug("keylen: %d: ", key_length);
@@ -199,10 +189,8 @@ static uint16_t pink_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             kv_debug("\n");
             */
             req->key_length = key_length;
-            memset(req->key_buf, 0, key_length + 1);
-            memcpy(req->key_buf, key, key_length);
+            req->key_buf[key_length+1] = 0;
             g_free(value);
-            g_free(key);
             return NVME_SUCCESS;
         case NVME_CMD_KV_DELETE:
             return NVME_INVALID_OPCODE | NVME_DNR;
