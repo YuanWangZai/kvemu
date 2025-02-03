@@ -146,13 +146,13 @@ static uint16_t lksv3_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             req->key_length = key_length;
             req->key_buf[key_length+1] = 0;
             req->value_length = value_length;
-            FREE(value);
+            req->value = value;
             return NVME_SUCCESS;
         case NVME_CMD_KV_RETRIEVE:
             qatomic_inc(&n->pending_reads);
             value_length = le32_to_cpu(cmd->cdw10) * 4;
             key_length = (le32_to_cpu(cmd->cdw11) & 0xFF) + 1;
-            value = g_malloc0(value_length);
+            //value = g_malloc0(value_length);
             prp1 = le64_to_cpu(cmd->dptr.prp1);
             prp2 = le64_to_cpu(cmd->dptr.prp2);
             key_prp1 =
@@ -191,7 +191,7 @@ static uint16_t lksv3_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             */
             req->key_length = key_length;
             req->key_buf[key_length+1] = 0;
-            FREE(value);
+            //FREE(value);
             return NVME_SUCCESS;
         case NVME_CMD_KV_DELETE:
             return NVME_INVALID_OPCODE | NVME_DNR;

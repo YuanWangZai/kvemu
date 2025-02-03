@@ -796,7 +796,7 @@ void lksv3_mark_line_free(struct ssd *ssd, struct femu_ppa *ppa)
     memset(&per_line_data(line)->sg, 0, sizeof(struct sg_list));
 }
 
-static keyset* find_from_list(kv_key key, kv_skiplist *list) {
+static keyset* find_from_list(struct ssd *ssd, kv_key key, kv_skiplist *list) {
     keyset *target_set = NULL;
     kv_snode *target_node;
     if (list) {
@@ -808,8 +808,19 @@ static keyset* find_from_list(kv_key key, kv_skiplist *list) {
                 target_set->ppa = *snode_ppa(target_node);
                 target_set->voff = *snode_off(target_node);
                 target_set->hash = *snode_hash(target_node);
+
+                struct nand_page *pg2 = lksv3_get_pg(ssd, &target_set->ppa);
+                int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (target_set->voff + 1));
+                lksv_block_meta meta = *(lksv_block_meta *) (pg2->data + offset);
+                kv_assert(meta.g1.hash == target_set->hash);
+                target_set->value_len = meta.g2.slen;
+                target_set->value = g_malloc0(target_set->value_len);
+                memcpy(target_set->value, pg2->data + meta.g1.off + meta.g1.klen, target_set->value_len);
             } else {
                 target_set->ppa.ppa = UNMAPPED_PPA;
+                target_set->value_len = target_node->value->length;
+                target_set->value = g_malloc0(target_set->value_len);
+                memcpy(target_set->value, target_node->value->value, target_set->value_len);
             }
         }
     }
@@ -834,7 +845,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     FREE(k.key);
     return req->etime - req->stime;
 
-    find_from_list(k, NULL);
+    find_from_list(ssd, k, NULL);
 }
 #else
 static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
@@ -842,6 +853,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     keyset *found = NULL;
     kv_key k;
     //uint64_t sublat, maxlat = 0;
+    req->value = NULL;
     req->etime = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 
     k.key = g_malloc0(req->key_length);
@@ -850,8 +862,10 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
 
     qemu_mutex_lock(&ssd->memtable_mu);
     /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(k, lksv_lsm->memtable);
+    found = find_from_list(ssd, k, lksv_lsm->memtable);
     if (found) {
+        req->value_length = found->value_len;
+        req->value = (uint8_t *) found->value;
         FREE(found->lpa.key);
         FREE(found);
         FREE(k.key);
@@ -860,8 +874,10 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     }
 
     /* 2. Check compaction temp table (skiplist). */
-    found = find_from_list(k, lksv_lsm->temptable);
+    found = find_from_list(ssd, k, lksv_lsm->temptable);
     if (found) {
+        req->value_length = found->value_len;
+        req->value = (uint8_t *) found->value;
         if (found->ppa.ppa != UNMAPPED_PPA) {
             kv_assert(check_voffset(ssd, &found->ppa, found->voff, found->hash));
 
@@ -887,8 +903,11 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
         }
     }
 
-    found = find_from_list(k, lksv_lsm->kmemtable);
+    found = find_from_list(ssd, k, lksv_lsm->kmemtable);
     if (found) {
+        req->value_length = found->value_len;
+        req->value = (uint8_t *) found->value;
+
         kv_assert(check_voffset(ssd, &found->ppa, found->voff, found->hash));
 
         struct nand_cmd srd;
@@ -916,16 +935,22 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     switch (result) {
         case CACHING:
             kv_assert(found != NULL);
+            req->value_length = found->value_len;
+            req->value = (uint8_t *) found->value;
             FREE(found);
             FREE(k.key);
             return req->etime - req->stime;
         case COMP_FOUND:
             kv_assert(found);
+            req->value_length = found->value_len;
+            req->value = (uint8_t *) found->value;
             FREE(found);
             FREE(k.key);
             return req->etime - req->stime;
         case FOUND:
             kv_assert(found);
+            req->value_length = found->value_len;
+            req->value = (uint8_t *) found->value;
             FREE(found);
             FREE(k.key);
             return req->etime - req->stime;
@@ -964,22 +989,25 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
         if (sampling % 100000 == 0)
             printf("val: %ld, inv: %ld\n", lksv_lsm->val, lksv_lsm->inv);
         keyset *found = NULL;
-        found = find_from_list(k, lksv_lsm->memtable);
+        found = find_from_list(ssd, k, lksv_lsm->memtable);
         if (found) {
+            FREE(found->value);
             FREE(found->lpa.key);
             FREE(found);
             lksv_lsm->inv++;
             goto out;
         }
-        found = find_from_list(k, lksv_lsm->temptable);
+        found = find_from_list(ssd, k, lksv_lsm->temptable);
         if (found) {
+            FREE(found->value);
             FREE(found->lpa.key);
             FREE(found);
             lksv_lsm->inv++;
             goto out;
         }
-        found = find_from_list(k, lksv_lsm->kmemtable);
+        found = find_from_list(ssd, k, lksv_lsm->kmemtable);
         if (found) {
+            FREE(found->value);
             FREE(found->lpa.key);
             FREE(found);
             lksv_lsm->inv++;
@@ -989,6 +1017,7 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
         lksv3_run_t *entry = NULL;
         lksv3_lsm_find_run(ssd, k, &entry, entry, &found, &level, req);
         if (found) {
+            FREE(found->value);
             FREE(found);
             lksv_lsm->inv++;
             goto out;
@@ -1004,7 +1033,7 @@ out:
 
     v = g_malloc0(sizeof(kv_value));
     v->length = req->value_length;
-    v->value = NULL;
+    v->value = (char *) req->value;
 
     //qemu_mutex_lock(&ssd->memtable_mu);
     lksv3_skiplist_insert(lksv_lsm->memtable, k, v, true, ssd);

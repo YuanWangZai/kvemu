@@ -343,6 +343,29 @@ find_keyset:
                     }
                 }
             }
+
+            if (ks->ppa.ppa == UNMAPPED_PPA) {
+                if (meta->g2.snum == 1) {
+                    ks->value = g_malloc0(ks->value_len);
+                    memcpy(ks->value, buffer + meta->g1.off + meta->g1.klen, ks->value_len);
+                } else {
+                    struct femu_ppa ppa = get_next_write_ppa(ssd, run->ppa, page_idx+1);
+                    struct nand_page *pg2 = lksv3_get_pg(ssd, &ppa);
+                    lksv_block_meta meta2 = *(lksv_block_meta *) (pg2->data);
+                    ks->value_len += meta2.g2.slen;
+                    ks->value = g_malloc0(ks->value_len);
+                    memcpy(ks->value, buffer + meta->g1.off + meta->g1.klen, meta->g2.slen);
+                    memcpy(ks->value + meta->g2.slen, pg2->data + LKSV3_SSTABLE_META_BLK_SIZE, meta2.g2.slen);
+                }
+            } else {
+                struct nand_page *pg2 = lksv3_get_pg(ssd, &ks->ppa);
+                int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (ks->voff + 1));
+                lksv_block_meta meta2 = *(lksv_block_meta *) (pg2->data + offset);
+                kv_assert(meta2.g1.hash == ks->hash);
+                ks->value_len = meta2.g2.slen;
+                ks->value = g_malloc0(ks->value_len);
+                memcpy(ks->value, pg2->data + meta2.g1.off + meta2.g1.klen, ks->value_len);
+            }
             break;
         } else {
             in_page_idx++;
@@ -711,13 +734,29 @@ void lksv3_print_level_summary(struct lksv3_lsmtree *LSM) {
     }
 }
 
-static void _lksv3_mem_cvt2table(struct ssd *ssd, lksv_comp_entry **mem, int n, lksv3_sst_t *sst, bool sharded)
+static void _lksv3_mem_cvt2table(struct ssd *ssd, lksv_comp_entry **mem, int n, lksv3_sst_t *sst, bool sharded, lksv_shard *shard)
 {
     int wp = 0;
 
     memset(sst, 0, sizeof(lksv3_sst_t));
     sst->raw = calloc(1, PAGESIZE);
     sst->meta = calloc(2048, sizeof(lksv_block_meta));
+
+    if (shard) {
+        lksv_block_meta meta;
+        meta.m1 = 0;
+        meta.m2 = 0;
+        meta.g2.sid = 1;
+        meta.g2.snum = 2;
+        meta.g2.slen = shard->length - shard->offset;
+
+        memcpy(sst->raw, &meta, sizeof(lksv_block_meta));
+        wp = LKSV3_SSTABLE_META_BLK_SIZE;
+
+        kv_assert(shard->value);
+        memcpy(((char *) sst->raw) + wp, shard->value + shard->offset, meta.g2.slen);
+        wp += meta.g2.slen;
+    }
 
     lksv_comp_entry *t;
     for (int i = 0; i < n; i++) {
@@ -729,12 +768,15 @@ static void _lksv3_mem_cvt2table(struct ssd *ssd, lksv_comp_entry **mem, int n, 
         kv.k = t->key;
         kv.v.len = t->meta.g2.slen;
         kv.voff = t->meta.g2.voff;
+        kv.v.val = t->value;
         if (t->meta.g1.flag == VLOG) {
             kv.ppa = t->ppa;
             kv_assert(kv.ppa.ppa != UNMAPPED_PPA);
+            kv_assert(kv.v.val == NULL);
         } else {
             kv.ppa.ppa = UNMAPPED_PPA;
             kv_assert(t->meta.g2.slen != PPA_LENGTH);
+            kv_assert(kv.v.val != NULL);
         }
 
         int ret = lksv3_sst_encode2(sst, &kv, t->meta.g1.hash, &wp, sharded && i == n-1);
@@ -753,23 +795,46 @@ char *lksv3_mem_cvt2table2(struct ssd *ssd, struct lksv_comp_list *list, lksv3_r
     idx = 0;
     lksv3_sst_t sst[PG_N];
     int shard_left_size = 0;
+    lksv_shard shard1, shard2;
+    lksv_shard *sp;
     for (int i = 0; i < list->n; i += n) {
         kv_assert(idx < PG_N);
         from = i;
         int page_size = LKSV3_SSTABLE_FOOTER_BLK_SIZE + shard_left_size;
+        if (shard_left_size > 0) {
+            shard1 = shard2;
+            sp = &shard1;
+        } else {
+            sp = NULL;
+        }
         shard_left_size = 0;
         int k;
         for (k = i; k < list->n; k++) {
             int entry_size = LKSV3_SSTABLE_META_BLK_SIZE + LKSV3_SSTABLE_STR_IDX_SIZE;
             entry_size += list->hash_order_pointers[k]->key.len;
-            if (page_size + entry_size + PPA_LENGTH > PAGESIZE) {
+            if (page_size + entry_size + PPA_LENGTH + 1 > PAGESIZE) {
                 break;
             }
             // shardable
             entry_size += list->hash_order_pointers[k]->meta.g2.slen;
             if (page_size + entry_size > PAGESIZE) {
-                shard_left_size = page_size + entry_size - PAGESIZE +
-                                  LKSV3_SSTABLE_META_BLK_SIZE;
+                assert(idx < PG_N-1);
+                if (k == list->n-1) {
+                    // TODO: handle this.
+                    break;
+                }
+
+                shard_left_size = page_size + entry_size - PAGESIZE;
+
+                kv_assert(list->hash_order_pointers[k]->value);
+                shard2.value = list->hash_order_pointers[k]->value;
+                shard2.length = list->hash_order_pointers[k]->meta.g2.slen;
+                shard2.offset = shard2.length - shard_left_size;
+                
+                shard_left_size += LKSV3_SSTABLE_META_BLK_SIZE;
+
+                list->hash_order_pointers[k]->meta.g2.slen = shard2.offset;
+
                 page_size = PAGESIZE;
                 k++;
                 break;
@@ -782,7 +847,7 @@ char *lksv3_mem_cvt2table2(struct ssd *ssd, struct lksv_comp_list *list, lksv3_r
         }
         //qsort(ces + from, n, sizeof(struct lksv3_comp_entry), key_compare);
 
-        _lksv3_mem_cvt2table(ssd, list->hash_order_pointers + from, n, &sst[idx], shard_left_size > 0);
+        _lksv3_mem_cvt2table(ssd, list->hash_order_pointers + from, n, &sst[idx], shard_left_size > 0, sp);
         input->pg_start_hashes[idx] = list->hash_order_pointers[from]->meta.g1.hash >> LEVELLIST_HASH_SHIFTS;
         input->hash_lists[idx].hashes = calloc(n, sizeof(lksv_hash));
         input->hash_lists[idx].n = n;
@@ -904,7 +969,7 @@ char *lksv3_mem_cvt2table(struct ssd *ssd, kv_skiplist *mem, lksv3_run_t *input)
             n = mem->n - from;
         }
 
-        _lksv3_mem_cvt2table(ssd, list.hash_order_pointers + from, n, &sst[idx], false);
+        _lksv3_mem_cvt2table(ssd, list.hash_order_pointers + from, n, &sst[idx], false, NULL);
         input->pg_start_hashes[idx] = list.hash_order_pointers[from]->meta.g1.hash >> LEVELLIST_HASH_SHIFTS;
         input->hash_lists[idx].hashes = calloc(n, sizeof(lksv_hash));
         input->hash_lists[idx].n = n;

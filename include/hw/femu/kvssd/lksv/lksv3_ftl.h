@@ -155,6 +155,7 @@ typedef struct keyset {
     int value_len;
     int voff;
     uint32_t hash;
+    char *value;
 } keyset;
 
 typedef struct lksv3_level lksv3_level;
@@ -254,12 +255,19 @@ typedef struct lksv3_sst_str_idx_t {
     };
 } lksv3_sst_str_idx_t;
 
+typedef struct lksv_shard {
+    char *value;
+    int offset;
+    int length;
+} lksv_shard;
+
 typedef struct lksv_comp_entry {
     kv_key                  key;
     lksv_block_meta         meta;
     struct femu_ppa         ppa;
     uint32_t                hash_order;
     struct lksv_comp_entry  *next;
+    char                    *value;
 } lksv_comp_entry;
 
 typedef struct lksv_comp_list {

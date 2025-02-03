@@ -149,6 +149,8 @@ static void log_write(struct ssd *ssd, kv_skiplist *mem) {
         lksv3_kv_pair_t kv;
         kv.k = dummy_key;
         kv.v.len = t->value->length;
+        kv_assert(t->value->value);
+        kv.v.val = t->value->value;
         kv.ppa.ppa = UNMAPPED_PPA;
 
         int ret;
@@ -196,6 +198,9 @@ retry:
             tmp_voff[tmp_i] = sst.footer.g.n;
             goto retry;
         } else {
+            // kv_skiplist_free will free them.
+            //FREE(t->value->value);
+            //FREE(t->value);
             kv_assert(ret == LKSV3_TABLE_OK);
         }
         tmp_i++;

@@ -81,7 +81,7 @@ lksv3_sst_encode_str_idx(lksv3_sst_t *sst, lksv3_sst_str_idx_t *block, int n)
 }
 
 int lksv3_sst_encode2(lksv3_sst_t *sst, lksv3_kv_pair_t *kv, uint32_t hash, int *wp, bool sharded) {
-    if (!sharded && !is_fit(sst, kv, *wp)) {
+    if (!is_fit(sst, kv, *wp)) {
         return LKSV3_TABLE_FULL;
     }
 
@@ -103,10 +103,13 @@ int lksv3_sst_encode2(lksv3_sst_t *sst, lksv3_kv_pair_t *kv, uint32_t hash, int 
 
     // TODO: Copy value.
     m->g2.slen = kv->v.len;
-    if (kv->v.len == PPA_LENGTH)
+    if (kv->v.len == PPA_LENGTH) {
         m->g1.flag = VLOG;
-    else
+        kv_assert(kv->ppa.ppa != UNMAPPED_PPA);
+    } else {
         m->g1.flag = VMETA;
+        kv_assert(kv->ppa.ppa == UNMAPPED_PPA);
+    }
     int v = *wp + kv->v.len;
     *wp = v;
 
@@ -115,6 +118,10 @@ int lksv3_sst_encode2(lksv3_sst_t *sst, lksv3_kv_pair_t *kv, uint32_t hash, int 
     memcpy(sst->raw + m->g1.off, kv->k.key, kv->k.len);
     if (kv->ppa.ppa != UNMAPPED_PPA) {
         memcpy(sst->raw + m->g1.off + kv->k.len, &kv->ppa, sizeof(struct femu_ppa));
+    } else {
+        kv_assert(kv->v.val);
+        kv_assert(m->g1.off + kv->k.len + kv->v.len <= PAGESIZE);
+        memcpy(sst->raw + m->g1.off + kv->k.len, kv->v.val, kv->v.len);
     }
     return LKSV3_TABLE_OK;
 }
@@ -256,15 +263,29 @@ static void load_run_to_comp_entry_list(struct ssd *ssd, lksv_comp_list *list, l
                     int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (p->meta.g2.voff + 1));
                     lksv_block_meta meta = *(lksv_block_meta *) (pg2->data + offset);
                     kv_assert(meta.g1.hash == p->meta.g1.hash);
+                    // TODO: offset?
+                    p->value = pg2->data + meta.g1.off + meta.g1.klen;
                     p->meta.g2.slen = meta.g2.slen;
                     p->meta.g1.flag = VMETA;
                     p->ppa.ppa = UNMAPPED_PPA;
                     line->vsc++;
                 } else {
+                    p->value = NULL;
                     p->ppa = *log_ppa;
                     kv_assert(p->meta.g1.flag == VLOG);
                 }
             } else {
+                if (p->meta.g2.snum > 1) {
+                    lksv_block_meta shard_meta = *(lksv_block_meta *) (sst[sidx_sst+1].raw);
+                    p->value = g_malloc(p->meta.g2.slen + shard_meta.g2.slen);
+                    memcpy(p->value, sst[sidx_sst].raw + p->meta.g1.off + p->meta.g1.klen, p->meta.g2.slen);
+                    memcpy(p->value + p->meta.g2.slen, sst[sidx_sst+1].raw + LKSV3_SSTABLE_META_BLK_SIZE, shard_meta.g2.slen);
+                    p->meta.g2.slen = p->meta.g2.slen + shard_meta.g2.slen;
+                    // p->meta.g2.snum = 1;
+                    // p->meta.g2.sid = 0;
+                } else {
+                    p->value = sst[sidx_sst].raw + p->meta.g1.off + p->meta.g1.klen;
+                }
                 p->ppa.ppa = UNMAPPED_PPA;
                 kv_assert(p->meta.g1.flag == VMETA);
             }
@@ -561,6 +582,7 @@ retry:
     lksv3_kv_pair_t kv;
     kv.k = dummy_key;
     kv.v.len = e->meta.g2.slen;
+    kv.v.val = e->value;
     kv.ppa.ppa = UNMAPPED_PPA;
 
     e->meta.g2.voff = in_page_idx;
@@ -682,6 +704,13 @@ _do_lksv3_compaction2(struct ssd *ssd,
     int                         te_size;
     int                         i_end;
     struct femu_ppa             ppa;
+    void                      **free_list;
+    int                         free_list_i;
+
+    // TODO: fix this
+    int flimit = 10000000;
+    free_list_i = 0;
+    free_list = calloc(flimit, sizeof(void *));
 
     kv_assert(target->idx == to->idx);
     kv_assert(from ? from->idx < target->idx : true);
@@ -718,8 +747,10 @@ _do_lksv3_compaction2(struct ssd *ssd,
             // TODO: fix this.
             if (temp->value->length == PPA_LENGTH) {
                 p->meta.g1.flag = VLOG;
+                p->value = NULL;
             } else {
                 p->meta.g1.flag = VMETA;
+                p->value = temp->value->value;
             }
             if (temp->private) {
                 p->ppa = *snode_ppa(temp);
@@ -835,7 +866,13 @@ _do_lksv3_compaction2(struct ssd *ssd,
             if (le->meta.g1.flag == VMETA) {
                 if (to_log) {
                     upcnt++;
+                    te->value = le->value;
                     te->ppa = log_write2(ssd, te);
+                    if (le->meta.g2.snum > 1) {
+                        FREE(le->value);
+                        le->meta.g2.snum = 1;
+                        le->meta.g2.sid = 0;
+                    }
                     if (te->ppa.g.blk != last_log_line) {
                         last_log_line = te->ppa.g.blk;
                         to_log = should_written_back_into_value_log(ssd, to, target);
@@ -844,12 +881,20 @@ _do_lksv3_compaction2(struct ssd *ssd,
                     te->meta.g2.slen = PPA_LENGTH;
                     kv_assert(te->meta.g1.flag == VMETA);
                     te->meta.g1.flag = VLOG;
+                    te->value = NULL;
                 } else {
+                    if (le->meta.g2.snum > 1) {
+                        free_list[free_list_i] = le->value;
+                        assert(free_list_i < flimit);
+                        free_list_i++;
+                    }
                     upncnt++;
                     te->ppa = le->ppa;
+                    te->value = le->value;
                 }
             } else {
                 te->ppa = le->ppa;
+                te->value = NULL;
             }
 
             le = get_next_comp_entry(&li);
@@ -860,7 +905,15 @@ _do_lksv3_compaction2(struct ssd *ssd,
             if (ue->meta.g1.flag == VMETA) {
                 if (to_log) {
                     upcnt++;
+                    te->value = ue->value;
                     te->ppa = log_write2(ssd, te);
+                    if (!from) {
+                        FREE(ue->value);
+                    } else if (ue->meta.g2.snum > 1) {
+                        FREE(ue->value);
+                        ue->meta.g2.snum = 1;
+                        ue->meta.g2.sid = 0;
+                    }
                     if (te->ppa.g.blk != last_log_line) {
                         last_log_line = te->ppa.g.blk;
                         to_log = should_written_back_into_value_log(ssd, to, target);
@@ -869,12 +922,24 @@ _do_lksv3_compaction2(struct ssd *ssd,
                     te->meta.g2.slen = PPA_LENGTH;
                     kv_assert(te->meta.g1.flag == VMETA);
                     te->meta.g1.flag = VLOG;
+                    te->value = NULL;
                 } else {
+                    if (!from) {
+                        free_list[free_list_i] = ue->value;
+                        assert(free_list_i < flimit);
+                        free_list_i++;
+                    } else if (ue->meta.g2.snum > 1) {
+                        free_list[free_list_i] = ue->value;
+                        assert(free_list_i < flimit);
+                        free_list_i++;
+                    }
                     upncnt++;
                     te->ppa = ue->ppa;
+                    te->value = ue->value;
                 }
             } else {
                 te->ppa = ue->ppa;
+                te->value = NULL;
             }
 
             ue = get_next_comp_entry(&ui);
@@ -883,6 +948,11 @@ _do_lksv3_compaction2(struct ssd *ssd,
                 if (le->meta.g1.flag == VLOG) {
                     lksv3_get_line(ssd, &le->ppa)->isc++;
                     lksv3_get_line(ssd, &le->ppa)->vsc--;
+                }
+                if (le->meta.g2.snum > 1) {
+                    free_list[free_list_i] = le->value;
+                    assert(free_list_i < flimit);
+                    free_list_i++;
                 }
 
                 le = get_next_comp_entry(&li);
@@ -1078,6 +1148,11 @@ _do_lksv3_compaction2(struct ssd *ssd,
             to->reference_lines[i] = false;
         }
     }
+
+    for (i = 0; i < free_list_i; i++) {
+        free(free_list[i]);
+    }
+    free(free_list);
 }
 
 void do_lksv3_compaction2(struct ssd *ssd, int high_lev, int low_lev, leveling_node *l_node, lksv3_level *target) {
