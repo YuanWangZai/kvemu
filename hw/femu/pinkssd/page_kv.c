@@ -50,8 +50,8 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
     }
     qemu_mutex_unlock(&ssd->memtable_mu);
 
-    pink_run_t *entries = NULL;
-    pink_run_t *up_entry = NULL;
+    pink_level_list_entry *entries = NULL;
+    pink_level_list_entry *up_entry = NULL;
     for (int i = 0; i < LSM_LEVELN; i++) {
         if (up_entry) {
             entries = find_run_se(pink_lsm, pink_lsm->disk[i], key, up_entry, ssd, NULL);
@@ -279,8 +279,8 @@ int gc_meta_femu(struct ssd *ssd) {
                 first_key_in_meta.len = bitmap[2] - bitmap[1] - sizeof(struct femu_ppa);
                 first_key_in_meta.key = &body[bitmap[1] + sizeof(struct femu_ppa)];
 
-                pink_run_t *entries = NULL;
-                pink_run_t *target_entry = NULL;
+                pink_level_list_entry *entries = NULL;
+                pink_level_list_entry *target_entry = NULL;
                 bool checkdone = false;
                 bool shouldwrite = false;
                 for(int j = 0; j < LSM_LEVELN; j++) {
@@ -288,7 +288,7 @@ int gc_meta_femu(struct ssd *ssd) {
                     if (entries == NULL) {
                         continue;
                     }
-                    if (entries->ppa.ppa == ppa.ppa && kv_test_key(entries->key, first_key_in_meta)) {
+                    if (entries->ppa.ppa == ppa.ppa && kv_test_key(entries->smallest, first_key_in_meta)) {
                         checkdone = true;
                         target_entry = entries;
                         shouldwrite = true;

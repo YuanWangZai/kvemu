@@ -846,7 +846,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     req->etime = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 
     int level = 0;
-    pink_run_t *entry = NULL;
+    pink_level_list_entry *entry = NULL;
     lsm_scan_run(ssd, k, &entry, NULL, NULL, &level, req);
 
     free(k.key);
@@ -900,7 +900,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     //qemu_mutex_lock(&ssd->comp_mu);
     /* 3. Walk lower levels. prepare params */
     int level = 0;
-    pink_run_t *entry = NULL;
+    pink_level_list_entry *entry = NULL;
     uint8_t result;
 retry:
     result = lsm_find_run(ssd, k, &entry, entry, &found, &level, req);

@@ -44,14 +44,14 @@ void pink_lsm_create(struct ssd *ssd)
     pink_lsm->lsm_cache->flush_callback = pink_flush_cache_when_evicted;
 }
 
-uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_run_t **entry, pink_run_t *up_entry, keyset **found, int *level, NvmeRequest *req) {
-    pink_run_t *entries=NULL;
+uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+    pink_level_list_entry *entries=NULL;
     struct range_lun luns;
     memset(&luns.read, 0, sizeof(struct range_lun));
 
     struct kv_skiplist *skip = kv_skiplist_init();
 
-    pink_run_t *level_ent[10] = {NULL, };
+    pink_level_list_entry *level_ent[10] = {NULL, };
 
     for(int i = *level; i < LSM_LEVELN; i++){
         entries = find_run(pink_lsm->disk[i], key, ssd, req);
@@ -227,8 +227,8 @@ try_advance_in_level:
     return 0;
 }
 
-uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_run_t **entry, pink_run_t *up_entry, keyset **found, int *level, NvmeRequest *req) {
-    pink_run_t *entries=NULL;
+uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+    pink_level_list_entry *entries=NULL;
 
     for(int i = *level; i < LSM_LEVELN; i++){
         /* 

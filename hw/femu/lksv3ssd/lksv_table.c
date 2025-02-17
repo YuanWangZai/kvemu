@@ -191,7 +191,7 @@ void free_lksv3_compaction(lksv3_compaction *c) {
     FREE(c);
 }
 
-static void load_run_to_comp_entry_list(struct ssd *ssd, lksv_comp_list *list, lksv3_run_t *run, int to_level, int level) {
+static void load_run_to_comp_entry_list(struct ssd *ssd, lksv_comp_list *list, lksv_level_list_entry *run, int to_level, int level) {
     kv_assert(list->n == 0);
     lksv3_sst_t sst[PG_N];
     int k = 0;
@@ -679,8 +679,8 @@ _do_lksv3_compaction2(struct ssd *ssd,
 {
     lev_iter                    *to_iter;
     lev_iter                    *from_iter;
-    lksv3_run_t                 *to_run;
-    lksv3_run_t                 *from_run;
+    lksv_level_list_entry                 *to_run;
+    lksv_level_list_entry                 *from_run;
     lksv_comp_list              *upper;
     lksv_comp_list              *lower;
     lksv_comp_list              merged;
@@ -846,12 +846,12 @@ _do_lksv3_compaction2(struct ssd *ssd,
             if (merged.n > 0) {
                 //bucket_sort(&merged);
                 default_merge(&sort, &merged, &ui, &li);
-                lksv3_run_t *run = calloc(1, sizeof(lksv3_run_t));
+                lksv_level_list_entry *run = calloc(1, sizeof(lksv_level_list_entry));
                 lksv3_mem_cvt2table2(ssd, &merged, run);
                 lksv3_insert_run2(ssd, target, run);
                 lksv3_free_run(lksv_lsm, run);
-                FREE(run->key.key);
-                FREE(run->end.key);
+                FREE(run->smallest.key);
+                FREE(run->largest.key);
                 FREE(run);
                 merged.n = 0;
             }
@@ -980,12 +980,12 @@ _do_lksv3_compaction2(struct ssd *ssd,
                 //bucket_sort(&merged);
                 default_merge(&sort, &merged, &ui, &li);
 
-                lksv3_run_t *run = calloc(1, sizeof(lksv3_run_t));
+                lksv_level_list_entry *run = calloc(1, sizeof(lksv_level_list_entry));
                 lksv3_mem_cvt2table2(ssd, &merged, run);
                 lksv3_insert_run2(ssd, target, run);
                 lksv3_free_run(lksv_lsm, run);
-                FREE(run->key.key);
-                FREE(run->end.key);
+                FREE(run->smallest.key);
+                FREE(run->largest.key);
                 FREE(run);
 
                 //te->str_order = 0;
@@ -1158,7 +1158,7 @@ _do_lksv3_compaction2(struct ssd *ssd,
 void do_lksv3_compaction2(struct ssd *ssd, int high_lev, int low_lev, leveling_node *l_node, lksv3_level *target) {
     lksv3_level *l;
     lev_iter *iter;
-    lksv3_run_t *now;
+    lksv_level_list_entry *now;
 
     if (l_node) {
         _do_lksv3_compaction2(ssd, NULL, lksv_lsm->disk[low_lev], target, l_node->mem);

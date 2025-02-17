@@ -21,7 +21,7 @@ uint32_t level_change(struct pink_lsmtree *LSM, pink_level *from, pink_level *to
 uint32_t leveling(struct ssd *ssd, pink_level *from, pink_level *to, leveling_node *l_node){
     pink_level *target_origin = to;
     pink_level *target = level_init(to->idx);
-    pink_run_t *entry = NULL;
+    pink_level_list_entry *entry = NULL;
 
     // TODO: LEVEL_COMP_READ_DELAY
     read_run_delay_comp(ssd, to);
@@ -61,8 +61,8 @@ last:
 uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, leveling_node *lnode, pink_level* upper){
     kv_key start=kv_key_min;
     kv_key end=kv_key_max;
-    pink_run_t **target_s=NULL;
-    pink_run_t **data=NULL;
+    pink_level_list_entry **target_s=NULL;
+    pink_level_list_entry **data=NULL;
     kv_skiplist *skip=lnode?lnode->mem:kv_skiplist_init();
 
     if(!upper){
@@ -90,7 +90,7 @@ uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, le
 
         int j = 0;
         for(int i=0; target_s[i]!=NULL; i++){
-            pink_run_t *temp=target_s[i];
+            pink_level_list_entry *temp=target_s[i];
             if (compaction_meta_segment_read_femu(ssd, temp)) {
                 if (j % ASYNC_IO_UNIT == 0) {
                     wait_pending_reads(ssd);
@@ -100,7 +100,7 @@ uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, le
         }
 
         for(int i=0; data[i]!=NULL; i++){
-            pink_run_t *temp=data[i];
+            pink_level_list_entry *temp=data[i];
             if (compaction_meta_segment_read_femu(ssd, temp)) {
                 if (j % ASYNC_IO_UNIT == 0) {
                     wait_pending_reads(ssd);

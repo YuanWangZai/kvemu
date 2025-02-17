@@ -116,7 +116,7 @@ void lksv3_gc_data_femu3(struct ssd *ssd, int ulevel, int level) {
     memset(lksv_lsm->gc_plan[ulevel], 0, sizeof(bool) * 512);
 }
 
-static lksv3_run_t *_lksv3_gc_meta_find_run(struct ssd *ssd, struct femu_ppa *ppa)
+static lksv_level_list_entry *_lksv3_gc_meta_find_run(struct ssd *ssd, struct femu_ppa *ppa)
 {
     struct nand_page *pg = lksv3_get_pg(ssd, ppa);
     kv_key first_key_in_meta;
@@ -126,8 +126,8 @@ static lksv3_run_t *_lksv3_gc_meta_find_run(struct ssd *ssd, struct femu_ppa *pp
     first_key_in_meta.len = sst.meta[0].g1.klen;
     first_key_in_meta.key = pg->data + sst.meta[0].g1.off;
 
-    lksv3_run_t *entries = NULL;
-    lksv3_run_t *target_entry = NULL;
+    lksv_level_list_entry *entries = NULL;
+    lksv_level_list_entry *target_entry = NULL;
     bool checkdone = false;
 
     for(int j = 0; j < LSM_LEVELN; j++) {
@@ -248,7 +248,7 @@ static struct femu_ppa get_next_ppa(struct ssd *ssd, struct femu_ppa ppa)
 static void _lksv3_gc_meta_femu(struct ssd *ssd, struct femu_ppa *old_ppa)
 {
     static bool initialized = false;
-    lksv3_run_t *run = NULL;
+    lksv_level_list_entry *run = NULL;
     static struct femu_ppa old_pivot;
     static struct femu_ppa new_pivot;
     struct femu_ppa new_ppa;

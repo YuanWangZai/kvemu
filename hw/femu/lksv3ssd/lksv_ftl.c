@@ -838,7 +838,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     req->etime = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 
     int level = 0;
-    lksv3_run_t *entry = NULL;
+    lksv_level_list_entry *entry = NULL;
 
     lksv3_lsm_scan_run(ssd, k, &entry, NULL, NULL, &level, req);
 
@@ -928,7 +928,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
 
     /* 3. Walk lower levels. prepare params */
     int level = 0;
-    lksv3_run_t *entry = NULL;
+    lksv_level_list_entry *entry = NULL;
     uint8_t result;
     result = lksv3_lsm_find_run(ssd, k, &entry, entry, &found, &level, req);
 
@@ -1014,7 +1014,7 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
             goto out;
         }
         int level = 0;
-        lksv3_run_t *entry = NULL;
+        lksv_level_list_entry *entry = NULL;
         lksv3_lsm_find_run(ssd, k, &entry, entry, &found, &level, req);
         if (found) {
             FREE(found->value);

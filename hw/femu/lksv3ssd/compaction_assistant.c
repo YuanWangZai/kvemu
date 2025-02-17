@@ -414,9 +414,9 @@ uint32_t lksv3_compaction_empty_level(struct ssd *ssd, lksv3_level **from, level
          */
         struct femu_ppa unmapped_ppa;
         unmapped_ppa.ppa = UNMAPPED_PPA;
-        lksv3_run_t *entry = lksv3_make_run(lnode->start, lnode->end, unmapped_ppa);
-        FREE(entry->key.key);
-        FREE(entry->end.key);
+        lksv_level_list_entry *entry = lksv3_make_run(lnode->start, lnode->end, unmapped_ppa);
+        FREE(entry->smallest.key);
+        FREE(entry->largest.key);
         lksv3_mem_cvt2table(ssd, lnode->mem, entry);
 
         lksv3_compaction_meta_segment_write_insert_femu(ssd, (*des), entry);

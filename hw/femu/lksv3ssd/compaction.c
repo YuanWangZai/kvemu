@@ -28,7 +28,7 @@ uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to,
             if (b->arrs[i].cache[LEVEL_LIST_ENTRY]) {
                 continue;
             }
-            uint32_t entry_size = b->arrs[i].key.len + (LEVELLIST_HASH_BYTES * PG_N) + 20;
+            uint32_t entry_size = b->arrs[i].smallest.len + (LEVELLIST_HASH_BYTES * PG_N) + 20;
             kv_cache_insert(lksv_lsm->lsm_cache, &b->arrs[i].cache[LEVEL_LIST_ENTRY], entry_size, cache_level(LEVEL_LIST_ENTRY, target->idx), KV_CACHE_WITHOUT_FLAGS);
             if (!b->arrs[i].cache[LEVEL_LIST_ENTRY]) {
                 break;
@@ -62,7 +62,7 @@ uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to,
 uint32_t lksv3_leveling(struct ssd *ssd, lksv3_level *from, lksv3_level *to, leveling_node *l_node){
     int m_num = to->m_num;
     lksv3_level *target = lksv3_level_init(m_num, to->idx);
-    lksv3_run_t *entry = NULL;
+    lksv_level_list_entry *entry = NULL;
 
     /*
      * If destination level is empty. (0 runs)

@@ -140,7 +140,7 @@ struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data) 
 }
 
 // Return true if read from flash.
-bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_run_t *ent) {
+bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *ent) {
     struct nand_page *pg;
     bool cached = kv_is_cached(pink_lsm->lsm_cache, ent->cache[META_SEGMENT]);
 
@@ -166,7 +166,7 @@ entry_was_cached:
 
 void pink_flush_cache_when_evicted(kv_cache_entry *ent)
 {
-    struct pink_run *r = container_of(ent->entry, struct pink_run, cache[META_SEGMENT]);
+    struct pink_level_list_entry *r = container_of(ent->entry, struct pink_level_list_entry, cache[META_SEGMENT]);
 
     if (r->ppa.ppa != UNMAPPED_PPA) {
         kv_assert(r->buffer == NULL);

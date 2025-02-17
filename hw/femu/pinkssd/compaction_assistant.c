@@ -170,11 +170,11 @@ void compaction_check(struct ssd *ssd) {
     qemu_mutex_unlock(&ssd->comp_q_mu);
 }
 
-void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_run** src, struct pink_run** org, struct pink_level *des){
+void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_level_list_entry** src, struct pink_level_list_entry** org, struct pink_level *des){
     merger(ssd, top,src,org,des);
 
     kv_key key,end;
-    pink_run_t* target=NULL;
+    pink_level_list_entry* target=NULL;
 
     int run_idx = 0;
     array_body *b = (array_body*)des->level_data;
@@ -195,7 +195,7 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
     qemu_mutex_lock(&ssd->comp_mu);
     if (src) {
         for(int i=0; src[i]!=NULL; i++){
-            pink_run_t *temp=src[i];
+            pink_level_list_entry *temp=src[i];
             meta_segment_read_postproc(ssd, temp);
 
             if (j % ASYNC_IO_UNIT == 0) {
@@ -208,7 +208,7 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
         FREE(src);
     }
     for(int i=0; org[i]!=NULL; i++){
-        pink_run_t *temp=org[i];
+        pink_level_list_entry *temp=org[i];
         meta_segment_read_postproc(ssd, temp);
 
         if (j % ASYNC_IO_UNIT == 0) {
@@ -222,7 +222,7 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
 
     bool cache_full = false;
     for (int i = 0; i < des->n_num; i++) {
-        pink_run_t *temp = &b->arrs[i];
+        pink_level_list_entry *temp = &b->arrs[i];
 
         if (!cache_full) {
             kv_cache_insert(pink_lsm->lsm_cache, &temp->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, des->idx), KV_CACHE_FLUSH_EVICTED);
@@ -251,14 +251,14 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
     //wait_delay(ssd, true);
 }
 
-bool meta_segment_read_preproc(pink_run_t *r){
+bool meta_segment_read_preproc(pink_level_list_entry *r){
     if (r->buffer) {
         return true;
     }
     return false;
 }
 
-void meta_segment_read_postproc(struct ssd *ssd, pink_run_t *r){
+void meta_segment_read_postproc(struct ssd *ssd, pink_level_list_entry *r){
     if (r->ppa.ppa != UNMAPPED_PPA) {
         // data will be freed when marking page invalid.
         kv_assert(get_pg(ssd, &r->ppa)->data == r->buffer);
@@ -283,9 +283,9 @@ uint32_t compaction_empty_level(struct ssd *ssd, pink_level **from, leveling_nod
             kv_key start;
             kv_key end;
             kv_skiplist_get_start_end_key(mem, &start, &end);
-            pink_run_t *entry = make_run(start, end, unmapped_ppa);
-            FREE(entry->key.key);
-            FREE(entry->end.key);
+            pink_level_list_entry *entry = make_run(start, end, unmapped_ppa);
+            FREE(entry->smallest.key);
+            FREE(entry->largest.key);
             mem_cvt2table(ssd, mem, entry);
 
             if (!cache_full) {

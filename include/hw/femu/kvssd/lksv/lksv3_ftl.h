@@ -113,26 +113,25 @@ typedef struct {
  * levels in the flash. Each run contains a header that holds the locations of
  * KV objects (KV indices) in the flash.
  */
-typedef struct lksv3_run {
-    kv_key key;
-    kv_key end;
+typedef struct lksv_level_list_entry
+{
+    kv_key          smallest;
+    kv_key          largest;
     struct femu_ppa ppa;
 
     // not null == cached
-    struct kv_cache_entry *cache[CACHE_TYPES];
+    kv_cache_entry  *cache[CACHE_TYPES];
 
     lksv_hash_list  hash_lists[PG_N];
     uint16_t        pg_start_hashes[PG_N];
     int             hash_list_n;
 
     // TODO: Change this to bitmap.
-    bool collision_bits[PG_N];
+    bool            collision_bits[PG_N];
 
     // raw format of meta segment. (page size)
-    char *buffer[PG_N];
-} lksv3_run;
-
-typedef struct lksv3_run lksv3_run_t;
+    char            *buffer[PG_N];
+} lksv_level_list_entry;
 
 #define LEVEL_LIST_ENTRY_PER_PAGE (PAGESIZE/(32+(PG_N*LEVELLIST_HASH_BYTES)+20))
 
@@ -285,28 +284,28 @@ typedef struct lksv_comp_lists_iterator {
 } lksv_comp_lists_iterator;
 
 /* level operations */
-void lksv3_array_range_update(lksv3_level *lev, lksv3_run_t* r, kv_key key);
+void lksv3_array_range_update(lksv3_level *lev, lksv_level_list_entry* r, kv_key key);
 lksv3_level* lksv3_level_init(int size, int idx);
 void lksv3_free_level(struct lksv3_lsmtree *, lksv3_level *);
-void lksv3_free_run(struct lksv3_lsmtree*, lksv3_run *);
-lksv3_run* lksv3_insert_run(struct ssd *ssd, lksv3_level_t* des, lksv3_run *r);
-lksv3_run_t* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv3_run_t* r);
+void lksv3_free_run(struct lksv3_lsmtree*, lksv_level_list_entry *);
+lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level_t* des, lksv_level_list_entry *r);
+lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv_level_list_entry* r);
 void lksv3_copy_level(struct ssd *ssd, lksv3_level_t *des, lksv3_level_t *src);
-keyset* lksv3_find_keyset(struct ssd *ssd, NvmeRequest *req, lksv3_run_t *run, kv_key lpa, uint32_t hash, int level);
-uint32_t lksv3_range_find_compaction(lksv3_level_t *l, kv_key start, kv_key end, lksv3_run ***r);
+keyset* lksv3_find_keyset(struct ssd *ssd, NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level);
+uint32_t lksv3_range_find_compaction(lksv3_level_t *l, kv_key start, kv_key end, lksv_level_list_entry ***r);
 lev_iter* lksv3_get_iter(lksv3_level_t*, kv_key from, kv_key to); //from<= x <to
-lksv3_run* lksv3_iter_nxt(lev_iter*);
-char* lksv3_mem_cvt2table(struct ssd *ssd, kv_skiplist *, lksv3_run *);
-char *lksv3_mem_cvt2table2(struct ssd *ssd, lksv_comp_list *mem, lksv3_run_t *input);
+lksv_level_list_entry* lksv3_iter_nxt(lev_iter*);
+char* lksv3_mem_cvt2table(struct ssd *ssd, kv_skiplist *, lksv_level_list_entry *);
+char *lksv3_mem_cvt2table2(struct ssd *ssd, lksv_comp_list *mem, lksv_level_list_entry *input);
 void lksv3_make_partition(struct lksv3_lsmtree*, lksv3_level *);
 
-uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv3_run_t **entry, lksv3_run_t *up_entry, keyset **found, int *level, NvmeRequest *req);
-lksv3_run_t *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct ssd *ssd);
-lksv3_run_t *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa, struct ssd *ssd);
-lksv3_run *lksv3_find_run(lksv3_level_t*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
-lksv3_run *lksv3_find_run_se(struct lksv3_lsmtree*, lksv3_level_t *lev, kv_key lpa, lksv3_run *upper_run, struct ssd *ssd, NvmeRequest *req);
+uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
+lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct ssd *ssd);
+lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa, struct ssd *ssd);
+lksv_level_list_entry *lksv3_find_run(lksv3_level_t*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
+lksv_level_list_entry *lksv3_find_run_se(struct lksv3_lsmtree*, lksv3_level_t *lev, kv_key lpa, lksv_level_list_entry *upper_run, struct ssd *ssd, NvmeRequest *req);
 void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev);
-lksv3_run *lksv3_make_run(kv_key start, kv_key end, struct femu_ppa);
+lksv_level_list_entry *lksv3_make_run(kv_key start, kv_key end, struct femu_ppa);
 void lksv3_print_level_summary(struct lksv3_lsmtree*);
 
 // page.h ====================================================
@@ -343,7 +342,7 @@ typedef struct leveling_node{
     kv_skiplist *mem;
     kv_key start;
     kv_key end;
-    lksv3_run_t *entry;
+    lksv_level_list_entry *entry;
 } leveling_node;
 
 struct lksv3_lsmtree;
@@ -361,7 +360,7 @@ uint32_t lksv3_compaction_empty_level(struct ssd *ssd, lksv3_level **from, level
 
 void lksv3_compaction_data_write(struct ssd *ssd, leveling_node* lnode);
 struct femu_ppa lksv3_compaction_meta_segment_write_femu(struct ssd *ssd, char *data, int level);
-struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(struct ssd *ssd, lksv3_level *target, lksv3_run_t *entry);
+struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(struct ssd *ssd, lksv3_level *target, lksv_level_list_entry *entry);
 
 // lksv3_table.h =================================================
 
@@ -419,7 +418,7 @@ void lksv3_sst_read(struct ssd *ssd, struct femu_ppa ppa, lksv3_sst_t *sst);
 
 typedef struct small_node{
     kv_key start;
-    lksv3_run_t *r;
+    lksv_level_list_entry *r;
 } s_node;
 
 typedef struct prifix_node{
@@ -432,14 +431,14 @@ typedef struct partition_node{
 } pt_node;
 
 typedef struct array_body{
-    lksv3_run_t *arrs;
+    lksv_level_list_entry *arrs;
     int max_depth;
     pr_node *pr_arrs;
     pt_node *p_nodes;
 } array_body;
 
 typedef struct array_iter{
-    lksv3_run_t *arrs;
+    lksv_level_list_entry *arrs;
     int max;
     int now;
     bool ispartial;
@@ -525,7 +524,7 @@ typedef struct lksv3_lsmtree_levelsize_params {
 
 void lksv3_lsm_create(struct ssd *ssd);
 void lksv3_lsm_setup_params(struct ssd *ssd);
-uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv3_run_t **entry, lksv3_run_t *up_entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
 

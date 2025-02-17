@@ -55,7 +55,7 @@ struct lksv3_sorted_string {
     int e;
 };
 
-static struct lksv3_sorted_string *sort_run(struct ssd *ssd, lksv3_run_t *entry, struct range_lun *luns) {
+static struct lksv3_sorted_string *sort_run(struct ssd *ssd, lksv_level_list_entry *entry, struct range_lun *luns) {
     struct lksv3_sorted_string *ss = g_malloc0(sizeof(struct lksv3_sorted_string));
 
     for (int k = 0; k < entry->hash_list_n; k++) {
@@ -79,14 +79,14 @@ static struct lksv3_sorted_string *sort_run(struct ssd *ssd, lksv3_run_t *entry,
     return ss;
 }
 
-uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv3_run_t **entry, lksv3_run_t *up_entry, keyset **found, int *level, NvmeRequest *req) {
-    lksv3_run_t *entries=NULL;
+uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+    lksv_level_list_entry *entries=NULL;
     struct range_lun luns;
     memset(&luns.read, 0, sizeof(struct range_lun));
 
     struct kv_skiplist *skip = kv_skiplist_init();
 
-    lksv3_run_t *level_ent[10] = {NULL, };
+    lksv_level_list_entry *level_ent[10] = {NULL, };
 
     for(int i = *level; i < LSM_LEVELN; i++){
         entries = lksv3_find_run(lksv_lsm->disk[i], key, ssd, req);
@@ -291,8 +291,8 @@ try_advance_in_level:
     return FOUND;
 }
 
-uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv3_run_t **entry, lksv3_run_t *up_entry, keyset **found, int *level, NvmeRequest *req) {
-    lksv3_run_t *entries=NULL;
+uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+    lksv_level_list_entry *entries=NULL;
 
     uint32_t hash;
     hash = XXH32(key.key, key.len, 0);

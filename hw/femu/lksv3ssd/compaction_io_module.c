@@ -36,7 +36,7 @@ struct femu_ppa lksv3_compaction_meta_segment_write_femu(struct ssd *ssd, char *
     return fppa;
 }
 
-struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(struct ssd *ssd, lksv3_level *target, lksv3_run_t *entry)
+struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(struct ssd *ssd, lksv3_level *target, lksv_level_list_entry *entry)
 {
     struct femu_ppa fppa;
 

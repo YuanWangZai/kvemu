@@ -46,22 +46,21 @@ typedef struct pink_key_age {
  * levels in the flash. Each run contains a header that holds the locations of
  * KV objects (KV indices) in the flash.
  */
-typedef struct pink_run {
-    kv_key key;
-    kv_key end;
+typedef struct pink_level_list_entry
+{
+    kv_key          smallest;
+    kv_key          largest;
     struct femu_ppa ppa;
 
     // not null == cached
-    kv_cache_entry *cache[CACHE_TYPES];
+    kv_cache_entry  *cache[CACHE_TYPES];
 
     // raw format of meta segment. (page size)
-    char *buffer;
-} pink_run;
-
-typedef struct pink_run pink_run_t;
+    char            *buffer;
+} pink_level_list_entry;
 
 typedef struct pipe_line_run{
-    pink_run *r;
+    pink_level_list_entry *r;
 }pl_run;
 
 #define BULK_FLUSH_MARGIN 5
@@ -106,24 +105,24 @@ typedef struct lev_iter{
 /* level operations */
 pink_level* level_init(int idx);
 void free_level(struct pink_lsmtree *, pink_level *);
-void free_run(struct pink_lsmtree*, pink_run *);
-pink_run* insert_run(struct ssd *ssd, pink_level* des, pink_run *r);
+void free_run(struct pink_lsmtree*, pink_level_list_entry *);
+pink_level_list_entry* insert_run(struct ssd *ssd, pink_level* des, pink_level_list_entry *r);
 void copy_level(struct ssd *ssd, pink_level *des, pink_level *src);
 keyset *find_keyset(char *data, kv_key lpa);
-uint32_t range_find_compaction(pink_level *l, kv_key start, kv_key end, pink_run ***r);
+uint32_t range_find_compaction(pink_level *l, kv_key start, kv_key end, pink_level_list_entry ***r);
 lev_iter* get_iter(pink_level*, kv_key from, kv_key to); //from<= x <to
-pink_run* iter_nxt(lev_iter*);
-char* mem_cvt2table(struct ssd *ssd, kv_skiplist *, pink_run *);
-void merger(struct ssd *ssd, kv_skiplist*, pink_run** src, pink_run** org, pink_level *des);
-pink_run *cutter(struct pink_lsmtree *, kv_skiplist *, pink_level* des, kv_key* start, kv_key* end);
+pink_level_list_entry* iter_nxt(lev_iter*);
+char* mem_cvt2table(struct ssd *ssd, kv_skiplist *, pink_level_list_entry *);
+void merger(struct ssd *ssd, kv_skiplist*, pink_level_list_entry** src, pink_level_list_entry** org, pink_level *des);
+pink_level_list_entry *cutter(struct pink_lsmtree *, kv_skiplist *, pink_level* des, kv_key* start, kv_key* end);
 void make_partition(struct pink_lsmtree*, pink_level *);
 
-pink_run *find_run(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
-pink_run *find_run2(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
-pink_run *find_run_se(struct pink_lsmtree*, pink_level *lev, kv_key lpa, pink_run *upper_run, struct ssd *ssd, NvmeRequest *req);
+pink_level_list_entry *find_run(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
+pink_level_list_entry *find_run2(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
+pink_level_list_entry *find_run_se(struct pink_lsmtree*, pink_level *lev, kv_key lpa, pink_level_list_entry *upper_run, struct ssd *ssd, NvmeRequest *req);
 void read_run_delay_comp(struct ssd *ssd, pink_level *lev);
-pink_run *make_run(kv_key start, kv_key end, struct femu_ppa);
-int cache_comp_formatting(pink_level *, pink_run ***, bool isnext_cache);
+pink_level_list_entry *make_run(kv_key start, kv_key end, struct femu_ppa);
+int cache_comp_formatting(pink_level *, pink_level_list_entry ***, bool isnext_cache);
 void print_level_summary(struct pink_lsmtree*);
 
 // page.h ====================================================
@@ -158,7 +157,7 @@ typedef struct leveling_node{
     kv_skiplist *mem;
     kv_key start;
     kv_key end;
-    pink_run_t *entry;
+    pink_level_list_entry *entry;
 } leveling_node;
 
 struct pink_lsmtree;
@@ -173,19 +172,19 @@ bool compaction_init(struct ssd *ssd);
 void compaction_free(struct pink_lsmtree *LSM);
 void compaction_check(struct ssd *ssd);
 void pink_do_compaction(struct ssd *ssd);
-void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_run** src, struct pink_run** org, struct pink_level *des);
-bool meta_segment_read_preproc(pink_run_t *r);
-void meta_segment_read_postproc(struct ssd *ssd, pink_run_t *r);
+void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_level_list_entry** src, struct pink_level_list_entry** org, struct pink_level *des);
+bool meta_segment_read_preproc(pink_level_list_entry *r);
+void meta_segment_read_postproc(struct ssd *ssd, pink_level_list_entry *r);
 uint32_t compaction_empty_level(struct ssd *ssd, pink_level **from, leveling_node *lnode, pink_level **des);
 
 void compaction_data_write(struct ssd *ssd, leveling_node* lnode);
 struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data);
-bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_run_t *ent);
+bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *ent);
 void pink_flush_cache_when_evicted(kv_cache_entry *ent);
 
 // array.h ==================================================
 
-static inline char *data_from_run(pink_run_t *a){
+static inline char *data_from_run(pink_level_list_entry *a){
     return a->buffer;
 }
 
@@ -199,14 +198,14 @@ typedef struct partition_node{
 } pt_node;
 
 typedef struct array_body{
-    pink_run_t *arrs;
+    pink_level_list_entry *arrs;
     int max_depth;
     pr_node *pr_arrs;
     pt_node *p_nodes;
 } array_body;
 
 typedef struct array_iter{
-    pink_run_t *arrs;
+    pink_level_list_entry *arrs;
     int max;
     int now;
     bool ispartial;
@@ -268,8 +267,8 @@ typedef struct pink_lsmtree {
 
 void pink_lsm_adjust_level_multiplier(void);
 void pink_lsm_create(struct ssd *ssd);
-uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_run_t **entry, pink_run_t *up_entry, keyset **found, int *level, NvmeRequest *req);
-uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_run_t **entry, pink_run_t *up_entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
 
