@@ -15,7 +15,6 @@ lksv3_level* lksv3_level_init(int size, int idx)
 
     lksv3_level *res = (lksv3_level*) calloc(1, sizeof(lksv3_level));
     array_body *b = (array_body*) calloc(1, sizeof(array_body));
-    b->pr_arrs = (pr_node*) calloc(x_num, sizeof(pr_node));
     b->arrs = (lksv_level_list_entry*) calloc(x_num, sizeof(lksv_level_list_entry));
 
     res->idx=idx;
@@ -59,7 +58,6 @@ static void array_body_free(struct lksv3_lsmtree *LSM, lksv_level_list_entry *ru
 void lksv3_free_level(struct lksv3_lsmtree *LSM, lksv3_level* lev) {
     array_body *b = (array_body*)lev->level_data;
     FREE(b->p_nodes);
-    FREE(b->pr_arrs);
     array_body_free(LSM, b->arrs, lev->n_num);
     FREE(b);
     FREE(lev);
@@ -115,7 +113,6 @@ void lksv3_copy_level(struct ssd *ssd, lksv3_level *des, lksv3_level *src){
 
     array_body *db=(array_body*)des->level_data;
     array_body *sb=(array_body*)src->level_data;
-    memcpy(db->pr_arrs,sb->pr_arrs,sizeof(pr_node)*src->n_num);
     for(int i=0; i<src->n_num; i++){
         array_run_cpy_to(ssd, &sb->arrs[i],&db->arrs[i],src->idx);
         lksv3_array_range_update(des, NULL, db->arrs[i].smallest);
@@ -170,8 +167,6 @@ lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv
         r->buffer[i] = NULL;
     }
 
-    memcpy(b->pr_arrs[lev->n_num].pr_key,r->smallest.key,PREFIXCHECK);
-
     lksv3_array_range_update(lev, NULL, target->smallest);
     lksv3_array_range_update(lev, NULL, target->largest);
 
@@ -194,8 +189,6 @@ lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level *lev, lksv_
     lksv_level_list_entry *arrs = b->arrs;
     lksv_level_list_entry *target = &arrs[lev->n_num];
     array_run_cpy_to(ssd, r, target, lev->idx);
-
-    memcpy(b->pr_arrs[lev->n_num].pr_key,r->smallest.key,PREFIXCHECK);
 
     lksv3_array_range_update(lev, NULL, target->smallest);
     lksv3_array_range_update(lev, NULL, target->largest);
@@ -522,7 +515,6 @@ void lksv3_make_partition(struct lksv3_lsmtree *LSM, lksv3_level *lev){
 lksv_level_list_entry *lksv3_find_run_se(struct lksv3_lsmtree *LSM, lksv3_level *lev, kv_key lpa, lksv_level_list_entry *up_ent, struct ssd *ssd, NvmeRequest *req){
     array_body *b=(array_body*)lev->level_data;
     lksv_level_list_entry *arrs=b->arrs;
-    pr_node *parrs=b->pr_arrs;
 
     array_body *bup=(array_body*)LSM->disk[lev->idx-1]->level_data;
     if(!arrs || lev->n_num==0 || !bup) return NULL;
@@ -533,41 +525,6 @@ lksv_level_list_entry *lksv3_find_run_se(struct lksv3_lsmtree *LSM, lksv3_level 
     int mid=(start+end)/2, res;
 
     int last_read_run_idx = INT32_MAX;
-
-    while(1){
-        // TODO: LEVEL_READ_DELAY
-        if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
-            last_read_run_idx != mid / LEVEL_LIST_ENTRY_PER_PAGE) {
-            last_read_run_idx = mid / LEVEL_LIST_ENTRY_PER_PAGE;
-            struct nand_cmd srd;
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            if (req) {
-                srd.stime = req->etime;
-            } else {
-                srd.stime = 0;
-            }
-            struct femu_ppa fake_ppa;
-            fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
-            uint64_t sublat = lksv3_ssd_advance_status(ssd, &fake_ppa, &srd); 
-            if (req) {
-                req->etime += sublat;
-                req->flash_access_count++;
-            }
-        }
-
-        res=memcmp(parrs[mid].pr_key,lpa.key,PREFIXCHECK);
-        if(res>0) end=mid-1;
-        else if(res<0) start=mid+1;
-        else{
-            break;
-        }
-        mid=(start+end)/2;
-        if(start>end) {
-            return &arrs[mid];
-        }
-    }
 
     while(1){
         // TODO: LEVEL_READ_DELAY
@@ -609,7 +566,6 @@ lksv_level_list_entry *lksv3_find_run_se(struct lksv3_lsmtree *LSM, lksv3_level 
 lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
     array_body *b=(array_body*)lev->level_data;
     lksv_level_list_entry *arrs=b->arrs;
-    pr_node *parrs=b->pr_arrs;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
     int start=0;
@@ -619,38 +575,6 @@ lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *
     mid=(start+end)/2;
 
     int last_read_run_idx = INT32_MAX;
-    while(1){
-        // TODO: LEVEL_READ_DELAY
-        if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
-            last_read_run_idx != mid / LEVEL_LIST_ENTRY_PER_PAGE) {
-            last_read_run_idx = mid / LEVEL_LIST_ENTRY_PER_PAGE;
-            struct nand_cmd srd;
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            if (req) {
-                srd.stime = req->etime;
-            } else {
-                srd.stime = 0;
-            }
-            struct femu_ppa fake_ppa;
-            fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
-            uint64_t sublat = lksv3_ssd_advance_status(ssd, &fake_ppa, &srd); 
-            if (req) {
-                req->etime += sublat;
-                req->flash_access_count++;
-            }
-        }
-
-        res1=memcmp(parrs[mid].pr_key,lpa.key,PREFIXCHECK);
-        if(res1>0) end=mid-1;
-        else if(res1<0) start=mid+1;
-        else{
-            break;
-        }
-        mid=(start+end)/2;
-        if(start>end) break;
-    }
 
     while(1){
         // TODO: LEVEL_READ_DELAY

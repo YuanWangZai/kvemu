@@ -140,7 +140,6 @@ typedef struct lksv_level_list_entry
 #define KEYFORMAT(input) input.len>AVGKEYLENGTH?AVGKEYLENGTH:input.len,input.key
 
 #define KEYBITMAP (PAGESIZE / 16)
-#define PREFIXCHECK 4
 #define KEYLEN(a) (a.len)
 
 bool lksv3_should_meta_gc_high(struct ssd *ssd);
@@ -421,10 +420,6 @@ typedef struct small_node{
     lksv_level_list_entry *r;
 } s_node;
 
-typedef struct prifix_node{
-    char pr_key[PREFIXCHECK];
-} pr_node;
-
 typedef struct partition_node{
     uint32_t start;
     uint32_t end;
@@ -433,7 +428,6 @@ typedef struct partition_node{
 typedef struct array_body{
     lksv_level_list_entry *arrs;
     int max_depth;
-    pr_node *pr_arrs;
     pt_node *p_nodes;
 } array_body;
 

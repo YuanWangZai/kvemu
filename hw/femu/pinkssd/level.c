@@ -22,7 +22,6 @@ pink_level* level_init(int idx)
 
     pink_level *res = (pink_level*) calloc(1, sizeof(pink_level));
     array_body *b = (array_body*)calloc(1, sizeof(array_body));
-    b->pr_arrs = (pr_node*)calloc(size, sizeof(pr_node));
     b->arrs = (pink_level_list_entry*)calloc(size, sizeof(pink_level_list_entry));
 
     res->idx=idx;
@@ -60,7 +59,6 @@ static void array_body_free(struct pink_lsmtree *LSM, pink_level_list_entry *run
 void free_level(struct pink_lsmtree *LSM, pink_level* lev) {
     array_body *b = (array_body*)lev->level_data;
     FREE(b->p_nodes);
-    FREE(b->pr_arrs);
     array_body_free(LSM, b->arrs, lev->n_num);
     FREE(b);
     FREE(lev);
@@ -102,7 +100,6 @@ void copy_level(struct ssd *ssd, pink_level *des, pink_level *src){
 
     array_body *db=(array_body*)des->level_data;
     array_body *sb=(array_body*)src->level_data;
-    memcpy(db->pr_arrs,sb->pr_arrs,sizeof(pr_node)*src->n_num);
     for(int i=0; i<src->n_num; i++){
         array_run_cpy_to(ssd,&sb->arrs[i],&db->arrs[i],src->idx);
         array_range_update(des, NULL, db->arrs[i].smallest);
@@ -148,7 +145,6 @@ pink_level_list_entry* insert_run(struct ssd *ssd, pink_level *lev, pink_level_l
     pink_level_list_entry *arrs = b->arrs;
     pink_level_list_entry *target = &arrs[lev->n_num];
     array_run_cpy_to(ssd, r, target, lev->idx);
-    memcpy(b->pr_arrs[lev->n_num].pr_key,r->smallest.key,PREFIXCHECK);
 
     array_range_update(lev, NULL, target->smallest);
     array_range_update(lev, NULL, target->largest);
@@ -297,7 +293,6 @@ void make_partition(struct pink_lsmtree *LSM, pink_level *lev){
 pink_level_list_entry *find_run_se(struct pink_lsmtree *LSM, pink_level *lev, kv_key lpa, pink_level_list_entry *up_ent, struct ssd *ssd, NvmeRequest *req){
     array_body *b=(array_body*)lev->level_data;
     pink_level_list_entry *arrs=b->arrs;
-    pr_node *parrs=b->pr_arrs;
 
     array_body *bup=(array_body*)LSM->disk[lev->idx-1]->level_data;
     if(!arrs || lev->n_num==0 || !bup) return NULL;
@@ -308,41 +303,6 @@ pink_level_list_entry *find_run_se(struct pink_lsmtree *LSM, pink_level *lev, kv
     int mid=(start+end)/2, res;
 
     int last_read_run_idx = INT32_MAX;
-    while(1){
-        // TODO: LEVEL_READ_DELAY
-        if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
-            last_read_run_idx != mid / LEVEL_LIST_ENTRY_PER_PAGE) {
-            last_read_run_idx = mid / LEVEL_LIST_ENTRY_PER_PAGE;
-            struct nand_cmd srd;
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            if (req) {
-                srd.stime = req->etime;
-            } else {
-                srd.stime = 0;
-            }
-            struct femu_ppa fake_ppa;
-            fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
-            uint64_t sublat = pink_ssd_advance_status(ssd, &fake_ppa, &srd); 
-            if (req) {
-                req->etime += sublat;
-                req->flash_access_count++;
-            }
-        }
-
-        res=memcmp(parrs[mid].pr_key,lpa.key,PREFIXCHECK);
-        if(res>0) end=mid-1;
-        else if(res<0) start=mid+1;
-        else{
-            break;
-        }
-        mid=(start+end)/2;
-        if(start>end) {
-            return &arrs[mid];
-        }
-    }
-
     while(1){
         // TODO: LEVEL_READ_DELAY
         if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
@@ -383,7 +343,6 @@ pink_level_list_entry *find_run_se(struct pink_lsmtree *LSM, pink_level *lev, kv
 pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
     array_body *b=(array_body*)lev->level_data;
     pink_level_list_entry *arrs=b->arrs;
-    pr_node *parrs=b->pr_arrs;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
     int start=0;
@@ -393,39 +352,6 @@ pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, Nv
     mid=(start+end)/2;
 
     int last_read_run_idx = INT32_MAX;
-    while(1){
-        // TODO: LEVEL_READ_DELAY
-        if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
-            last_read_run_idx != mid / LEVEL_LIST_ENTRY_PER_PAGE) {
-            last_read_run_idx = mid / LEVEL_LIST_ENTRY_PER_PAGE;
-            struct nand_cmd srd;
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            if (req) {
-                srd.stime = req->etime;
-            } else {
-                srd.stime = 0;
-            }
-            struct femu_ppa fake_ppa;
-            fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
-            uint64_t sublat = pink_ssd_advance_status(ssd, &fake_ppa, &srd); 
-            if (req) {
-                req->etime += sublat;
-                req->flash_access_count++;
-            }
-        }
-
-        res1=memcmp(parrs[mid].pr_key,lpa.key,PREFIXCHECK);
-        if(res1>0) end=mid-1;
-        else if(res1<0) start=mid+1;
-        else{
-            break;
-        }
-        mid=(start+end)/2;
-        if(start>end) break;
-    }
-
     while(1){
         // TODO: LEVEL_READ_DELAY
         if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
@@ -466,7 +392,6 @@ pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, Nv
 pink_level_list_entry *find_run2(pink_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
     array_body *b=(array_body*)lev->level_data;
     pink_level_list_entry *arrs=b->arrs;
-    pr_node *parrs=b->pr_arrs;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
     int start=0;
@@ -474,17 +399,6 @@ pink_level_list_entry *find_run2(pink_level* lev, kv_key lpa, struct ssd *ssd, N
 
     int res1; //1:compare with start, 2:compare with end
     mid=(start+end)/2;
-
-    while(1){
-        res1=memcmp(parrs[mid].pr_key,lpa.key,PREFIXCHECK);
-        if(res1>0) end=mid-1;
-        else if(res1<0) start=mid+1;
-        else{
-            break;
-        }
-        mid=(start+end)/2;
-        if(start>end) break;
-    }
 
     while(1){
         res1=kv_cmp_key(arrs[mid].smallest,lpa);

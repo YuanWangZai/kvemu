@@ -71,7 +71,6 @@ typedef struct pipe_line_run{
 
 #define KEYBITMAP (PAGESIZE / 16)
 #define VERSIONBITMAP (PAGESIZE / 16)
-#define PREFIXCHECK 4
 #define KEYLEN(a) (a.len+sizeof(struct femu_ppa))
 
 bool pink_should_data_gc_high(struct ssd *ssd);
@@ -188,10 +187,6 @@ static inline char *data_from_run(pink_level_list_entry *a){
     return a->buffer;
 }
 
-typedef struct prifix_node{
-    char pr_key[PREFIXCHECK];
-} pr_node;
-
 typedef struct partition_node{
     uint32_t start;
     uint32_t end;
@@ -200,7 +195,6 @@ typedef struct partition_node{
 typedef struct array_body{
     pink_level_list_entry *arrs;
     int max_depth;
-    pr_node *pr_arrs;
     pt_node *p_nodes;
 } array_body;
 
