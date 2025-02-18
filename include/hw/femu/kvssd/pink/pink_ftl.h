@@ -194,7 +194,6 @@ typedef struct partition_node{
 
 typedef struct array_body{
     pink_level_list_entry *arrs;
-    int max_depth;
     pt_node *p_nodes;
 } array_body;
 
