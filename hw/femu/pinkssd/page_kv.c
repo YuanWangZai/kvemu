@@ -51,15 +51,8 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
     qemu_mutex_unlock(&ssd->memtable_mu);
 
     pink_level_list_entry *entries = NULL;
-    pink_level_list_entry *up_entry = NULL;
     for (int i = 0; i < LSM_LEVELN; i++) {
-        if (up_entry) {
-            entries = find_run_se(pink_lsm, pink_lsm->disk[i], key, up_entry, ssd, NULL);
-        } else {
-            entries = find_run(pink_lsm->disk[i], key, ssd, NULL);
-        }
-
-        up_entry = NULL;
+        entries = find_run(pink_lsm->disk[i], key, ssd, NULL);
         if (entries == NULL) {
             continue;
         }
@@ -81,7 +74,6 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
                 FREE(find);
                 return valid;
             } else {
-                up_entry = entries;
                 continue;
             }
         }
@@ -111,8 +103,6 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
             valid = find->ppa.ppa == ppa.ppa;
             FREE(find);
             return valid;
-        } else {
-            up_entry = entries;
         }
     }
 

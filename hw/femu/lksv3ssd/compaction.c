@@ -13,8 +13,6 @@ uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to,
         lksv3_free_level(lksv_lsm, from);
     }
 
-    lksv3_make_partition(lksv_lsm,target);
-
     (*des_ptr)=target;
     lksv3_free_level(lksv_lsm, to);
 

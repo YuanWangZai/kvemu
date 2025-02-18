@@ -44,7 +44,7 @@ void pink_lsm_create(struct ssd *ssd)
     pink_lsm->lsm_cache->flush_callback = pink_flush_cache_when_evicted;
 }
 
-uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req) {
     pink_level_list_entry *entries=NULL;
     struct range_lun luns;
     memset(&luns.read, 0, sizeof(struct range_lun));
@@ -227,23 +227,11 @@ try_advance_in_level:
     return 0;
 }
 
-uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req) {
     pink_level_list_entry *entries=NULL;
 
     for(int i = *level; i < LSM_LEVELN; i++){
-        /* 
-         * If we have a upper level entry, then use a range pointer to reduce
-         * a range to search.
-         */
-        if (up_entry)
-            entries = find_run_se(pink_lsm, pink_lsm->disk[i], key, up_entry, ssd, req);
-        else
-            entries = find_run(pink_lsm->disk[i], key, ssd, req);
-
-        /*
-         * Compactioning level doesn't have a range pointer yet.
-         */
-        up_entry = NULL;
+        entries = find_run(pink_lsm->disk[i], key, ssd, req);
         if(!entries) {
             continue;
         }
@@ -271,10 +259,6 @@ uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry,
                 // TODO: someone need to free(find)
                 return CACHING;
             }
-            /*
-             * Met range overlapped run_t but no key in there.
-             */
-            up_entry = entries;
         } else {
             /*
              * Run is founded in not pinned levels.

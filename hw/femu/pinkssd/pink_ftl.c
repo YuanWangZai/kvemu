@@ -847,7 +847,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
 
     int level = 0;
     pink_level_list_entry *entry = NULL;
-    lsm_scan_run(ssd, k, &entry, NULL, NULL, &level, req);
+    lsm_scan_run(ssd, k, &entry, NULL, &level, req);
 
     free(k.key);
     return req->etime - req->stime;
@@ -903,7 +903,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     pink_level_list_entry *entry = NULL;
     uint8_t result;
 retry:
-    result = lsm_find_run(ssd, k, &entry, entry, &found, &level, req);
+    result = lsm_find_run(ssd, k, &entry, &found, &level, req);
 
     //int i;
     struct nand_page *pg;

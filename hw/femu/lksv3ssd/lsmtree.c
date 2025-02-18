@@ -79,7 +79,7 @@ static struct lksv3_sorted_string *sort_run(struct ssd *ssd, lksv_level_list_ent
     return ss;
 }
 
-uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req) {
     lksv_level_list_entry *entries=NULL;
     struct range_lun luns;
     memset(&luns.read, 0, sizeof(struct range_lun));
@@ -291,28 +291,15 @@ try_advance_in_level:
     return FOUND;
 }
 
-uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req) {
+uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req) {
     lksv_level_list_entry *entries=NULL;
 
     uint32_t hash;
     hash = XXH32(key.key, key.len, 0);
 
     for(int i = *level; i < LSM_LEVELN; i++){
-        /*
-         * If we have a upper level entry, then use a range pointer to reduce
-         * a range to search.
-         */
-        if (up_entry)
-            entries = lksv3_find_run_se(lksv_lsm, lksv_lsm->disk[i], key, up_entry, ssd, req);
-        else
-            entries = lksv3_find_run(lksv_lsm->disk[i], key, ssd, req);
-
-        /*
-         * If we failed to find a run_t in a lower layer, then we lost
-         * a range pointer. Clear the up_entry info.
-         */
+        entries = lksv3_find_run(lksv_lsm->disk[i], key, ssd, req);
         if(!entries) {
-            up_entry = NULL;
             continue;
         }
 
@@ -322,7 +309,6 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
                 *level = i = lksv_lsm->c_level->idx;
             }
             if (!entries) {
-                up_entry = NULL;
                 continue;
             }
 
@@ -345,10 +331,6 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
                 }
                 return COMP_FOUND;
             } else {
-                /*
-                 * Met range overlapped run_t but no key in there.
-                 */
-                up_entry = NULL;
                 continue;
             }
         }
@@ -408,11 +390,6 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
                 kv_assert(check_voffset(ssd, &find->ppa, find->voff, find->hash));
             }
             return FOUND;
-        } else {
-            /*
-             * Met range overlapped run_t but no key in there.
-             */
-            up_entry = entries;
         }
     }
     return NOTFOUND;

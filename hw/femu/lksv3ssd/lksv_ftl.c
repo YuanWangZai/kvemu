@@ -840,7 +840,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     int level = 0;
     lksv_level_list_entry *entry = NULL;
 
-    lksv3_lsm_scan_run(ssd, k, &entry, NULL, NULL, &level, req);
+    lksv3_lsm_scan_run(ssd, k, &entry, NULL, &level, req);
 
     FREE(k.key);
     return req->etime - req->stime;
@@ -930,7 +930,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     int level = 0;
     lksv_level_list_entry *entry = NULL;
     uint8_t result;
-    result = lksv3_lsm_find_run(ssd, k, &entry, entry, &found, &level, req);
+    result = lksv3_lsm_find_run(ssd, k, &entry, &found, &level, req);
 
     switch (result) {
         case CACHING:
@@ -1015,7 +1015,7 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
         }
         int level = 0;
         lksv_level_list_entry *entry = NULL;
-        lksv3_lsm_find_run(ssd, k, &entry, entry, &found, &level, req);
+        lksv3_lsm_find_run(ssd, k, &entry, &found, &level, req);
         if (found) {
             FREE(found->value);
             FREE(found);

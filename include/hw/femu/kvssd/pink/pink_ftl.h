@@ -114,7 +114,6 @@ pink_level_list_entry* iter_nxt(lev_iter*);
 char* mem_cvt2table(struct ssd *ssd, kv_skiplist *, pink_level_list_entry *);
 void merger(struct ssd *ssd, kv_skiplist*, pink_level_list_entry** src, pink_level_list_entry** org, pink_level *des);
 pink_level_list_entry *cutter(struct pink_lsmtree *, kv_skiplist *, pink_level* des, kv_key* start, kv_key* end);
-void make_partition(struct pink_lsmtree*, pink_level *);
 
 pink_level_list_entry *find_run(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
 pink_level_list_entry *find_run2(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
@@ -187,14 +186,8 @@ static inline char *data_from_run(pink_level_list_entry *a){
     return a->buffer;
 }
 
-typedef struct partition_node{
-    uint32_t start;
-    uint32_t end;
-} pt_node;
-
 typedef struct array_body{
     pink_level_list_entry *arrs;
-    pt_node *p_nodes;
 } array_body;
 
 typedef struct array_iter{
@@ -260,8 +253,8 @@ typedef struct pink_lsmtree {
 
 void pink_lsm_adjust_level_multiplier(void);
 void pink_lsm_create(struct ssd *ssd);
-uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
-uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, pink_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
 

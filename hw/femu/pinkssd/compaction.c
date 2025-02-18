@@ -10,8 +10,6 @@ uint32_t level_change(struct pink_lsmtree *LSM, pink_level *from, pink_level *to
         free_level(LSM, from);
     }
 
-    make_partition(LSM,target);
-
     (*des_ptr)=target;
     free_level(LSM, to);
 

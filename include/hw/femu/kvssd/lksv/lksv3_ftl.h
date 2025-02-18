@@ -296,13 +296,11 @@ lev_iter* lksv3_get_iter(lksv3_level_t*, kv_key from, kv_key to); //from<= x <to
 lksv_level_list_entry* lksv3_iter_nxt(lev_iter*);
 char* lksv3_mem_cvt2table(struct ssd *ssd, kv_skiplist *, lksv_level_list_entry *);
 char *lksv3_mem_cvt2table2(struct ssd *ssd, lksv_comp_list *mem, lksv_level_list_entry *input);
-void lksv3_make_partition(struct lksv3_lsmtree*, lksv3_level *);
 
-uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct ssd *ssd);
 lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa, struct ssd *ssd);
 lksv_level_list_entry *lksv3_find_run(lksv3_level_t*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
-lksv_level_list_entry *lksv3_find_run_se(struct lksv3_lsmtree*, lksv3_level_t *lev, kv_key lpa, lksv_level_list_entry *upper_run, struct ssd *ssd, NvmeRequest *req);
 void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev);
 lksv_level_list_entry *lksv3_make_run(kv_key start, kv_key end, struct femu_ppa);
 void lksv3_print_level_summary(struct lksv3_lsmtree*);
@@ -420,14 +418,8 @@ typedef struct small_node{
     lksv_level_list_entry *r;
 } s_node;
 
-typedef struct partition_node{
-    uint32_t start;
-    uint32_t end;
-} pt_node;
-
 typedef struct array_body{
     lksv_level_list_entry *arrs;
-    pt_node *p_nodes;
 } array_body;
 
 typedef struct array_iter{
@@ -517,7 +509,7 @@ typedef struct lksv3_lsmtree_levelsize_params {
 
 void lksv3_lsm_create(struct ssd *ssd);
 void lksv3_lsm_setup_params(struct ssd *ssd);
-uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, lksv_level_list_entry *up_entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
 
