@@ -60,8 +60,8 @@ uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry,
         }
 
         level_ent[i] = entries;
-        kv_assert(level_ent[i] == &((array_body *)pink_lsm->disk[i]->level_data)->arrs[
-            entries - &(((array_body *)pink_lsm->disk[i]->level_data)->arrs[0])
+        kv_assert(level_ent[i] == &pink_lsm->disk[i]->level_data[
+            entries - &(pink_lsm->disk[i]->level_data[0])
         ]);
     }
 
@@ -80,8 +80,8 @@ next_level:
         int run_n_num;
 advance_in_level:
         entries = level_ent[i];
-        run_n_num = entries - &(((array_body *)pink_lsm->disk[i]->level_data)->arrs[0]);
-        kv_assert(level_ent[i] == &((array_body *)pink_lsm->disk[i]->level_data)->arrs[run_n_num]);
+        run_n_num = entries - &(pink_lsm->disk[i]->level_data[0]);
+        kv_assert(level_ent[i] == &pink_lsm->disk[i]->level_data[run_n_num]);
 
         char *body = entries->buffer;
         if (!body) {
@@ -161,7 +161,7 @@ try_advance_in_level:
         if (run_n_num >= pink_lsm->disk[i]->n_num - 2) {
             continue;
         }
-        level_ent[i] = &((array_body *)pink_lsm->disk[i]->level_data)->arrs[run_n_num + 1];
+        level_ent[i] = &pink_lsm->disk[i]->level_data[run_n_num + 1];
 
         goto advance_in_level;
     }

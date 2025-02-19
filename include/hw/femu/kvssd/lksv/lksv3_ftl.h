@@ -162,11 +162,7 @@ typedef struct lksv3_level {
     int32_t m_num,n_num,v_num,x_num;
     uint64_t vsize;
     kv_key start,end;
-    /*
-     * Each level is divided into fixed-size runs.
-     * run_impl: array_body
-     */
-    void* level_data;
+    lksv_level_list_entry *level_data;
     bool reference_lines[512];
 } lksv3_level_t;
 
@@ -417,10 +413,6 @@ typedef struct small_node{
     kv_key start;
     lksv_level_list_entry *r;
 } s_node;
-
-typedef struct array_body{
-    lksv_level_list_entry *arrs;
-} array_body;
 
 typedef struct array_iter{
     lksv_level_list_entry *arrs;

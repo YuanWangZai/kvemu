@@ -177,7 +177,6 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
     pink_level_list_entry* target=NULL;
 
     int run_idx = 0;
-    array_body *b = (array_body*)des->level_data;
     while((target=cutter(pink_lsm,top,des,&key,&end))){
         insert_run(ssd,des,target);
         run_idx++;
@@ -222,7 +221,7 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
 
     bool cache_full = false;
     for (int i = 0; i < des->n_num; i++) {
-        pink_level_list_entry *temp = &b->arrs[i];
+        pink_level_list_entry *temp = &des->level_data[i];
 
         if (!cache_full) {
             kv_cache_insert(pink_lsm->lsm_cache, &temp->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, des->idx), KV_CACHE_FLUSH_EVICTED);

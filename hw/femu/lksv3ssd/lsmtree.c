@@ -95,8 +95,8 @@ uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
         }
 
         level_ent[i] = entries;
-        kv_assert(level_ent[i] == &((array_body *)lksv_lsm->disk[i]->level_data)->arrs[
-            entries - &(((array_body *)lksv_lsm->disk[i]->level_data)->arrs[0])
+        kv_assert(level_ent[i] == &lksv_lsm->disk[i]->level_data[
+            entries - &lksv_lsm->disk[i]->level_data[0]
         ]);
     }
 
@@ -117,8 +117,8 @@ next_level:
         int run_n_num;
 advance_in_level:
         entries = level_ent[i];
-        run_n_num = entries - &(((array_body *)lksv_lsm->disk[i]->level_data)->arrs[0]);
-        kv_assert(level_ent[i] == &((array_body *)lksv_lsm->disk[i]->level_data)->arrs[run_n_num]);
+        run_n_num = entries - &lksv_lsm->disk[i]->level_data[0];
+        kv_assert(level_ent[i] == &lksv_lsm->disk[i]->level_data[run_n_num]);
 
         ss = sort_run(ssd, entries, &luns);
 
@@ -225,7 +225,7 @@ try_advance_in_level:
         if (run_n_num >= lksv_lsm->disk[i]->n_num - 2) {
             continue;
         }
-        level_ent[i] = &((array_body *)lksv_lsm->disk[i]->level_data)->arrs[run_n_num + 1];
+        level_ent[i] = &lksv_lsm->disk[i]->level_data[run_n_num + 1];
 
         goto advance_in_level;
     }

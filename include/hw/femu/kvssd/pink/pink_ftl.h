@@ -88,11 +88,7 @@ typedef struct pink_level {
     int32_t idx;
     int32_t m_num,n_num;
     kv_key start,end;
-    /*
-     * Each level is divided into fixed-size runs.
-     * run_impl: array_body
-     */
-    void* level_data;
+    pink_level_list_entry *level_data;
 } pink_level;
 
 typedef struct lev_iter{
@@ -185,10 +181,6 @@ void pink_flush_cache_when_evicted(kv_cache_entry *ent);
 static inline char *data_from_run(pink_level_list_entry *a){
     return a->buffer;
 }
-
-typedef struct array_body{
-    pink_level_list_entry *arrs;
-} array_body;
 
 typedef struct array_iter{
     pink_level_list_entry *arrs;
