@@ -11,7 +11,6 @@
 #define HASH_COLLISION_MODELING
 //#define TEST_CACHING
 //#define GB_96
-//#define RANGEQUERY
 #define RQ_MAX 150
 
 #include <math.h>

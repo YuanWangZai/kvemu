@@ -14,7 +14,7 @@ lksv3_level* lksv3_level_init(int size, int idx)
     int x_num = size * 200;
 
     lksv3_level *res = (lksv3_level*) calloc(1, sizeof(lksv3_level));
-    res->level_data = (lksv_level_list_entry*) calloc(x_num, sizeof(lksv_level_list_entry));
+    res->level_data = (lksv_level_list_entry**) calloc(x_num, sizeof(lksv_level_list_entry *));
 
     res->idx=idx;
     res->m_num=size;
@@ -46,9 +46,10 @@ void lksv3_free_run(struct lksv3_lsmtree *LSM, lksv_level_list_entry *e) {
     }
 }
 
-static void array_body_free(struct lksv3_lsmtree *LSM, lksv_level_list_entry *runs, int size){
+static void array_body_free(struct lksv3_lsmtree *LSM, lksv_level_list_entry **runs, int size){
     for(int i=0; i<size; i++){
-        lksv3_free_run(LSM, &runs[i]);
+        lksv3_free_run(LSM, runs[i]);
+        lksv_lput(runs[i]);
     }
     FREE(runs);
 }
@@ -107,9 +108,10 @@ void lksv3_copy_level(struct ssd *ssd, lksv3_level *des, lksv3_level *src){
     des->v_num=src->v_num;
 
     for(int i=0; i<src->n_num; i++){
-        array_run_cpy_to(ssd, &src->level_data[i],&des->level_data[i],src->idx);
-        lksv3_array_range_update(des, NULL, des->level_data[i].smallest);
-        lksv3_array_range_update(des, NULL, des->level_data[i].largest);
+        des->level_data[i] = lksv_lnew();
+        array_run_cpy_to(ssd, src->level_data[i],des->level_data[i],src->idx);
+        lksv3_array_range_update(des, NULL, des->level_data[i]->smallest);
+        lksv3_array_range_update(des, NULL, des->level_data[i]->largest);
     }
 }
 
@@ -119,8 +121,8 @@ void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev) {
     int last_read_run_idx = INT32_MAX;
     while (p < end) {
         // TODO: LEVEL_READ_DELAY
-        if (kv_is_cached(lksv_lsm->lsm_cache, lev->level_data[p].cache[LEVEL_LIST_ENTRY])) {
-            kv_cache_delete_entry(lksv_lsm->lsm_cache, lev->level_data[p].cache[LEVEL_LIST_ENTRY]);
+        if (kv_is_cached(lksv_lsm->lsm_cache, lev->level_data[p]->cache[LEVEL_LIST_ENTRY])) {
+            kv_cache_delete_entry(lksv_lsm->lsm_cache, lev->level_data[p]->cache[LEVEL_LIST_ENTRY]);
         } else if (last_read_run_idx != p / LEVEL_LIST_ENTRY_PER_PAGE) {
             last_read_run_idx = p / LEVEL_LIST_ENTRY_PER_PAGE;
 
@@ -150,8 +152,9 @@ lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv
     // modeling the case where those pages undergo garbage collecting.
     kv_cache_insert(lksv_lsm->lsm_cache, &r->cache[LEVEL_LIST_ENTRY], r->smallest.len + (LEVELLIST_HASH_BYTES * PG_N) + 20, cache_level(LEVEL_LIST_ENTRY, lev->idx), KV_CACHE_WITHOUT_FLAGS);
 
-    lksv_level_list_entry *arrs = lev->level_data;
-    lksv_level_list_entry *target = &arrs[lev->n_num];
+    lksv_level_list_entry **arrs = lev->level_data;
+    arrs[lev->n_num] = lksv_lnew();
+    lksv_level_list_entry *target = arrs[lev->n_num];
     array_run_cpy_to(ssd, r, target, lev->idx);
     for (int i = 0; i < PG_N; i++) {
         target->buffer[i] = r->buffer[i];
@@ -176,8 +179,9 @@ lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level *lev, lksv_
     // modeling the case where those pages undergo garbage collecting.
     kv_cache_insert(lksv_lsm->lsm_cache, &r->cache[LEVEL_LIST_ENTRY], r->smallest.len + (LEVELLIST_HASH_BYTES * PG_N) + 20, cache_level(LEVEL_LIST_ENTRY, lev->idx), KV_CACHE_WITHOUT_FLAGS);
 
-    lksv_level_list_entry *arrs = lev->level_data;
-    lksv_level_list_entry *target = &arrs[lev->n_num];
+    lksv_level_list_entry **arrs = lev->level_data;
+    arrs[lev->n_num] = lksv_lnew();
+    lksv_level_list_entry *target = arrs[lev->n_num];
     array_run_cpy_to(ssd, r, target, lev->idx);
 
     lksv3_array_range_update(lev, NULL, target->smallest);
@@ -373,7 +377,7 @@ find_keyset:
     return ks;
 }
 
-static int array_bound_search(lksv_level_list_entry *body, uint32_t max_t, kv_key lpa, bool islower){
+static int array_bound_search(lksv_level_list_entry **body, uint32_t max_t, kv_key lpa, bool islower){
     int start=0;
     int end=max_t-1;
     int mid=0;
@@ -381,8 +385,8 @@ static int array_bound_search(lksv_level_list_entry *body, uint32_t max_t, kv_ke
     int res1=0, res2=0; //1:compare with start, 2:compare with end
     while(start==end ||start<end){
         mid=(start+end)/2;
-        res1=kv_cmp_key(body[mid].smallest,lpa);
-        res2=kv_cmp_key(body[mid].largest,lpa);
+        res1=kv_cmp_key(body[mid]->smallest,lpa);
+        res2=kv_cmp_key(body[mid]->largest,lpa);
         if(res1<=0 && res2>=0){
             if(islower)return mid;
             else return mid+1;
@@ -394,22 +398,6 @@ static int array_bound_search(lksv_level_list_entry *body, uint32_t max_t, kv_ke
     if(res1>0) return mid;
     else if (res2<0 && mid < (int)max_t-1) return mid+1;
     else return -1;
-}
-
-uint32_t lksv3_range_find_compaction(lksv3_level *lev, kv_key s, kv_key e, lksv_level_list_entry ***rc){
-    lksv_level_list_entry *arrs=lev->level_data;
-    int res=0;
-    lksv_level_list_entry *ptr;
-    lksv_level_list_entry **r=(lksv_level_list_entry**)calloc(1, sizeof(lksv_level_list_entry*)*(lev->n_num+1));
-    int target_idx=array_bound_search(arrs,lev->n_num,s,true);
-    if(target_idx==-1) target_idx=0;
-    for(int i=target_idx;i<lev->n_num; i++){
-        ptr=(lksv_level_list_entry*)&arrs[i];
-        r[res++]=ptr;
-    }
-    r[res]=NULL;
-    *rc=r;
-    return res;
 }
 
 lev_iter* lksv3_get_iter(lksv3_level *lev, kv_key start, kv_key end){
@@ -445,16 +433,16 @@ lksv_level_list_entry *lksv3_iter_nxt(lev_iter* in){
         return NULL;
     }else{   
         if(iter->ispartial){
-            return &iter->arrs[iter->now++];
+            return iter->arrs[iter->now++];
         }else{
-            return &iter->arrs[iter->now++];
+            return iter->arrs[iter->now++];
         }
     }
     return NULL;
 }
 
 lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
-    lksv_level_list_entry *arrs=lev->level_data;
+    lksv_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
     int start=0;
@@ -467,7 +455,7 @@ lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *
 
     while(1){
         // TODO: LEVEL_READ_DELAY
-        if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
+        if (!arrs[mid]->cache[LEVEL_LIST_ENTRY] &&
             last_read_run_idx != mid / LEVEL_LIST_ENTRY_PER_PAGE) {
             last_read_run_idx = mid / LEVEL_LIST_ENTRY_PER_PAGE;
             struct nand_cmd srd;
@@ -488,39 +476,39 @@ lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *
             }
         }
 
-        res1=kv_cmp_key(arrs[mid].smallest,lpa);
+        res1=kv_cmp_key(arrs[mid]->smallest,lpa);
         if(res1>0) end=mid-1;
         else if(res1<0) start=mid+1;
         else {
-            return &arrs[mid];
+            return arrs[mid];
         }
         mid=(start+end)/2;
         if(start>end){
-            return &arrs[mid];
+            return arrs[mid];
         }
     }
     return NULL;
 }
 
 lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct ssd *ssd){
-    lksv_level_list_entry *arrs=lev->level_data;
+    lksv_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int res1; //1:compare with start, 2:compare with end
     for (int i = 0; i < lev->n_num; i++) {
-        res1=kv_cmp_key(arrs[i].smallest,lpa);
+        res1=kv_cmp_key(arrs[i]->smallest,lpa);
         if (res1 == 0) {
-            return &arrs[i];
+            return arrs[i];
         }
     }
     return NULL;
 }
 
 lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa, struct ssd *ssd){
-    lksv_level_list_entry *arrs=lev->level_data;
+    lksv_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     for (int i = 0; i < lev->n_num; i++) {
-        if (arrs[i].ppa.ppa == ppa->ppa) {
-            return &arrs[i];
+        if (arrs[i]->ppa.ppa == ppa->ppa) {
+            return arrs[i];
         }
     }
     return NULL;

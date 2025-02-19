@@ -21,7 +21,7 @@ pink_level* level_init(int idx)
         size += BULK_FLUSH_MARGIN;
 
     pink_level *res = (pink_level*) calloc(1, sizeof(pink_level));
-    res->level_data = (pink_level_list_entry*)calloc(size, sizeof(pink_level_list_entry));
+    res->level_data = (pink_level_list_entry**)calloc(size, sizeof(pink_level_list_entry *));
 
     res->idx=idx;
     res->m_num=size;
@@ -45,11 +45,12 @@ void free_run(struct pink_lsmtree *LSM, pink_level_list_entry *e) {
     if (e->largest.key) {
         FREE(e->largest.key);
     }
+    pink_lput(e);
 }
 
-static void array_body_free(struct pink_lsmtree *LSM, pink_level_list_entry *runs, int size){
+static void array_body_free(struct pink_lsmtree *LSM, pink_level_list_entry **runs, int size){
     for(int i=0; i<size; i++){
-        free_run(LSM, &runs[i]);
+        free_run(LSM, runs[i]);
     }
     FREE(runs);
 }
@@ -94,9 +95,10 @@ void copy_level(struct ssd *ssd, pink_level *des, pink_level *src){
     des->n_num=src->n_num;
 
     for(int i=0; i<src->n_num; i++){
-        array_run_cpy_to(ssd,&src->level_data[i],&des->level_data[i],src->idx);
-        array_range_update(des, NULL, des->level_data[i].smallest);
-        array_range_update(des, NULL, des->level_data[i].largest);
+        des->level_data[i] = pink_lnew();
+        array_run_cpy_to(ssd,src->level_data[i],des->level_data[i],src->idx);
+        array_range_update(des, NULL, des->level_data[i]->smallest);
+        array_range_update(des, NULL, des->level_data[i]->largest);
     }
 }
 
@@ -106,8 +108,8 @@ void read_run_delay_comp(struct ssd *ssd, pink_level *lev) {
     int last_read_run_idx = INT32_MAX;
     while (p < end) {
         // TODO: LEVEL_READ_DELAY
-        if (kv_is_cached(pink_lsm->lsm_cache, lev->level_data[p].cache[LEVEL_LIST_ENTRY])) {
-            kv_cache_delete_entry(pink_lsm->lsm_cache, lev->level_data[p].cache[LEVEL_LIST_ENTRY]);
+        if (kv_is_cached(pink_lsm->lsm_cache, lev->level_data[p]->cache[LEVEL_LIST_ENTRY])) {
+            kv_cache_delete_entry(pink_lsm->lsm_cache, lev->level_data[p]->cache[LEVEL_LIST_ENTRY]);
         } else if (last_read_run_idx != p / LEVEL_LIST_ENTRY_PER_PAGE) {
             last_read_run_idx = p / LEVEL_LIST_ENTRY_PER_PAGE;
 
@@ -133,8 +135,9 @@ pink_level_list_entry* insert_run(struct ssd *ssd, pink_level *lev, pink_level_l
     kv_assert(!kv_is_cached(pink_lsm->lsm_cache, r->cache[LEVEL_LIST_ENTRY]));
     kv_cache_insert(pink_lsm->lsm_cache, &r->cache[LEVEL_LIST_ENTRY], r->smallest.len + PPA_LENGTH, cache_level(LEVEL_LIST_ENTRY, lev->idx), KV_CACHE_WITHOUT_FLAGS);
 
-    pink_level_list_entry *arrs = lev->level_data;
-    pink_level_list_entry *target = &arrs[lev->n_num];
+    pink_level_list_entry **arrs = lev->level_data;
+    arrs[lev->n_num] = pink_lnew();
+    pink_level_list_entry *target = arrs[lev->n_num];
     array_run_cpy_to(ssd, r, target, lev->idx);
 
     array_range_update(lev, NULL, target->smallest);
@@ -170,71 +173,8 @@ keyset* find_keyset(char *data, kv_key lpa) {
     return NULL;
 }
 
-static int array_bound_search(pink_level_list_entry *body, uint32_t max_t, kv_key lpa, bool islower){
-    int start=0;
-    int end=max_t-1;
-    int mid=0;
-
-    int res1=0, res2=0; //1:compare with start, 2:compare with end
-    while(start==end ||start<end){
-        mid=(start+end)/2;
-        res1=kv_cmp_key(body[mid].smallest,lpa);
-        res2=kv_cmp_key(body[mid].largest,lpa);
-        if(res1<=0 && res2>=0){
-            if(islower)return mid;
-            else return mid+1;
-        }
-        if(res1>0) end=mid-1;
-        else if(res2<0) start=mid+1;
-    }
-
-    if(res1>0) return mid;
-    else if (res2<0 && mid < (int)max_t-1) return mid+1;
-    else return -1;
-}
-
-lev_iter* get_iter(pink_level *lev, kv_key start, kv_key end){
-    lev_iter *it=(lev_iter*)malloc(sizeof(lev_iter));
-    it->from=start;
-    it->to=end;
-    a_iter *iter=(a_iter*)malloc(sizeof(a_iter));
-
-    if(kv_cmp_key(start,lev->start)==0 && kv_cmp_key(end,lev->end)==0){
-        iter->ispartial=false;
-        iter->max=lev->n_num;
-        iter->now=0;
-    }   
-    else{
-        //  kv_debug("should do somthing!\n");
-        iter->now=array_bound_search(lev->level_data,lev->n_num,start,true);
-        iter->max=array_bound_search(lev->level_data,lev->n_num,end,true);
-        iter->ispartial=true;
-    }
-    iter->arrs=lev->level_data;
-
-    it->iter_data=(void*)iter;
-    it->lev_idx=lev->idx;
-    return it;
-}
-
-pink_level_list_entry *iter_nxt(lev_iter* in){
-    a_iter *iter=(a_iter*)in->iter_data;
-    if(iter->now==iter->max){
-        FREE(iter);
-        FREE(in);
-        return NULL;
-    }else{   
-        if(iter->ispartial){
-            return &iter->arrs[iter->now++];
-        }else{
-            return &iter->arrs[iter->now++];
-        }
-    }
-    return NULL;
-}
-
 pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
-    pink_level_list_entry *arrs=lev->level_data;
+    pink_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
     int start=0;
@@ -246,7 +186,7 @@ pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, Nv
     int last_read_run_idx = INT32_MAX;
     while(1){
         // TODO: LEVEL_READ_DELAY
-        if (!arrs[mid].cache[LEVEL_LIST_ENTRY] &&
+        if (!arrs[mid]->cache[LEVEL_LIST_ENTRY] &&
             last_read_run_idx != mid / LEVEL_LIST_ENTRY_PER_PAGE) {
             last_read_run_idx = mid / LEVEL_LIST_ENTRY_PER_PAGE;
             struct nand_cmd srd;
@@ -267,22 +207,22 @@ pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, Nv
             }
         }
 
-        res1=kv_cmp_key(arrs[mid].smallest,lpa);
+        res1=kv_cmp_key(arrs[mid]->smallest,lpa);
         if(res1>0) end=mid-1;
         else if(res1<0) start=mid+1;
         else {
-            return &arrs[mid];
+            return arrs[mid];
         }
         mid=(start+end)/2;
         if(start>end){
-            return &arrs[mid];
+            return arrs[mid];
         }
     }
     return NULL;
 }
 
 pink_level_list_entry *find_run2(pink_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
-    pink_level_list_entry *arrs=lev->level_data;
+    pink_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
     int start=0;
@@ -292,15 +232,15 @@ pink_level_list_entry *find_run2(pink_level* lev, kv_key lpa, struct ssd *ssd, N
     mid=(start+end)/2;
 
     while(1){
-        res1=kv_cmp_key(arrs[mid].smallest,lpa);
+        res1=kv_cmp_key(arrs[mid]->smallest,lpa);
         if(res1>0) end=mid-1;
         else if(res1<0) start=mid+1;
         else {
-            return &arrs[mid];
+            return arrs[mid];
         }
         mid=(start+end)/2;
         if(start>end){
-            return &arrs[mid];
+            return arrs[mid];
         }
     }
     return NULL;
@@ -366,12 +306,12 @@ char *mem_cvt2table(struct ssd *ssd, kv_skiplist *mem, pink_level_list_entry *in
 }
 
 uint32_t range_find_compaction(pink_level *lev, kv_key s, kv_key e, pink_level_list_entry ***rc){
-    pink_level_list_entry *arrs=lev->level_data;
+    pink_level_list_entry **arrs=lev->level_data;
     pink_level_list_entry **r=(pink_level_list_entry**)malloc(sizeof(pink_level_list_entry*)*(lev->n_num+1));
 
     // TODO: find range.
     for(int i = 0; i < lev->n_num; i++)
-        r[i] = &arrs[i];
+        r[i] = arrs[i];
 
     r[lev->n_num] = NULL;
     *rc = r;

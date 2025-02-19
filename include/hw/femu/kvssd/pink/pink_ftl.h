@@ -48,6 +48,8 @@ typedef struct pink_key_age {
  */
 typedef struct pink_level_list_entry
 {
+    uint64_t        id;
+
     kv_key          smallest;
     kv_key          largest;
     struct femu_ppa ppa;
@@ -57,6 +59,8 @@ typedef struct pink_level_list_entry
 
     // raw format of meta segment. (page size)
     char            *buffer;
+
+    int             ref_count;
 } pink_level_list_entry;
 
 typedef struct pipe_line_run{
@@ -88,14 +92,8 @@ typedef struct pink_level {
     int32_t idx;
     int32_t m_num,n_num;
     kv_key start,end;
-    pink_level_list_entry *level_data;
+    pink_level_list_entry **level_data;
 } pink_level;
-
-typedef struct lev_iter{
-    int lev_idx;
-    kv_key from,to;
-    void *iter_data;
-} lev_iter;
 
 /* level operations */
 pink_level* level_init(int idx);
@@ -105,8 +103,6 @@ pink_level_list_entry* insert_run(struct ssd *ssd, pink_level* des, pink_level_l
 void copy_level(struct ssd *ssd, pink_level *des, pink_level *src);
 keyset *find_keyset(char *data, kv_key lpa);
 uint32_t range_find_compaction(pink_level *l, kv_key start, kv_key end, pink_level_list_entry ***r);
-lev_iter* get_iter(pink_level*, kv_key from, kv_key to); //from<= x <to
-pink_level_list_entry* iter_nxt(lev_iter*);
 char* mem_cvt2table(struct ssd *ssd, kv_skiplist *, pink_level_list_entry *);
 void merger(struct ssd *ssd, kv_skiplist*, pink_level_list_entry** src, pink_level_list_entry** org, pink_level *des);
 pink_level_list_entry *cutter(struct pink_lsmtree *, kv_skiplist *, pink_level* des, kv_key* start, kv_key* end);
@@ -241,6 +237,10 @@ typedef struct pink_lsmtree {
     uint64_t cache_miss;
     int header_gc_cnt;
     int data_gc_cnt;
+
+    GHashTable *level_list_entries;
+    pthread_spinlock_t level_list_entries_lock;
+    uint64_t next_level_list_entry_id;
 } pink_lsmtree;
 
 void pink_lsm_adjust_level_multiplier(void);
@@ -307,5 +307,11 @@ void pink_adjust_lines(struct ssd *ssd);
 void pink_open(struct kv_lsm_options *opts);
 
 extern pink_lsmtree *pink_lsm;
+
+// version.c
+
+void pink_lput(pink_level_list_entry *e);
+pink_level_list_entry *pink_lget(uint64_t id);
+pink_level_list_entry *pink_lnew(void);
 
 #endif

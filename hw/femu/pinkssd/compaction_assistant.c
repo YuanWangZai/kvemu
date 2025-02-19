@@ -221,7 +221,7 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
 
     bool cache_full = false;
     for (int i = 0; i < des->n_num; i++) {
-        pink_level_list_entry *temp = &des->level_data[i];
+        pink_level_list_entry *temp = des->level_data[i];
 
         if (!cache_full) {
             kv_cache_insert(pink_lsm->lsm_cache, &temp->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, des->idx), KV_CACHE_FLUSH_EVICTED);

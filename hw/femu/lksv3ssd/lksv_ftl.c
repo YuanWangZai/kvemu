@@ -827,27 +827,6 @@ static keyset* find_from_list(struct ssd *ssd, kv_key key, kv_skiplist *list) {
     return target_set;
 }
 
-#ifdef RANGEQUERY
-static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
-{
-    kv_key k;
-    k.key = g_malloc0(req->key_length);
-    memcpy(k.key, req->key_buf, req->key_length);
-    k.len = req->key_length;
-
-    req->etime = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-
-    int level = 0;
-    lksv_level_list_entry *entry = NULL;
-
-    lksv3_lsm_scan_run(ssd, k, &entry, NULL, &level, req);
-
-    FREE(k.key);
-    return req->etime - req->stime;
-
-    find_from_list(ssd, k, NULL);
-}
-#else
 static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
 {
     keyset *found = NULL;
@@ -961,7 +940,6 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     }
     return req->etime - req->stime;
 }
-#endif
 
 static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
 {

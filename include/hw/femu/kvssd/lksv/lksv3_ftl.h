@@ -115,6 +115,8 @@ typedef struct {
  */
 typedef struct lksv_level_list_entry
 {
+    uint64_t        id;
+
     kv_key          smallest;
     kv_key          largest;
     struct femu_ppa ppa;
@@ -131,6 +133,8 @@ typedef struct lksv_level_list_entry
 
     // raw format of meta segment. (page size)
     char            *buffer[PG_N];
+
+    int             ref_count;
 } lksv_level_list_entry;
 
 #define LEVEL_LIST_ENTRY_PER_PAGE (PAGESIZE/(32+(PG_N*LEVELLIST_HASH_BYTES)+20))
@@ -162,7 +166,7 @@ typedef struct lksv3_level {
     int32_t m_num,n_num,v_num,x_num;
     uint64_t vsize;
     kv_key start,end;
-    lksv_level_list_entry *level_data;
+    lksv_level_list_entry **level_data;
     bool reference_lines[512];
 } lksv3_level_t;
 
@@ -287,7 +291,6 @@ lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level_t* des, lks
 lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv_level_list_entry* r);
 void lksv3_copy_level(struct ssd *ssd, lksv3_level_t *des, lksv3_level_t *src);
 keyset* lksv3_find_keyset(struct ssd *ssd, NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level);
-uint32_t lksv3_range_find_compaction(lksv3_level_t *l, kv_key start, kv_key end, lksv_level_list_entry ***r);
 lev_iter* lksv3_get_iter(lksv3_level_t*, kv_key from, kv_key to); //from<= x <to
 lksv_level_list_entry* lksv3_iter_nxt(lev_iter*);
 char* lksv3_mem_cvt2table(struct ssd *ssd, kv_skiplist *, lksv_level_list_entry *);
@@ -409,13 +412,8 @@ void lksv3_sst_read(struct ssd *ssd, struct femu_ppa ppa, lksv3_sst_t *sst);
 
 // array.h ==================================================
 
-typedef struct small_node{
-    kv_key start;
-    lksv_level_list_entry *r;
-} s_node;
-
 typedef struct array_iter{
-    lksv_level_list_entry *arrs;
+    lksv_level_list_entry **arrs;
     int max;
     int now;
     bool ispartial;
@@ -469,6 +467,10 @@ typedef struct lksv3_lsmtree {
     uint64_t sum_value_bytes;
     uint64_t sum_key_bytes;
     uint32_t samples_count;
+
+    GHashTable *level_list_entries;
+    pthread_spinlock_t level_list_entries_lock;
+    uint64_t next_level_list_entry_id;
 } lksv3_lsmtree;
 
 typedef struct lksv3_lsmtree_setting_parmaters {
@@ -964,5 +966,11 @@ static inline void default_merge(struct lksv3_hash_sort_t *sort, lksv_comp_list 
 }
 
 void lksv_open(struct kv_lsm_options *opts);
+
+// version.c
+
+void lksv_lput(lksv_level_list_entry *e);
+lksv_level_list_entry *lksv_lget(uint64_t id);
+lksv_level_list_entry *lksv_lnew(void);
 
 #endif

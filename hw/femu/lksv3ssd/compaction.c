@@ -22,12 +22,12 @@ uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to,
     // Double check level list entries caching
     if (target->idx == lksv_lsm->bottom_level && lksv_lsm->lsm_cache->levels[cache_level(LEVEL_LIST_ENTRY, target->idx)].n != target->n_num) {
         for (int i = 0; i < target->n_num; i++) {
-            if (target->level_data[i].cache[LEVEL_LIST_ENTRY]) {
+            if (target->level_data[i]->cache[LEVEL_LIST_ENTRY]) {
                 continue;
             }
-            uint32_t entry_size = target->level_data[i].smallest.len + (LEVELLIST_HASH_BYTES * PG_N) + 20;
-            kv_cache_insert(lksv_lsm->lsm_cache, &target->level_data[i].cache[LEVEL_LIST_ENTRY], entry_size, cache_level(LEVEL_LIST_ENTRY, target->idx), KV_CACHE_WITHOUT_FLAGS);
-            if (!target->level_data[i].cache[LEVEL_LIST_ENTRY]) {
+            uint32_t entry_size = target->level_data[i]->smallest.len + (LEVELLIST_HASH_BYTES * PG_N) + 20;
+            kv_cache_insert(lksv_lsm->lsm_cache, &target->level_data[i]->cache[LEVEL_LIST_ENTRY], entry_size, cache_level(LEVEL_LIST_ENTRY, target->idx), KV_CACHE_WITHOUT_FLAGS);
+            if (!target->level_data[i]->cache[LEVEL_LIST_ENTRY]) {
                 break;
             }
         }
@@ -37,11 +37,11 @@ uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to,
         for (int i = 0; i < target->n_num - 1; i++) {
             int n = 0;
             for (int j = 0; j < PG_N; j++) {
-                n += target->level_data[i].hash_lists[j].n;
+                n += target->level_data[i]->hash_lists[j].n;
             }
             uint32_t entry_size = (n * HASH_BYTES) + 20;
-            kv_cache_insert(lksv_lsm->lsm_cache, &target->level_data[i].cache[HASH_LIST], entry_size, cache_level(HASH_LIST, target->idx), KV_CACHE_WITHOUT_FLAGS);
-            if (!target->level_data[i].cache[HASH_LIST]) {
+            kv_cache_insert(lksv_lsm->lsm_cache, &target->level_data[i]->cache[HASH_LIST], entry_size, cache_level(HASH_LIST, target->idx), KV_CACHE_WITHOUT_FLAGS);
+            if (!target->level_data[i]->cache[HASH_LIST]) {
                 break;
             }
         }
