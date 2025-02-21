@@ -458,13 +458,7 @@ static void mark_reclaimable_log_lines(struct ssd *ssd, int ulevel_i, int level_
         check_linecnt(ssd);
     }
 
-    lksv3_level *last = lksv_lsm->disk[LSM_LEVELN - 1];
     int threshold;
-    if (last->v_num > last->n_num) {
-        threshold = 100 * (last->m_num - last->v_num) / last->m_num;
-    } else {
-        threshold = 100 * (last->m_num - last->n_num) / last->m_num;
-    }
     // TODO: fix this to calculate proper disk usage.
     if (lksv3_should_data_gc_high(ssd, 5))
         threshold = 30;
@@ -1224,8 +1218,6 @@ void do_lksv3_compaction2(struct ssd *ssd, int high_lev, int low_lev, leveling_n
         struct femu_ppa fppa;
 
         for (int i = 0; i < now->hash_list_n; i++) {
-            target->vsize += ((lksv_block_footer *) (now->buffer[i] + (PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE)))->g.n * (lksv_lsm->avg_value_bytes + lksv_lsm->avg_key_bytes + 20);
-
             fppa = lksv3_compaction_meta_segment_write_femu(ssd, (char *) now->buffer[i], target->idx);
             now->buffer[i] = NULL;
 

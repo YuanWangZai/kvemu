@@ -104,9 +104,6 @@ void lksv3_copy_level(struct ssd *ssd, lksv3_level *des, lksv3_level *src){
     des->end=kv_key_min;
     des->n_num=src->n_num;
 
-    des->vsize=src->vsize;
-    des->v_num=src->v_num;
-
     for(int i=0; i<src->n_num; i++){
         des->level_data[i] = lksv_lnew();
         array_run_cpy_to(ssd, src->level_data[i],des->level_data[i],src->idx);

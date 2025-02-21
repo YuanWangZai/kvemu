@@ -47,9 +47,8 @@ uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to,
         }
     }
 
-    target->v_num = target->vsize / PAGESIZE / PG_N;
     if (target->idx > 0) {
-        kv_debug("[Level: %d] n_num: %d, v_num: %d, m_num: %d\n", target->idx + 1, target->n_num, target->v_num, target->m_num);
+        kv_debug("[Level: %d] n_num: %d, m_num: %d\n", target->idx + 1, target->n_num, target->m_num);
     }
 
     return 1;

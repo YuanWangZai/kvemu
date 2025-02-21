@@ -21,52 +21,27 @@ void lksv3_compaction_free(struct lksv3_lsmtree *LSM){
     }
 }
 
-static void call_log_triggered_compaction(struct ssd *ssd) {
-    int end_level;
-    for (end_level = LSM_LEVELN - 1; end_level >= 0; end_level--) {
-        if (lksv_lsm->disk[end_level]->n_num > 0) {
-            break;
-        }
-    }
-
-    bool victim_levels[3];
-    int target_level = 0;
-    int max = 0;
-    // Choose nearly full levels as victims first.
-    for (int i = 0; i < LSM_LEVELN - 1; i++) {
-        if (i >= end_level) {
-            victim_levels[i] = false;
-            continue;
-        }
-        if (lksv_lsm->disk[i]->v_num > max) {
-            max = lksv_lsm->disk[i]->v_num;
-            target_level = i;
-        }
-        if ((lksv_lsm->disk[i]->n_num > lksv_lsm->disk[i]->m_num / 2) ||
-            (lksv_lsm->disk[i]->v_num > lksv_lsm->disk[i]->m_num * 4)) {
-            victim_levels[i] = true;
-        } else {
-            victim_levels[i] = false;
-        }
-    }
-
+static void
+call_log_triggered_compaction(struct ssd *ssd)
+{
     lksv_lsm->force = true;
-    for (int i = 0; i < LSM_LEVELN - 1; i++) {
-        if (!victim_levels[i])
-            continue;
+
+    /*
+     * During the code cleanup, we temporarily apply a simple and stupid policy.
+     * Policy: Do compaction sequentially from the lowest to the highest level.
+     */
+    for (int i = 0; i < LSM_LEVELN - 1; i++)
+    {
         if (!lksv3_should_data_gc_high(ssd, 5))
             break;
+
+        if (lksv_lsm->disk[i]->n_num == 0)
+            continue;
+
         kv_log("Log-triggered compaction: %d->%d\n", i, i+1);
         compaction_selector(ssd, lksv_lsm->disk[i], lksv_lsm->disk[i+1], NULL);
     }
-    // If still lack free lines, then select the level that has the largest
-    // value logs.
-    if (victim_levels[target_level] == false && lksv3_should_data_gc_high(ssd, 5)) {
-        kv_log("Log-triggered compaction: %d->%d\n",
-               target_level, target_level+1);
-        compaction_selector(ssd, lksv_lsm->disk[target_level],
-                            lksv_lsm->disk[target_level+1], NULL);
-    }
+
     lksv_lsm->force = false;
 }
 
@@ -408,7 +383,6 @@ void lksv3_compaction_check(struct ssd *ssd) {
 
 uint32_t lksv3_compaction_empty_level(struct ssd *ssd, lksv3_level **from, leveling_node *lnode, lksv3_level **des){
     if (!(*from)) {
-        (*des)->vsize += lnode->mem->n * (lksv_lsm->avg_value_bytes + lksv_lsm->avg_key_bytes + 20);
         /*
          * From memtable; L0->L1 (flush)
          */

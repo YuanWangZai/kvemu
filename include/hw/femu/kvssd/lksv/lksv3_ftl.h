@@ -163,8 +163,7 @@ typedef struct keyset {
 typedef struct lksv3_level lksv3_level;
 typedef struct lksv3_level {
     int32_t idx;
-    int32_t m_num,n_num,v_num,x_num;
-    uint64_t vsize;
+    int32_t m_num,n_num,x_num;
     kv_key start,end;
     lksv_level_list_entry **level_data;
     bool reference_lines[512];
