@@ -74,9 +74,6 @@ static void compaction_cascading(struct ssd *ssd) {
 }
 
 static void log_write(struct ssd *ssd, kv_skiplist *mem) {
-    kv_key skey = kv_key_min;
-    kv_key ekey = kv_key_max;
-
     int wp = 0;
     lksv3_sst_t sst;
 
@@ -142,12 +139,6 @@ retry:
             int prev_idx = tmp_i - 1;
             if (prev_idx < 0)
                 prev_idx = 0;
-            kv_copy_key(&ekey, &tmp_key[prev_idx]);
-            kv_assert(kv_cmp_key(skey, key) < 0);
-            kv_assert(kv_cmp_key(ekey, key) < 0);
-            update_sg(line, skey, ekey, true);
-            skey = kv_key_min;
-            ekey = kv_key_max;
 
             if (ssd->sp.enable_comp_delay) {
                 struct nand_cmd cpw;
@@ -180,9 +171,6 @@ retry:
         }
         tmp_i++;
 
-        if (skey.key == kv_key_min.key) {
-            kv_copy_key(&skey, &key);
-        }
         if (tmp_i > 1) {
             kv_assert(kv_cmp_key(tmp_key[tmp_i-2], tmp_key[tmp_i-1]) < 0);
         }
@@ -208,12 +196,6 @@ retry:
 
         per_line_data(line)->referenced_flush = true;
         lksv_lsm->flush_reference_lines[fppa.g.blk] = true;
-
-        kv_assert(kv_cmp_key(skey, tmp_key[tmp_i-1]) <= 0);
-        kv_copy_key(&ekey, &tmp_key[tmp_i-1]);
-        update_sg(line, skey, ekey, true);
-        skey = kv_key_min;
-        ekey = kv_key_max;
     }
     lksv3_ssd_advance_write_pointer(ssd, &ssd->lm.data);
     if (ssd->sp.enable_comp_delay) {

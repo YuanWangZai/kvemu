@@ -480,11 +480,7 @@ static void mark_reclaimable_log_lines(struct ssd *ssd, int ulevel_i, int level_
         if (level_i != lt && gcs[i].inv_ratio < threshold)
             break;
 
-        struct line *line = &ssd->lm.lines[gcs[i].lineid];
-        if (per_line_data(line)->sg.scattered)
-            kv_log(" scatter([%d:%d])", gcs[i].lineid, gcs[i].inv_ratio);
-        else
-            kv_log(" gather([%d:%d])", gcs[i].lineid, gcs[i].inv_ratio);
+        kv_log(" [%d:%d]", gcs[i].lineid, gcs[i].inv_ratio);
 
         lksv_lsm->gc_plan[level_i][gcs[i].lineid] = true;
         lksv_lsm->gc_plan[ulevel_i][gcs[i].lineid] = true;
@@ -510,10 +506,6 @@ static struct femu_ppa log_write2(struct ssd *ssd, lksv_comp_entry *e)
     dummy_key.key = NULL;
     dummy_key.len = 0;
 
-    static kv_key skey = { .len = 0, .key = NULL };
-    static kv_key ekey = { .len = 0, .key = NULL };
-    static kv_key prev_key = { .len = 0, .key = NULL };
-
 retry:
     if (e) {
         if (fppa.ppa == UNMAPPED_PPA) {
@@ -530,10 +522,6 @@ retry:
                 pg->data = calloc(1, PAGESIZE);
             }
             sst.raw = pg->data;
-
-            skey = kv_key_min;
-            ekey = kv_key_max;
-            prev_key = kv_key_min;
         } else {
             kv_assert(sst.meta == meta);
         }
@@ -548,9 +536,6 @@ retry:
         if (sst.footer.g.n) {
             struct line *line = lksv3_get_line(ssd, &fppa);
             line->vsc += sst.footer.g.n;
-            kv_copy_key(&ekey, &prev_key);
-            update_sg(line, skey, ekey, false);
-            //kv_assert(!per_line_data(line)->sg.scattered);
         }
         lksv3_ssd_advance_write_pointer(ssd, &ssd->lm.data);
         if (ssd->sp.enable_comp_delay) {
@@ -565,9 +550,6 @@ retry:
         fppa.ppa = UNMAPPED_PPA;
         wp = 0;
 
-        skey = kv_key_min;
-        ekey = kv_key_max;
-        prev_key = kv_key_min;
         return fppa;
     }
 
@@ -596,24 +578,10 @@ retry:
             lksv3_ssd_advance_status(ssd, &fppa, &cpw);
         }
         fppa.ppa = UNMAPPED_PPA;
-
-        kv_copy_key(&ekey, &prev_key);
-        kv_assert(kv_cmp_key(skey, e->key) < 0);
-        kv_assert(kv_cmp_key(ekey, e->key) < 0);
-        update_sg(line, skey, ekey, false);
-        skey = kv_key_min;
-        ekey = kv_key_max;
-        prev_key = kv_key_min;
         goto retry;
     } else {
         kv_assert(ret == LKSV3_TABLE_OK);
     }
-
-    if (skey.key == kv_key_min.key) {
-        kv_copy_key(&skey, &e->key);
-    }
-    kv_assert(kv_cmp_key(prev_key, e->key) < 0);
-    prev_key = e->key;
 
     return fppa;
 }
@@ -1039,8 +1007,6 @@ _do_lksv3_compaction2(struct ssd *ssd,
         }
 
         if ((mcnt > ssd->sp.pgs_per_blk) && (lksv_lsm->gc_planned > 0)) {
-            if (ssd->start_log)
-                lksv_gc_data_early(ssd, from->idx, to->idx, te->key);
             mcnt = 0;
         }
     }

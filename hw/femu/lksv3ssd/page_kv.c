@@ -78,31 +78,6 @@ static void lksv3_line_erase(struct ssd *ssd, int lineid) {
     qemu_mutex_unlock(&ssd->comp_mu);
 }
 
-// lksv_gc_data_early performs a line erase on lines that contain only values
-// preceding the given key. This helps in reclaiming free log lines early
-// during the process of erasing large log regions, making it easier for
-// compacted values to re-write the log area.
-void lksv_gc_data_early(struct ssd *ssd, int ulevel, int level, kv_key k) {
-    kv_assert(level > 0);
-    int planned = lksv_lsm->gc_planned;
-    for (int i = 0; i < 512; i++) {
-        if (lksv_lsm->gc_plan[level][i] || lksv_lsm->gc_plan[ulevel][i]) {
-            struct line *line = &ssd->lm.lines[i];
-            if (kv_cmp_key(per_line_data(line)->sg.ekey, k) < 0) {
-                check_473(ssd);
-                lksv3_line_erase(ssd, i);
-                check_473(ssd);
-                lksv_lsm->gc_plan[level][i] = false;
-                lksv_lsm->gc_plan[ulevel][i] = false;
-                lksv_lsm->gc_planned--;
-            }
-        }
-    }
-    if (planned != lksv_lsm->gc_planned) {
-        kv_log("decrease gc_planned from %d to %d\n", planned, lksv_lsm->gc_planned);
-    }
-}
-
 void lksv3_gc_data_femu3(struct ssd *ssd, int ulevel, int level) {
     kv_assert(level > 0);
     for (int i = 0; i < 512; i++) {

@@ -30,71 +30,13 @@ extern struct lksv3_lsmtree *lksv_lsm;
  */
 //#define OURS
 
-/*
- * The sg_list is used to determine whether a log line is eligible for early
- * erase. "Gathered" indicates that the key range of the values is densely
- * packed and that the log line was created by a compaction operation.
- * "Scattered" indicates that the key range of the values is dispersed and
- * that the log line was created by host I/O operations.
- */
-typedef struct sg_list {
-    bool    scattered;
-    kv_key  skey;
-    kv_key  ekey;
-} sg_list;
-
 typedef struct per_line_data {
     bool    referenced_levels[LSM_LEVELN];
     bool    referenced_flush_buffer;
     bool    referenced_flush;
-    sg_list sg;
 } per_line_data;
 
 #define per_line_data(line) ((per_line_data *)((line)->private))
-
-/*
- * update_sg
- *
- * Updates the scatter/gather state, start key, and end key for per-line data.
- * This information is used in the early reclaim operation of the log line.
- */
-static inline void
-update_sg(struct line *line, kv_key skey, kv_key ekey, bool scattered)
-{
-    kv_assert(skey.key != kv_key_min.key);
-    kv_assert(ekey.key != kv_key_min.key);
-
-    /*
-     * A scattered line cannot transition to a gathered state even if gathered
-     * data is added to it. However, if scattered data is added to a gathered
-     * line, it will transition to a scattered line.
-     */
-    if (!per_line_data(line)->sg.scattered) {
-        per_line_data(line)->sg.scattered = scattered;
-    }
-
-    /* Update the start key of the line */
-    if (!per_line_data(line)->sg.skey.key) {
-        kv_copy_key(&per_line_data(line)->sg.skey, &skey);
-    } else {
-        int res = kv_cmp_key(per_line_data(line)->sg.skey, skey);
-        if (res < 0) {
-            FREE(per_line_data(line)->sg.skey.key);
-            kv_copy_key(&per_line_data(line)->sg.skey, &skey);
-        }
-    }
-
-    /* Update the end key of the line */
-    if (!per_line_data(line)->sg.ekey.key) {
-        kv_copy_key(&per_line_data(line)->sg.ekey, &ekey);
-    } else {
-        int res = kv_cmp_key(per_line_data(line)->sg.ekey, ekey);
-        if (res > 0) {
-            FREE(per_line_data(line)->sg.ekey.key);
-            kv_copy_key(&per_line_data(line)->sg.ekey, &ekey);
-        }
-    }
-}
 
 /* Functions found in lksv_ftl.c */
 uint64_t lksv3_ssd_advance_status(struct ssd *ssd, struct femu_ppa *ppa, struct nand_cmd *ncmd);
@@ -307,7 +249,6 @@ void lksv3_print_level_summary(struct lksv3_lsmtree*);
 
 int lksv3_gc_meta_femu(struct ssd *ssd);
 void lksv3_gc_data_femu3(struct ssd *ssd, int ulevel, int level);
-void lksv_gc_data_early(struct ssd *ssd, int ulevel, int level, kv_key k);
 
 // skiplist.h ================================================
 

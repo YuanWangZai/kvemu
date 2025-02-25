@@ -790,10 +790,6 @@ void lksv3_mark_line_free(struct ssd *ssd, struct femu_ppa *ppa)
     /* move this line to free line list */
     QTAILQ_INSERT_TAIL(&lm->free_line_list, line, entry);
     lm->free_line_cnt++;
-
-    FREE(per_line_data(line)->sg.skey.key);
-    FREE(per_line_data(line)->sg.ekey.key);
-    memset(&per_line_data(line)->sg, 0, sizeof(struct sg_list));
 }
 
 static keyset* find_from_list(struct ssd *ssd, kv_key key, kv_skiplist *list) {
