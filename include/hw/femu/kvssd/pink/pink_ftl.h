@@ -100,10 +100,8 @@ pink_level* level_init(int idx);
 void free_level(struct pink_lsmtree *, pink_level *);
 void free_run(struct pink_lsmtree*, pink_level_list_entry *);
 pink_level_list_entry* insert_run(struct ssd *ssd, pink_level* des, pink_level_list_entry *r);
-void copy_level(struct ssd *ssd, pink_level *des, pink_level *src);
 keyset *find_keyset(char *data, kv_key lpa);
 uint32_t range_find_compaction(pink_level *l, kv_key start, kv_key end, pink_level_list_entry ***r);
-char* mem_cvt2table(struct ssd *ssd, kv_skiplist *, pink_level_list_entry *);
 void merger(struct ssd *ssd, kv_skiplist*, pink_level_list_entry** src, pink_level_list_entry** org, pink_level *des);
 pink_level_list_entry *cutter(struct pink_lsmtree *, kv_skiplist *, pink_level* des, kv_key* start, kv_key* end);
 
@@ -165,7 +163,6 @@ void pink_do_compaction(struct ssd *ssd);
 void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_level_list_entry** src, struct pink_level_list_entry** org, struct pink_level *des);
 bool meta_segment_read_preproc(pink_level_list_entry *r);
 void meta_segment_read_postproc(struct ssd *ssd, pink_level_list_entry *r);
-uint32_t compaction_empty_level(struct ssd *ssd, pink_level **from, leveling_node *lnode, pink_level **des);
 
 void compaction_data_write(struct ssd *ssd, leveling_node* lnode);
 struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data);

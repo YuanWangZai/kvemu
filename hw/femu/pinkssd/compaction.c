@@ -23,18 +23,8 @@ uint32_t leveling(struct ssd *ssd, pink_level *from, pink_level *to, leveling_no
 
     // TODO: LEVEL_COMP_READ_DELAY
     read_run_delay_comp(ssd, to);
-    /*
-     * If destination level is empty. (0 runs)
-     */
-    if (to->n_num == 0) {
-        qemu_mutex_lock(&ssd->comp_mu);
-        pink_lsm->c_level = target;
-        compaction_empty_level(ssd, &from, l_node, &target);
-        goto last;
-    }
     partial_leveling(ssd, target,target_origin,l_node,from);
 
-last:
     if (entry) FREE(entry);
     uint32_t res = level_change(pink_lsm, from, to, target);
     pink_lsm->c_level = NULL;
@@ -81,13 +71,10 @@ uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, le
         int src_num, des_num; //for stream compaction
         des_num=range_find_compaction(origin,start,end,&target_s);//for stream compaction
         src_num=range_find_compaction(upper,start,end,&data);
-        if(src_num && des_num == 0 ){
-            kv_debug("can't be\n");
-            abort();
-        }
 
         int j = 0;
-        for(int i=0; target_s[i]!=NULL; i++){
+        for(int i=0; i < des_num; i++){
+            kv_assert(target_s[i]);
             pink_level_list_entry *temp=target_s[i];
             if (compaction_meta_segment_read_femu(ssd, temp)) {
                 if (j % ASYNC_IO_UNIT == 0) {
@@ -97,7 +84,8 @@ uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, le
             }
         }
 
-        for(int i=0; data[i]!=NULL; i++){
+        for(int i=0; i < src_num; i++){
+            kv_assert(data[i]);
             pink_level_list_entry *temp=data[i];
             if (compaction_meta_segment_read_femu(ssd, temp)) {
                 if (j % ASYNC_IO_UNIT == 0) {

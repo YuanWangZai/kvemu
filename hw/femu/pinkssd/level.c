@@ -89,19 +89,6 @@ static void array_run_cpy_to(struct ssd *ssd, pink_level_list_entry *input, pink
     }
 }
 
-void copy_level(struct ssd *ssd, pink_level *des, pink_level *src){
-    des->start=kv_key_max;
-    des->end=kv_key_min;
-    des->n_num=src->n_num;
-
-    for(int i=0; i<src->n_num; i++){
-        des->level_data[i] = pink_lnew();
-        array_run_cpy_to(ssd,src->level_data[i],des->level_data[i],src->idx);
-        array_range_update(des, NULL, des->level_data[i]->smallest);
-        array_range_update(des, NULL, des->level_data[i]->largest);
-    }
-}
-
 void read_run_delay_comp(struct ssd *ssd, pink_level *lev) {
     int p = 0;
     int end = lev->n_num;
@@ -264,45 +251,6 @@ void print_level_summary(struct pink_lsmtree *LSM) {
             kv_log("[%d (%.*s ~ %.*s)] n_num:%d m_num:%d %.*s ~ %.*s\n",i+1,KEYFORMAT(LSM->disk[i]->start),KEYFORMAT(LSM->disk[i]->end),LSM->disk[i]->n_num,LSM->disk[i]->m_num,KEYFORMAT(LSM->disk[i]->start),KEYFORMAT(LSM->disk[i]->end));
         }
     }
-}
-
-char *mem_cvt2table(struct ssd *ssd, kv_skiplist *mem, pink_level_list_entry *input)
-{
-    input->buffer = calloc(1, PAGESIZE);
-    kv_snode *temp;
-    char *ptr = input->buffer;
-    uint16_t *bitmap = (uint16_t*)ptr;
-    uint32_t idx = 1;
-    memset(bitmap, -1, KEYBITMAP/sizeof(uint16_t));
-    uint16_t *vbitmap = (uint16_t*)(ptr + KEYBITMAP);
-    memset(vbitmap, -1, VERSIONBITMAP);
-    uint16_t data_start = KEYBITMAP+VERSIONBITMAP;
-    bitmap[0] = mem->n;
-    vbitmap[0] = mem->n;
-
-    for_each_sk(temp, mem) {
-        if (idx == 1)
-            kv_copy_key(&input->smallest, &temp->key);
-        else if (idx == mem->n)
-            kv_copy_key(&input->largest, &temp->key);
-
-        memcpy(&ptr[data_start], snode_ppa(temp), sizeof(struct femu_ppa));
-        memcpy(&ptr[data_start + sizeof(struct femu_ppa)], temp->key.key, temp->key.len);
-
-        bitmap[idx] = data_start;
-        struct line_age age;
-        age.g.in_page_idx = *snode_off(temp);
-        age.g.line_age = (get_line(ssd, snode_ppa(temp))->age % LINE_AGE_MAX);
-        vbitmap[idx] = age.age;
-        //vbitmap[idx] = (get_line(ssd, &temp->fppa)->age % UINT16_MAX);
-        data_start += temp->key.len + sizeof(struct femu_ppa);
-
-        FREE(temp->key.key);
-        temp->key.key = NULL;
-        idx++;
-    }
-    bitmap[idx] = data_start;
-    return ptr;
 }
 
 uint32_t range_find_compaction(pink_level *lev, kv_key s, kv_key e, pink_level_list_entry ***rc){
@@ -501,7 +449,17 @@ void merger(struct ssd *ssd, struct kv_skiplist* mem, pink_level_list_entry** s,
     pink_lsm->rp=pbody_init(pink_lsm->r_data, o_num + u_num + PBODY_PADDING, NULL, false);
 
     struct femu_ppa lppa, hppa, rppa;
-    PINK_KEYAGET lp_key=pbody_get_next_key(lp,&lppa);
+    PINK_KEYAGET lp_key;
+    if (o_num == 0)
+    {
+        lp_key.k.len = 0;
+        lp_key.k.key = NULL;
+        lp_key.k.len=-1;
+    }
+    else
+    {
+        lp_key = pbody_get_next_key(lp, &lppa);
+    }
     PINK_KEYAGET hp_key=pbody_get_next_key(hp,&hppa);
     PINK_KEYAGET insert_key;
     memset(&insert_key, 0, sizeof(PINK_KEYAGET));

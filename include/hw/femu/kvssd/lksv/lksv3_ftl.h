@@ -230,11 +230,9 @@ void lksv3_free_level(struct lksv3_lsmtree *, lksv3_level *);
 void lksv3_free_run(struct lksv3_lsmtree*, lksv_level_list_entry *);
 lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level_t* des, lksv_level_list_entry *r);
 lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv_level_list_entry* r);
-void lksv3_copy_level(struct ssd *ssd, lksv3_level_t *des, lksv3_level_t *src);
 keyset* lksv3_find_keyset(struct ssd *ssd, NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level);
 lev_iter* lksv3_get_iter(lksv3_level_t*, kv_key from, kv_key to); //from<= x <to
 lksv_level_list_entry* lksv3_iter_nxt(lev_iter*);
-char* lksv3_mem_cvt2table(struct ssd *ssd, kv_skiplist *, lksv_level_list_entry *);
 char *lksv3_mem_cvt2table2(struct ssd *ssd, lksv_comp_list *mem, lksv_level_list_entry *input);
 
 uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
@@ -242,7 +240,6 @@ lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct 
 lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa, struct ssd *ssd);
 lksv_level_list_entry *lksv3_find_run(lksv3_level_t*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
 void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev);
-lksv_level_list_entry *lksv3_make_run(kv_key start, kv_key end, struct femu_ppa);
 void lksv3_print_level_summary(struct lksv3_lsmtree*);
 
 // page.h ====================================================
@@ -292,7 +289,6 @@ void lksv3_do_compaction(struct ssd *ssd);
 bool lksv3_compaction_init(struct ssd *ssd);
 void lksv3_compaction_free(struct lksv3_lsmtree *LSM);
 void lksv3_compaction_check(struct ssd *ssd);
-uint32_t lksv3_compaction_empty_level(struct ssd *ssd, lksv3_level **from, leveling_node *lnode, lksv3_level **des);
 
 void lksv3_compaction_data_write(struct ssd *ssd, leveling_node* lnode);
 struct femu_ppa lksv3_compaction_meta_segment_write_femu(struct ssd *ssd, char *data, int level);

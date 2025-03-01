@@ -99,22 +99,9 @@ static void array_run_cpy_to(struct ssd *ssd, lksv_level_list_entry *input, lksv
     res->hash_list_n = input->hash_list_n;
 }
 
-void lksv3_copy_level(struct ssd *ssd, lksv3_level *des, lksv3_level *src){
-    des->start=kv_key_max;
-    des->end=kv_key_min;
-    des->n_num=src->n_num;
-
-    for(int i=0; i<src->n_num; i++){
-        des->level_data[i] = lksv_lnew();
-        array_run_cpy_to(ssd, src->level_data[i],des->level_data[i],src->idx);
-        lksv3_array_range_update(des, NULL, des->level_data[i]->smallest);
-        lksv3_array_range_update(des, NULL, des->level_data[i]->largest);
-    }
-}
-
 void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev) {
     int p = 0;
-    int end = lev->n_num / RUNINPAGE + 1;
+    int end = lev->n_num / RUNINPAGE + (lev->n_num % RUNINPAGE != 0 ? 1 : 0);
     int last_read_run_idx = INT32_MAX;
     while (p < end) {
         // TODO: LEVEL_READ_DELAY
@@ -511,14 +498,6 @@ lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_
     return NULL;
 }
 
-lksv_level_list_entry *lksv3_make_run(kv_key start, kv_key end, struct femu_ppa ppa){
-    lksv_level_list_entry * res=(lksv_level_list_entry*) calloc(1, sizeof(lksv_level_list_entry));
-    kv_copy_key(&res->smallest,&start);
-    kv_copy_key(&res->largest,&end);
-    res->ppa = ppa;
-    return res;
-}
-
 void lksv3_print_level_summary(struct lksv3_lsmtree *LSM) {
     for(int i=0; i<LSM_LEVELN; i++){
         if(LSM->disk[i]->n_num==0){
@@ -677,147 +656,6 @@ char *lksv3_mem_cvt2table2(struct ssd *ssd, struct lksv_comp_list *list, lksv_le
     }
     input->hash_list_n = idx;
 
-    return NULL;
-}
-
-char *lksv3_mem_cvt2table(struct ssd *ssd, kv_skiplist *mem, lksv_level_list_entry *input)
-{
-#ifdef LK_OH
-    static uint64_t alloc = 0;
-    static uint64_t loop = 0;
-    static uint64_t qst = 0;
-    static uint64_t get_sekey = 0;
-    static uint64_t make = 0;
-    static uint64_t stat_count = 0;
-#endif
-
-    kv_assert(mem->header->list[1]->value->length == PPA_LENGTH);
-
-#ifdef LK_OH
-    uint64_t now = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-#endif
-
-    struct lksv_comp_list list;
-    list.str_order_entries = calloc(mem->n, sizeof(lksv_comp_entry));
-    list.hash_order_pointers = calloc(mem->n, sizeof(lksv_comp_entry *));
-    list.str_order_map = calloc(mem->n, sizeof(lksv3_sst_str_idx_t));
-
-#ifdef LK_OH
-    uint64_t end = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-    alloc += end - now;
-    now = end;
-#endif
-
-    int i = 0;
-    list.n = mem->n;
-    kv_snode *temp;
-    for_each_sk(temp, mem) {
-        kv_assert(snode_ppa(temp)->ppa != UNMAPPED_PPA);
-        list.str_order_entries[i].meta.g1.flag = VLOG;
-        list.str_order_entries[i].meta.g1.hash = *snode_hash(temp);
-        list.str_order_entries[i].ppa = *snode_ppa(temp);
-        list.str_order_entries[i].key = temp->key;
-        list.str_order_entries[i].meta.g2.slen = PPA_LENGTH;
-        list.str_order_entries[i].meta.g2.voff = *snode_off(temp);
-        //list.str_order_entries[i].str_order = i;
-        list.hash_order_pointers[i] = &list.str_order_entries[i];
-        i++;
-    }
-
-#ifdef LK_OH
-    end = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-    loop += end - now;
-    now = end;
-#endif
-
-    bucket_sort(&list);
-
-#ifdef LK_OH
-    end = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-    qst += end - now;
-    now = end;
-#endif
-
-    kv_skiplist_get_start_end_key(mem, &input->smallest, &input->largest);
-
-#ifdef LK_OH
-    end = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-    get_sekey += end - now;
-    now = end;
-#endif
-
-    int from, n, idx;
-    idx = 0;
-    lksv3_sst_t sst[PG_N];
-    for (i = 0; i < mem->n; i += n) {
-        from = i;
-        int left_size = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE;
-        int max_keys_in_a_sht = 0;
-        for (int j = from; j < mem->n; j++) {
-            left_size -= list.hash_order_pointers[j]->key.len + PPA_LENGTH + LKSV3_SSTABLE_META_BLK_SIZE + LKSV3_SSTABLE_STR_IDX_SIZE;
-            if (left_size >= 0)
-                max_keys_in_a_sht++;
-            else
-                break;
-        }
-        n = max_keys_in_a_sht;
-        if (from + n > mem->n) {
-            n = mem->n - from;
-        }
-
-        _lksv3_mem_cvt2table(ssd, list.hash_order_pointers + from, n, &sst[idx], false, NULL);
-        input->pg_start_hashes[idx] = list.hash_order_pointers[from]->meta.g1.hash >> LEVELLIST_HASH_SHIFTS;
-        input->hash_lists[idx].hashes = calloc(n, sizeof(lksv_hash));
-        input->hash_lists[idx].n = n;
-        if (idx > 0) {
-            input->collision_bits[idx] = (input->pg_start_hashes[idx] == list.hash_order_pointers[from-1]->meta.g1.hash >> LEVELLIST_HASH_SHIFTS);
-        }
-
-        uint32_t str_order;
-        for (int j = 0; j < n; j++) {
-            input->hash_lists[idx].hashes[j].hash = list.hash_order_pointers[from+j]->meta.g1.hash;
-            //str_order = list.hash_order_pointers[from + j]->str_order;
-            str_order = ((int64_t) list.hash_order_pointers[from + j] - (int64_t) list.str_order_entries) / sizeof(lksv_comp_entry);
-            //assert(str_order == list.hash_order_pointers[from + j]->str_order);
-
-            //list.str_order_map[str_order].g1.sst = idx;
-            //list.str_order_map[str_order].g1.off = j;
-            //assert(((j << 8) | idx) == list.str_order_map[str_order].i);
-            list.str_order_map[str_order].i = ((j << 8) | idx);
-        }
-        input->buffer[idx] = sst[idx].raw;
-
-        idx++;
-    }
-
-    int nidx = idx;
-    from = 0;
-    for (idx = 0; idx < nidx; idx++) {
-        lksv3_sst_encode_str_idx(&sst[idx], &list.str_order_map[from], sst[idx].footer.g.n);
-        from += sst[idx].footer.g.n;
-        FREE(sst[idx].meta);
-    }
-    input->hash_list_n = idx;
-
-#ifdef LK_OH
-    end = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-    make += end - now;
-
-    stat_count++;
-    if (stat_count % 100 == 0) {
-        double total = alloc + loop + qst + get_sekey + make;
-        printf("[Overhead analysis]\n");
-        printf("allocation: %lu (%.2lf)\n", alloc / stat_count, alloc / total);
-        printf("for each sk loop: %lu (%.2lf)\n", loop / stat_count, loop / total);
-        printf("qst: %lu (%.2lf)\n", qst / stat_count, qst / total);
-        printf("get_sekey: %lu (%.2lf)\n", get_sekey / stat_count, get_sekey / total);
-        printf("make: %lu (%.2lf)\n", make / stat_count, make / total);
-    }
-#endif
-
-    FREE(list.hash_order_pointers);
-    FREE(list.str_order_entries);
-    FREE(list.str_order_map);
     return NULL;
 }
 

@@ -59,37 +59,6 @@ uint32_t lksv3_leveling(struct ssd *ssd, lksv3_level *from, lksv3_level *to, lev
     lksv3_level *target = lksv3_level_init(m_num, to->idx);
     lksv_level_list_entry *entry = NULL;
 
-    /*
-     * If destination level is empty. (0 runs)
-     */
-    if (to->n_num == 0) {
-        qemu_mutex_lock(&ssd->comp_mu);
-        lksv_lsm->c_level = target;
-        check_473(ssd);
-        lksv3_compaction_empty_level(ssd, &from, l_node, &target);
-        if (from == NULL) {
-            if (l_node->mem->header->list[1]->value->length == PPA_LENGTH) {
-                for (int i = 0; i < 512; i++) {
-                    if (is_meta_line(ssd, i)) {
-                        continue;
-                    }
-                    kv_assert(!to->reference_lines[i]);
-                    if (lksv_lsm->flush_reference_lines[i]) {
-                        kv_assert(per_line_data(&ssd->lm.lines[i])->referenced_flush); 
-                        per_line_data(&ssd->lm.lines[i])->referenced_flush = false;
-                        kv_assert(target->idx == 0);
-                        per_line_data(&ssd->lm.lines[i])->referenced_levels[0] = true;
-                    } else {
-                        kv_assert(!per_line_data(&ssd->lm.lines[i])->referenced_flush);
-                    }
-                }
-                memcpy(target->reference_lines, lksv_lsm->flush_reference_lines, 512 * sizeof(bool));
-                memset(lksv_lsm->flush_reference_lines, 0, 512 * sizeof(bool));
-            }
-        }
-        //check_473(ssd);
-        goto last;
-    }
     if (from) {
         // TODO: LEVEL_COMP_READ_DELAY
         do_lksv3_compaction2(ssd, from->idx, to->idx, NULL, target);
@@ -99,7 +68,6 @@ uint32_t lksv3_leveling(struct ssd *ssd, lksv3_level *from, lksv3_level *to, lev
         do_lksv3_compaction2(ssd, -1, to->idx, l_node, target);
     }
 
-last:
     if (entry) FREE(entry);
     uint32_t res = lksv3_level_change(ssd, from, to, target);
     check_473(ssd);

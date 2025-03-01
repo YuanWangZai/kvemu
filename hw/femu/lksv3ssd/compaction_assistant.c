@@ -363,37 +363,3 @@ void lksv3_compaction_check(struct ssd *ssd) {
     qemu_mutex_unlock(&ssd->comp_q_mu);
 }
 
-uint32_t lksv3_compaction_empty_level(struct ssd *ssd, lksv3_level **from, leveling_node *lnode, lksv3_level **des){
-    if (!(*from)) {
-        /*
-         * From memtable; L0->L1 (flush)
-         */
-        struct femu_ppa unmapped_ppa;
-        unmapped_ppa.ppa = UNMAPPED_PPA;
-        lksv_level_list_entry *entry = lksv3_make_run(lnode->start, lnode->end, unmapped_ppa);
-        FREE(entry->smallest.key);
-        FREE(entry->largest.key);
-        lksv3_mem_cvt2table(ssd, lnode->mem, entry);
-
-        lksv3_compaction_meta_segment_write_insert_femu(ssd, (*des), entry);
-        FREE(entry);
-    } else {
-        struct femu_ppa ppa;
-        ppa.ppa = 0;
-        for (int i = 0; i < 512; i++) {
-            ppa.g.blk = i;
-            (*des)->reference_lines[i] = (*from)->reference_lines[i];
-            if ((*from)->reference_lines[i]) {
-                struct line *line = lksv3_get_line(ssd, &ppa);
-                kv_assert(per_line_data(line)->referenced_levels[(*from)->idx]);
-                per_line_data(line)->referenced_levels[(*from)->idx] = false;
-                kv_assert(!per_line_data(line)->referenced_levels[(*des)->idx]);
-                per_line_data(line)->referenced_levels[(*des)->idx] = true;
-                (*from)->reference_lines[i] = false;
-            }
-        }
-        lksv3_copy_level(ssd,*des,*from);
-    }
-    return 1;
-}
-
