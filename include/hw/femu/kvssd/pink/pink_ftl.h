@@ -272,7 +272,6 @@ struct ssd {
 
     struct kvssd_latency lat;
 
-    bool need_flush;
     const struct kv_lsm_operations *lops;
 };
 

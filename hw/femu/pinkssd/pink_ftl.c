@@ -1135,16 +1135,6 @@ static void *comp_thread(void *arg)
     struct ssd *ssd = n->ssd;
 
     while (1) {
-        if (ssd->need_flush) {
-            qemu_mutex_lock(&ssd->memtable_mu);
-            compaction_check(ssd);
-            if (pink_lsm->memtable->n > FLUSHNUM) {
-                ssd->need_flush = true;
-            } else {
-                ssd->need_flush = false;
-            }
-        }
-
         pink_do_compaction(ssd);
     }
 
@@ -1183,13 +1173,7 @@ static void *ftl_thread(void *arg)
             // FIXME: cmd.opcode and cmd_opcode; this should be merged
             switch (req->cmd_opcode) {
             case NVME_CMD_KV_STORE:
-                if (ssd->need_flush) {
-                    rc = femu_ring_enqueue(ssd->to_ftl[i], (void *)&req, 1);
-                    if (rc != 1) {
-                        printf("FEMU: FTL to_ftl enqueue failed\n");
-                    }
-                    continue;
-                } else if (!qemu_mutex_trylock(&ssd->memtable_mu)) {
+                if (!qemu_mutex_trylock(&ssd->memtable_mu)) {
                     if (pink_lsm->temptable[0]) {
                         rc = femu_ring_enqueue(ssd->to_ftl[i], (void *)&req, 1);
                         if (rc != 1) {

@@ -206,3 +206,8 @@ kv_skiplist *kv_skiplist_divide(kv_skiplist *in, kv_snode *target, int num, int 
     return res;
 }
 
+uint64_t kv_skiplist_approximate_memory_usage(kv_skiplist *list)
+{
+    return list->key_size + list->val_size;
+}
+

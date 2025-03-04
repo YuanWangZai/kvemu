@@ -336,7 +336,7 @@ void lksv3_do_compaction(struct ssd *ssd)
 
 void lksv3_compaction_check(struct ssd *ssd) {
     // LSM->temptable means there is a pending compaction request
-    if (lksv_lsm->memtable->n < FLUSHNUM || lksv_lsm->temptable) {
+    if (kv_skiplist_approximate_memory_usage(lksv_lsm->memtable) < WRITE_BUFFER_SIZE || lksv_lsm->temptable) {
         qemu_mutex_unlock(&ssd->memtable_mu);
         return;
     }

@@ -96,7 +96,6 @@ void pink_do_compaction(struct ssd *ssd)
             for (int i = 0; i < n; i ++) {
                 switch (gc_data_femu(ssd)) {
                     case 0:
-                        ssd->need_flush = true;
                         break;
                     case -2:
                         gc_pick_err++;
@@ -140,8 +139,7 @@ void pink_do_compaction(struct ssd *ssd)
 }
 
 void compaction_check(struct ssd *ssd) {
-    //qemu_mutex_lock(&ssd->memtable_mu);
-    if (pink_lsm->memtable->n < FLUSHNUM || pink_lsm->temptable[0]) {
+    if (kv_skiplist_approximate_memory_usage(pink_lsm->memtable) < WRITE_BUFFER_SIZE || pink_lsm->temptable[0]) {
         qemu_mutex_unlock(&ssd->memtable_mu);
         return;
     }

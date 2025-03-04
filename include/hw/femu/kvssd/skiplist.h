@@ -39,5 +39,6 @@ kv_snode *kv_skiplist_insert(kv_skiplist *list, kv_key key, kv_value* value);
 void kv_skiplist_get_start_end_key(kv_skiplist *sl, kv_key *start, kv_key *end);
 kv_skiplist *kv_skiplist_divide(kv_skiplist *in, kv_snode *target, int num, int key_size, int val_size);
 void kv_skiplist_free(kv_skiplist *list);
+uint64_t kv_skiplist_approximate_memory_usage(kv_skiplist *list);
 
 #endif

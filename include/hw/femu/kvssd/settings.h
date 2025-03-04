@@ -372,16 +372,7 @@ static inline void stat_range_lun(struct range_lun *l)
 }
 
 #define MAXVALUESIZE 4096
-
-#define PREFIX_LENGTH 4
-#define RANGE_POINTER_LENGTH 4
-
-#ifdef WORKLOAD_KVSSD
-  #define FLUSHMEM (3*M)
-#else
-  #define FLUSHMEM (1*M)
-#endif
-#define FLUSHNUM (FLUSHMEM/(AVGKEYLENGTH + AVGVALUESIZE + 20))
+#define WRITE_BUFFER_SIZE ((1*1024*1024))
 
 #endif
 
