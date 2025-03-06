@@ -149,7 +149,6 @@ static uint16_t pink_io_cmd(FemuCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             req->value = value;
             return NVME_SUCCESS;
         case NVME_CMD_KV_RETRIEVE:
-            qatomic_inc(&n->pending_reads);
             value_length = le32_to_cpu(cmd->cdw10) * 4;
             key_length = (le32_to_cpu(cmd->cdw11) & 0xFF) + 1;
             //value = g_malloc0(value_length);

@@ -72,13 +72,10 @@ uint32_t lksv3_leveling(struct ssd *ssd, lksv3_level *from, lksv3_level *to, lev
     uint32_t res = lksv3_level_change(ssd, from, to, target);
     check_473(ssd);
     lksv_lsm->c_level = NULL;
-    qemu_mutex_unlock(&ssd->comp_mu);
     if (from == NULL) {
         kv_assert(l_node->mem == lksv_lsm->temptable);
         kv_skiplist *tmp = lksv_lsm->temptable;
-        qemu_mutex_lock(&ssd->memtable_mu);
         lksv_lsm->temptable = NULL;
-        qemu_mutex_unlock(&ssd->memtable_mu);
         kv_skiplist_free(tmp);
     }
 

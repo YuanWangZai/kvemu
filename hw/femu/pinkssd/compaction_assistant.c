@@ -61,13 +61,10 @@ static void compaction_cascading(struct ssd *ssd) {
 
 void pink_do_compaction(struct ssd *ssd)
 {
-    qemu_mutex_lock(&ssd->comp_q_mu);
     if (!QTAILQ_EMPTY(&pink_lsm->compaction_queue)) {
         compR *req = QTAILQ_FIRST(&pink_lsm->compaction_queue);
         QTAILQ_REMOVE(&pink_lsm->compaction_queue, req, entry);
         leveling_node lnode;
-
-        qemu_mutex_unlock(&ssd->comp_q_mu);
 
         /*
          * from L0.
@@ -84,8 +81,6 @@ void pink_do_compaction(struct ssd *ssd)
         FREE(lnode.end.key);
         FREE(req);
 
-        wait_pending_reads(ssd);
-        qemu_mutex_lock(&ssd->comp_mu);
         while (pink_should_data_gc_high(ssd)) {
             int n = ssd->lm.data.lines / 10;
             if (n < 10)
@@ -121,7 +116,6 @@ void pink_do_compaction(struct ssd *ssd)
                 gc_meta_femu(ssd);
             }
         }
-        qemu_mutex_unlock(&ssd->comp_mu);
 
         if (rand() % 1000 == 0) {
             kv_debug("write_cnt %lu\n", pink_lsm->num_data_written);
@@ -133,14 +127,11 @@ void pink_do_compaction(struct ssd *ssd)
             kv_debug("[DATA] victim line cnt: %d\n", ssd->lm.data.victim_line_cnt);
             print_level_summary(pink_lsm);
         }
-    } else {
-        qemu_mutex_unlock(&ssd->comp_q_mu);
     }
 }
 
 void compaction_check(struct ssd *ssd) {
     if (kv_skiplist_approximate_memory_usage(pink_lsm->memtable) < WRITE_BUFFER_SIZE || pink_lsm->temptable[0]) {
-        qemu_mutex_unlock(&ssd->memtable_mu);
         return;
     }
 
@@ -161,11 +152,8 @@ void compaction_check(struct ssd *ssd) {
     pink_lsm->temptable[0] = t1;
     kv_assert(pink_lsm->temp_n == 0);
     pink_lsm->temp_n = 1;
-    qemu_mutex_unlock(&ssd->memtable_mu);
 
-    qemu_mutex_lock(&ssd->comp_q_mu);
     compaction_assign(pink_lsm, req);
-    qemu_mutex_unlock(&ssd->comp_q_mu);
 }
 
 void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_level_list_entry** src, struct pink_level_list_entry** org, struct pink_level *des){
@@ -182,38 +170,20 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
         FREE(target);
     }
 
-    qemu_mutex_lock(&ssd->comp_mu);
     kv_assert(pink_lsm->c_level == NULL);
     pink_lsm->c_level = des;
-    qemu_mutex_unlock(&ssd->comp_mu);
 
     // Critical section - level data will be changed.
-    int j = 0;
-    qemu_mutex_lock(&ssd->comp_mu);
     if (src) {
         for(int i=0; src[i]!=NULL; i++){
             pink_level_list_entry *temp=src[i];
             meta_segment_read_postproc(ssd, temp);
-
-            if (j % ASYNC_IO_UNIT == 0) {
-                qemu_mutex_unlock(&ssd->comp_mu);
-                wait_pending_reads(ssd);
-                qemu_mutex_lock(&ssd->comp_mu);
-            }
-            j++;
         }
         FREE(src);
     }
     for(int i=0; org[i]!=NULL; i++){
         pink_level_list_entry *temp=org[i];
         meta_segment_read_postproc(ssd, temp);
-
-        if (j % ASYNC_IO_UNIT == 0) {
-            qemu_mutex_unlock(&ssd->comp_mu);
-            wait_pending_reads(ssd);
-            qemu_mutex_lock(&ssd->comp_mu);
-        }
-        j++;
     }
     FREE(org);
 
@@ -228,12 +198,6 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
             } else {
                 continue;
             }
-        }
-
-        if (i % ASYNC_IO_UNIT == 0) {
-            qemu_mutex_unlock(&ssd->comp_mu);
-            wait_pending_reads(ssd);
-            qemu_mutex_lock(&ssd->comp_mu);
         }
 
         if (pink_should_meta_gc_high(ssd)) {

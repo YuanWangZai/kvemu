@@ -414,10 +414,8 @@ void merger(struct ssd *ssd, struct kv_skiplist* mem, pink_level_list_entry** s,
             if (skip == mem) {
                 break;
             } else {
-                qemu_mutex_lock(&ssd->memtable_mu);
                 pink_lsm->temptable[pink_lsm->temp_n] = skip;
                 pink_lsm->temp_n++;
-                qemu_mutex_unlock(&ssd->memtable_mu);
                 //kv_skiplist_free(skip);
                 skip = NULL;
             }

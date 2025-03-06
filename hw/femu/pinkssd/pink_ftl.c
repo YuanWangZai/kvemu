@@ -2,7 +2,6 @@
 #include "hw/femu/kvssd/pink/pink_ftl.h"
 
 static void *ftl_thread(void *arg);
-static void *comp_thread(void *arg);
 
 bool pink_should_meta_gc_high(struct ssd *ssd)
 {
@@ -457,12 +456,7 @@ void pinkssd_init(FemuCtrl *n) {
     // before FTL and COMP threads are created.
     kv_init_compaction_info(&pink_lsm->comp_ctx);
     pthread_spin_init(&ssd->nand_lock, PTHREAD_PROCESS_PRIVATE);
-    qemu_mutex_init(&ssd->comp_mu);
-    qemu_mutex_init(&ssd->comp_q_mu);
-    qemu_mutex_init(&ssd->memtable_mu);
-    qemu_mutex_init(&ssd->lat_mu);
     qemu_thread_create(&ssd->ftl_thread, "FEMU-FTL-Thread", ftl_thread, n, QEMU_THREAD_JOINABLE);
-    qemu_thread_create(&ssd->comp_thread, "FEMU-COMP-Thread", comp_thread, n, QEMU_THREAD_JOINABLE);
     ssd->do_reset = true;
 }
 
@@ -539,7 +533,6 @@ uint64_t pink_ssd_advance_status(struct ssd *ssd, struct femu_ppa *ppa, struct n
     }
 
     uint8_t page_type = kvssd_get_page_type(&ssd->lat, ppa->g.pg);
-    qemu_mutex_lock(&ssd->lat_mu);
     switch (c) {
     case NAND_READ:
         /* read: perform NAND cmd first */
@@ -596,7 +589,6 @@ uint64_t pink_ssd_advance_status(struct ssd *ssd, struct femu_ppa *ppa, struct n
     default:
         kv_err("Unsupported NAND command: 0x%x\n", c);
     }
-    qemu_mutex_unlock(&ssd->lat_mu);
 
     return lat;
 }
@@ -848,7 +840,6 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     k.len = req->key_length;
 
     /* 1. Check L0: memtable (skiplist). */
-    qemu_mutex_lock(&ssd->memtable_mu);
     found = find_from_list(k, pink_lsm->memtable);
     if (found) {
         req->value_length = found->value.length;
@@ -856,7 +847,6 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
         FREE(found->lpa.k.key);
         FREE(found);
         FREE(k.key);
-        qemu_mutex_unlock(&ssd->memtable_mu);
 
         return req->etime - req->stime;
     }
@@ -870,13 +860,10 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
             FREE(found->lpa.k.key);
             FREE(found);
             FREE(k.key);
-            qemu_mutex_unlock(&ssd->memtable_mu);
             return req->etime - req->stime;
         }
     }
-    qemu_mutex_unlock(&ssd->memtable_mu);
 
-    //qemu_mutex_lock(&ssd->comp_mu);
     /* 3. Walk lower levels. prepare params */
     int level = 0;
     pink_level_list_entry *entry = NULL;
@@ -913,7 +900,6 @@ retry:
             FREE(found);
             FREE(k.key);
             req->flash_access_count++;
-            //qemu_mutex_unlock(&ssd->comp_mu);
             return req->etime - req->stime;
         case COMP_FOUND:
             /*
@@ -981,7 +967,6 @@ retry:
             FREE(found);
             FREE(k.key);
             req->flash_access_count++;
-            //qemu_mutex_unlock(&ssd->comp_mu);
             return req->etime - req->stime;
         case FOUND:
             /*
@@ -1043,14 +1028,12 @@ retry:
             FREE(found);
             FREE(k.key);
             req->flash_access_count++;
-            //qemu_mutex_unlock(&ssd->comp_mu);
             return req->etime - req->stime;
         case NOTFOUND:
             kv_debug("not found?\n");
             FREE(k.key);
             break;
     }
-    //qemu_mutex_unlock(&ssd->comp_mu);
     return req->etime - req->stime;
 }
 
@@ -1082,9 +1065,7 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
     v->length = req->value_length;
     v->value = (char *) req->value;
 
-    //qemu_mutex_lock(&ssd->memtable_mu);
     kv_skiplist_insert(pink_lsm->memtable, k, v);
-    //qemu_mutex_unlock(&ssd->memtable_mu);
 
     /*
     static uint64_t cnt = 0;
@@ -1116,7 +1097,6 @@ static void reset_delay(struct ssd *ssd)
 
     now = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
     ppa.ppa = 0;
-    qemu_mutex_lock(&ssd->lat_mu);
     for (int ch = 0; ch < spp->nchs; ch++) {
         for (int lun = 0; lun < spp->luns_per_ch; lun++) {
             ppa.g.ch = ch;
@@ -1126,19 +1106,6 @@ static void reset_delay(struct ssd *ssd)
             lun->next_lun_avail_time = now;
         }
     }
-    qemu_mutex_unlock(&ssd->lat_mu);
-}
-
-static void *comp_thread(void *arg)
-{
-    FemuCtrl *n = (FemuCtrl *)arg;
-    struct ssd *ssd = n->ssd;
-
-    while (1) {
-        pink_do_compaction(ssd);
-    }
-
-    return NULL;
 }
 
 static void *ftl_thread(void *arg)
@@ -1173,52 +1140,28 @@ static void *ftl_thread(void *arg)
             // FIXME: cmd.opcode and cmd_opcode; this should be merged
             switch (req->cmd_opcode) {
             case NVME_CMD_KV_STORE:
-                if (!qemu_mutex_trylock(&ssd->memtable_mu)) {
-                    if (pink_lsm->temptable[0]) {
-                        rc = femu_ring_enqueue(ssd->to_ftl[i], (void *)&req, 1);
-                        if (rc != 1) {
-                            printf("FEMU: FTL to_ftl enqueue failed\n");
-                        }
-                        qemu_mutex_unlock(&ssd->memtable_mu);
-                        continue;
-                    }
-                    //qemu_mutex_unlock(&ssd->memtable_mu);
-                } else {
-                    rc = femu_ring_enqueue(ssd->to_ftl[i], (void *)&req, 1);
-                    if (rc != 1) {
-                        printf("FEMU: FTL to_ftl enqueue failed\n");
-                    }
-                    continue;
-                }
-
                 lat = ssd_store(ssd, req);
+                pink_do_compaction(ssd);
                 break;
             case NVME_CMD_KV_RETRIEVE:
                 if (ssd->start_log == false) {
                     kv_debug("Reset latency timer!\n");
                     ssd->start_log = true;
-                    qemu_mutex_lock(&ssd->lat_mu);
                     for (int ch = 0; ch < ssd->sp.nchs; ch++) {
                         for (int lun = 0; lun < ssd->sp.luns_per_ch; lun++) {
                             ssd->ch[ch].lun[lun].next_lun_avail_time = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
                         }
                     }
-                    qemu_mutex_unlock(&ssd->lat_mu);
                 }
                 req->flash_access_count = 0;
-                qemu_mutex_lock(&ssd->comp_mu);
                 lat = ssd_retrieve(ssd, req);
-                qemu_mutex_unlock(&ssd->comp_mu);
-                qatomic_dec(&n->pending_reads);
                 break;
             case NVME_CMD_KV_DELETE:
                 if (ssd->do_reset) {
                     reset_delay(ssd);
                     ssd->do_reset = false;
                 }
-                qemu_mutex_lock(&ssd->comp_mu);
                 lat = ssd_delete(ssd, req);
-                qemu_mutex_unlock(&ssd->comp_mu);
                 break;
             case NVME_CMD_KV_ITERATE_REQUEST:
             case NVME_CMD_KV_ITERATE_READ:
@@ -1226,7 +1169,6 @@ static void *ftl_thread(void *arg)
                 lat = 1;
                 break;
             default:
-                qemu_mutex_lock(&ssd->comp_mu);
                 switch (req->cmd.opcode) {
                     case NVME_CMD_WRITE:
                         lat = ssd_write(ssd, req);
@@ -1241,7 +1183,6 @@ static void *ftl_thread(void *arg)
                         //kv_err("FTL received unkown request type, ERROR\n");
                         ;
                 }
-                qemu_mutex_unlock(&ssd->comp_mu);
             }
 
             req->reqlat = lat;

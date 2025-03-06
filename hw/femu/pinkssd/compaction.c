@@ -30,15 +30,12 @@ uint32_t leveling(struct ssd *ssd, pink_level *from, pink_level *to, leveling_no
     pink_lsm->c_level = NULL;
     if (from == NULL) {
         kv_assert(l_node->mem == pink_lsm->temptable[0]);
-        qemu_mutex_lock(&ssd->memtable_mu);
         for (int z = 0; z < pink_lsm->temp_n; z++) {
             kv_skiplist_free(pink_lsm->temptable[z]);
             pink_lsm->temptable[z] = NULL;
         }
         pink_lsm->temp_n = 0;
-        qemu_mutex_unlock(&ssd->memtable_mu);
     }
-    qemu_mutex_unlock(&ssd->comp_mu);
 
     if(target->idx == LSM_LEVELN-1){
         kv_debug("last level %d/%d (n:f)\n",target->n_num,target->m_num);
@@ -56,14 +53,8 @@ uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, le
     if(!upper){
         range_find_compaction(origin,start,end,&target_s);
 
-        int i = 0;
         for(int j=0; target_s[j]!=NULL; j++){
-            if (compaction_meta_segment_read_femu(ssd, target_s[j])) {
-                if (i % ASYNC_IO_UNIT == 0) {
-                    wait_pending_reads(ssd);
-                }
-                i++;
-            }
+            compaction_meta_segment_read_femu(ssd, target_s[j]);
         }
 
         compaction_subprocessing(ssd, skip,NULL,target_s,t);
@@ -72,27 +63,16 @@ uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, le
         des_num=range_find_compaction(origin,start,end,&target_s);//for stream compaction
         src_num=range_find_compaction(upper,start,end,&data);
 
-        int j = 0;
         for(int i=0; i < des_num; i++){
             kv_assert(target_s[i]);
             pink_level_list_entry *temp=target_s[i];
-            if (compaction_meta_segment_read_femu(ssd, temp)) {
-                if (j % ASYNC_IO_UNIT == 0) {
-                    wait_pending_reads(ssd);
-                }
-                j++;
-            }
+            compaction_meta_segment_read_femu(ssd, temp);
         }
 
         for(int i=0; i < src_num; i++){
             kv_assert(data[i]);
             pink_level_list_entry *temp=data[i];
-            if (compaction_meta_segment_read_femu(ssd, temp)) {
-                if (j % ASYNC_IO_UNIT == 0) {
-                    wait_pending_reads(ssd);
-                }
-                j++;
-            }
+            compaction_meta_segment_read_femu(ssd, temp);
         }
         //wait_delay(ssd, true);
         compaction_subprocessing(ssd, NULL,data,target_s,t);

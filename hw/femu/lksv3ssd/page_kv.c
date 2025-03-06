@@ -36,7 +36,6 @@ void gc_erase_delay(struct ssd *ssd, struct femu_ppa *ppa)
 static void lksv3_line_erase(struct ssd *ssd, int lineid) {
     struct line *line = &ssd->lm.lines[lineid];
     struct femu_ppa ppa;
-    qemu_mutex_lock(&ssd->comp_mu);
 
     kv_log("%d gc_data!!! (line: %d)\n", ++lksv_lsm->data_gc_cnt, line->id);
     kv_log("vpc: %d, valid bytes: %d, invalid_bytes: %d, secs_per_line: %d\n", line->vpc, line->vsc, line->isc, ssd->sp.secs_per_line);
@@ -46,10 +45,6 @@ static void lksv3_line_erase(struct ssd *ssd, int lineid) {
     ppa.g.blk = lineid;
     for (int ch = 0; ch < ssd->sp.nchs; ch++) {
         for (int lun = 0; lun < ssd->sp.luns_per_ch; lun++) {
-            qemu_mutex_unlock(&ssd->comp_mu);
-            wait_pending_reads(ssd);
-            qemu_mutex_lock(&ssd->comp_mu);
-
             ppa.g.ch = ch;
             ppa.g.lun = lun;
             ppa.g.pl = 0;
@@ -75,7 +70,6 @@ static void lksv3_line_erase(struct ssd *ssd, int lineid) {
     kv_assert(cnt <= 2);
 
     lksv3_mark_line_free(ssd, &ppa);
-    qemu_mutex_unlock(&ssd->comp_mu);
 }
 
 void lksv3_gc_data_femu3(struct ssd *ssd, int ulevel, int level) {
@@ -366,12 +360,6 @@ int lksv3_gc_meta_femu(struct ssd *ssd) {
             ppa.g.lun = lun;
             for (ch = 0; ch < spp->nchs; ch++) {
                 ppa.g.ch = ch;
-
-                if (group_n % ASYNC_IO_UNIT == 0) {
-                    qemu_mutex_unlock(&ssd->comp_mu);
-                    wait_pending_reads(ssd);
-                    qemu_mutex_lock(&ssd->comp_mu);
-                }
 
                 pg = lksv3_get_pg(ssd, &ppa);
                 if (pg->status == PG_INVALID) {

@@ -1373,7 +1373,6 @@ typedef struct FemuCtrl {
     uint64_t        throughput_interval_ns;
     uint64_t        hash_collision_cnt;
     uint64_t        hash_ssd_collision_cnt[256];
-    uint64_t        pending_reads;
 
     uint64_t        latency_idx;
     uint64_t        latency_sample_cnt;

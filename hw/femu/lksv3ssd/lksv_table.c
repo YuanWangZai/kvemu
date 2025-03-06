@@ -194,7 +194,6 @@ void free_lksv3_compaction(lksv3_compaction *c) {
 static void load_run_to_comp_entry_list(struct ssd *ssd, lksv_comp_list *list, lksv_level_list_entry *run, int to_level, int level) {
     kv_assert(list->n == 0);
     lksv3_sst_t sst[PG_N];
-    int k = 0;
 
     int tt_keys[PG_N];
 
@@ -210,10 +209,6 @@ static void load_run_to_comp_entry_list(struct ssd *ssd, lksv_comp_list *list, l
             cpr.cmd = NAND_READ;
             cpr.stime = 0;
             lksv3_ssd_advance_status(ssd, &ppa, &cpr);
-        }
-        k++;
-        if (k % ASYNC_IO_UNIT == 0) {
-            wait_pending_reads(ssd);
         }
 
         sst[i].footer = *(lksv_block_footer *) (sst[i].raw + (PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE));
@@ -254,10 +249,6 @@ static void load_run_to_comp_entry_list(struct ssd *ssd, lksv_comp_list *list, l
                     srd.cmd = NAND_READ;
                     srd.stime = 0;
                     lksv3_ssd_advance_status(ssd, log_ppa, &srd);
-                    k++;
-                    if (k % ASYNC_IO_UNIT == 0) {
-                        wait_pending_reads(ssd);
-                    }
 
                     struct nand_page *pg2 = lksv3_get_pg(ssd, log_ppa);
                     int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (p->meta.g2.voff + 1));
@@ -311,10 +302,6 @@ static void load_run_to_comp_entry_list(struct ssd *ssd, lksv_comp_list *list, l
             srd.cmd = NAND_READ;
             srd.stime = 0;
             lksv3_ssd_advance_status(ssd, log_ppa, &srd);
-            k++;
-            if (k % ASYNC_IO_UNIT == 0) {
-                wait_pending_reads(ssd);
-            }
 
             struct nand_page *pg2 = lksv3_get_pg(ssd, log_ppa);
             int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (p->meta.g2.voff + 1));
@@ -442,8 +429,6 @@ static void mark_reclaimable_log_lines(struct ssd *ssd, int ulevel_i, int level_
         mppa.g.blk = victim_line->id;
         for (int ch = 0; ch < spp->nchs; ch++) {
             for (int lun = 0; lun < spp->luns_per_ch; lun++) {
-                wait_pending_reads(ssd);
-
                 mppa.g.ch = ch;
                 mppa.g.lun = lun;
                 mppa.g.pl = 0;
@@ -693,10 +678,6 @@ _do_lksv3_compaction2(struct ssd *ssd,
             i++;
 
             j += from_run->hash_list_n;
-            if (j >= ASYNC_IO_UNIT) {
-                wait_pending_reads(ssd);
-                j -= ASYNC_IO_UNIT;
-            }
         }
     } else {
         upper[0].str_order_entries = calloc(mem->n, sizeof(lksv_comp_entry));
@@ -746,10 +727,6 @@ _do_lksv3_compaction2(struct ssd *ssd,
         i++;
 
         j += to_run->hash_list_n;
-        if (j >= ASYNC_IO_UNIT) {
-            wait_pending_reads(ssd);
-            j -= ASYNC_IO_UNIT;
-        }
     }
 
     merged.str_order_entries = calloc((PG_N * 512), sizeof(lksv_comp_entry));
@@ -1126,48 +1103,32 @@ void do_lksv3_compaction2(struct ssd *ssd, int high_lev, int low_lev, leveling_n
         _do_lksv3_compaction2(ssd, lksv_lsm->disk[high_lev], lksv_lsm->disk[low_lev], target, NULL);
     }
 
-    qemu_mutex_lock(&ssd->comp_mu);
     kv_assert(lksv_lsm->c_level == NULL);
     lksv_lsm->c_level = target;
-    qemu_mutex_unlock(&ssd->comp_mu);
 
-    wait_pending_reads(ssd);
     l = lksv_lsm->disk[low_lev];
     iter = lksv3_get_iter(l, l->start, l->end);
-    int j = 0;
 
     while((now=lksv3_iter_nxt(iter))) {
-        qemu_mutex_lock(&ssd->comp_mu);
         for (int i = 0; i < PG_N; i++) {
             struct femu_ppa ppa = get_next_write_ppa(ssd, now->ppa, i);
             if (lksv3_get_pg(ssd, &ppa)->status == PG_VALID) {
                 lksv3_mark_page_invalid(ssd, &ppa);
             }
         }
-        j++;
-        qemu_mutex_unlock(&ssd->comp_mu);
-        if (j % 2 == 0)
-            wait_pending_reads(ssd);
     }
     if (!l_node) {
         l = lksv_lsm->disk[high_lev];
         iter = lksv3_get_iter(l, l->start, l->end);
         while((now=lksv3_iter_nxt(iter))) {
-            qemu_mutex_lock(&ssd->comp_mu);
             for (int i = 0; i < PG_N; i++) {
                 struct femu_ppa ppa = get_next_write_ppa(ssd, now->ppa, i);
                 if (lksv3_get_pg(ssd, &ppa)->status == PG_VALID) {
                     lksv3_mark_page_invalid(ssd, &ppa);
                 }
             }
-            qemu_mutex_unlock(&ssd->comp_mu);
-            j++;
-            if (j % 2 == 0)
-                wait_pending_reads(ssd);
         }
     }
-
-    qemu_mutex_lock(&ssd->comp_mu);
 
     l = target;
     iter = lksv3_get_iter(l, l->start, l->end);
@@ -1199,13 +1160,6 @@ void do_lksv3_compaction2(struct ssd *ssd, int high_lev, int low_lev, leveling_n
             lksv3_mark_page_valid(ssd, &fppa);
             lksv3_ssd_advance_write_pointer(ssd, &ssd->lm.meta);
             lksv3_mark_page_invalid(ssd, &fppa);
-        }
-
-        j++;
-        if (j % 2 == 0) {
-            qemu_mutex_unlock(&ssd->comp_mu);
-            wait_pending_reads(ssd);
-            qemu_mutex_lock(&ssd->comp_mu);
         }
     }
 }

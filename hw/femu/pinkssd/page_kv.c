@@ -34,21 +34,17 @@ static void gc_erase_delay(struct ssd *ssd, struct femu_ppa *ppa)
 }
 
 static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int idx) {
-    qemu_mutex_lock(&ssd->memtable_mu);
     kv_snode *target_node = kv_skiplist_find(pink_lsm->memtable, key);
     if (target_node) {
-        qemu_mutex_unlock(&ssd->memtable_mu);
         return false;
     }
 
     for (int z = 0; z < pink_lsm->temp_n; z++) {
         target_node = kv_skiplist_find(pink_lsm->temptable[z], key);
         if (target_node) {
-            qemu_mutex_unlock(&ssd->memtable_mu);
             return false;
         }
     }
-    qemu_mutex_unlock(&ssd->memtable_mu);
 
     pink_level_list_entry *entries = NULL;
     for (int i = 0; i < LSM_LEVELN; i++) {
@@ -148,9 +144,7 @@ static void gc_data_one_block(struct ssd *ssd, struct femu_ppa ppa)
                 // Give our m allocated key to skiplist.
                 // No need to free that.
                 //compaction_check(ssd);
-                qemu_mutex_lock(&ssd->memtable_mu);
                 kv_skiplist_insert(pink_lsm->memtable, key, value);
-                qemu_mutex_unlock(&ssd->memtable_mu);
             } else {
                 gc_erased++;
             }
@@ -179,18 +173,12 @@ int gc_data_femu(struct ssd *ssd) {
     gc_moved = 0;
     gc_erased = 0;
 
-    //qemu_mutex_unlock(&ssd->comp_mu);
     //wait_delay(ssd, true);
-    //qemu_mutex_lock(&ssd->comp_mu);
 
     ppa.g.blk = victim_line->id;
     //struct nand_page *pg;
     for (ch = 0; ch < spp->nchs; ch++) {
         for (lun = 0; lun < spp->luns_per_ch; lun++) {
-            qemu_mutex_unlock(&ssd->comp_mu);
-            wait_pending_reads(ssd);
-            qemu_mutex_lock(&ssd->comp_mu);
-
             ppa.g.ch = ch;
             ppa.g.lun = lun;
             ppa.g.pl = 0;
@@ -206,9 +194,7 @@ int gc_data_femu(struct ssd *ssd) {
     }
     mark_line_free(ssd, &ppa);
 
-    //qemu_mutex_unlock(&ssd->comp_mu);
     //wait_delay(ssd, true);
-    //qemu_mutex_lock(&ssd->comp_mu);
 
     kv_log("gc_data_erased: %d, gc_data_moved: %d, moved percentage: %f\n", gc_erased, gc_moved, ((float)gc_moved) / (gc_moved + gc_erased));
     return gc_erased > 0 ? 0 : -2;
@@ -247,12 +233,6 @@ int gc_meta_femu(struct ssd *ssd) {
             ppa.g.rsv = 0;
 
             for (pg_n = 0; pg_n < spp->pgs_per_blk; pg_n++) {
-                if (pg_n % ASYNC_IO_UNIT == 0) {
-                    qemu_mutex_unlock(&ssd->comp_mu);
-                    wait_pending_reads(ssd);
-                    qemu_mutex_lock(&ssd->comp_mu);
-                }
-
                 ppa.g.pg = pg_n;
                 pg = get_pg(ssd, &ppa);
                 kv_assert(pg->status != PG_FREE);
@@ -330,10 +310,6 @@ int gc_meta_femu(struct ssd *ssd) {
     }
 
     mark_line_free(ssd, &ppa);
-
-    //qemu_mutex_unlock(&ssd->comp_mu);
-    //wait_delay(ssd, true);
-    //qemu_mutex_lock(&ssd->comp_mu);
 
     return 0;
 }

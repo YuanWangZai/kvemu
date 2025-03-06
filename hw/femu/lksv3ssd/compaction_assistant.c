@@ -176,8 +176,6 @@ retry:
         }
     }
 
-    wait_pending_reads(ssd);
-    qemu_mutex_lock(&ssd->memtable_mu);
     for (int i = 0; i < tmp_i; i++) {
         t2 = lksv3_skiplist_insert(lksv_lsm->kmemtable, tmp_key[i], tmp_val[i], true, ssd);
         if (t2->private == NULL)
@@ -187,7 +185,6 @@ retry:
         *snode_hash(t2) = tmp_hash[i];
         t2->value->length = PPA_LENGTH;
     }
-    qemu_mutex_unlock(&ssd->memtable_mu);
 
     lksv3_mark_page_valid2(ssd, &fppa);
     if (sst.footer.g.n) {
@@ -211,15 +208,10 @@ retry:
 
 void lksv3_do_compaction(struct ssd *ssd)
 {
-    qemu_mutex_lock(&ssd->comp_q_mu);
     if (!QTAILQ_EMPTY(&lksv_lsm->compaction_queue)) {
         compR *req = QTAILQ_FIRST(&lksv_lsm->compaction_queue);
         QTAILQ_REMOVE(&lksv_lsm->compaction_queue, req, entry);
         leveling_node lnode;
-
-        qemu_mutex_unlock(&ssd->comp_q_mu);
-
-        qemu_mutex_lock(&ssd->memtable_mu);
 
         bool log = true;
         if (log && ssd->lm.data.free_line_cnt > 0) {
@@ -227,12 +219,9 @@ void lksv3_do_compaction(struct ssd *ssd)
             if (lksv_lsm->kmemtable == NULL) {
                 lksv_lsm->kmemtable = kv_skiplist_init();
             }
-            qemu_mutex_unlock(&ssd->memtable_mu);
-
             log_write(ssd, req->temptable);
             check_473(ssd);
 
-            qemu_mutex_lock(&ssd->memtable_mu);
             kv_assert(lksv_lsm->temptable);
             kv_skiplist_free(lksv_lsm->temptable);
             lksv_lsm->temptable = NULL;
@@ -274,10 +263,8 @@ void lksv3_do_compaction(struct ssd *ssd)
                     per_line_data(&ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush_buffer = true;
                 }
             }
-            qemu_mutex_unlock(&ssd->memtable_mu);
             req->fromL = -1;
         } else {
-            qemu_mutex_unlock(&ssd->memtable_mu);
             FREE(req);
             return;
         }
@@ -299,7 +286,6 @@ void lksv3_do_compaction(struct ssd *ssd)
          * temptable is a cut skiplist.
          */
         if (req->fromL == -2) {
-            qemu_mutex_unlock(&ssd->memtable_mu);
             lnode.mem = req->temptable;
             lksv3_compaction_data_write(ssd, &lnode);
             compaction_selector(ssd, NULL, lksv_lsm->disk[0], &lnode);
@@ -311,13 +297,10 @@ void lksv3_do_compaction(struct ssd *ssd)
         FREE(lnode.end.key);
         FREE(req);
 
-        wait_pending_reads(ssd);
-        qemu_mutex_lock(&ssd->comp_mu);
         while (lksv3_should_meta_gc_high(ssd)) {
             if (lksv3_gc_meta_femu(ssd))
                 break;
         }
-        qemu_mutex_unlock(&ssd->comp_mu);
 
         if (rand() % 100 == 0) {
             kv_debug("write_cnt %lu\n", lksv_lsm->num_data_written);
@@ -329,15 +312,12 @@ void lksv3_do_compaction(struct ssd *ssd)
             kv_debug("[DATA] victim line cnt: %d\n", ssd->lm.data.victim_line_cnt);
             lksv3_print_level_summary(lksv_lsm);
         }
-    } else {
-        qemu_mutex_unlock(&ssd->comp_q_mu);
     }
 }
 
 void lksv3_compaction_check(struct ssd *ssd) {
     // LSM->temptable means there is a pending compaction request
     if (kv_skiplist_approximate_memory_usage(lksv_lsm->memtable) < WRITE_BUFFER_SIZE || lksv_lsm->temptable) {
-        qemu_mutex_unlock(&ssd->memtable_mu);
         return;
     }
 
@@ -356,10 +336,7 @@ void lksv3_compaction_check(struct ssd *ssd) {
     req->temptable = t1;
     kv_assert(lksv_lsm->temptable == NULL);
     lksv_lsm->temptable = t1;
-    qemu_mutex_unlock(&ssd->memtable_mu);
 
-    qemu_mutex_lock(&ssd->comp_q_mu);
     compaction_assign(lksv_lsm, req);
-    qemu_mutex_unlock(&ssd->comp_q_mu);
 }
 

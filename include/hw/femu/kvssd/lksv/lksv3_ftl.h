@@ -22,7 +22,6 @@ extern struct lksv3_lsmtree *lksv_lsm;
 #define LEVELLIST_HASH_BYTES 2
 #define LEVELLIST_HASH_SHIFTS 16
 #define PG_N 32
-#define ASYNC_IO_UNIT 64
 
 /*
  * If commented, the simulator runs in OURS+ mode, where values are placed
@@ -455,11 +454,6 @@ struct ssd {
     struct rte_ring **to_poller;
     bool *dataplane_started_ptr;
     QemuThread ftl_thread;
-    QemuThread comp_thread;
-    QemuMutex comp_mu;
-    QemuMutex comp_q_mu;
-    QemuMutex memtable_mu;
-    QemuMutex lat_mu;
 
     lksv3_lsp     lsp;
     lksv3_llp     llp;
@@ -523,12 +517,6 @@ struct lksv3_comp_entry {
     struct kv_snode *snode;
     uint32_t hash;
 };
-
-static inline void wait_pending_reads(struct ssd *ssd) {
-    while (qatomic_read(&ssd->n->pending_reads) > 0) {
-        usleep(1);
-    }
-}
 
 static inline bool should_unify(struct ssd *ssd, struct femu_ppa *log_ppa, int level, int to_level) {
     if (lksv_lsm->gc_plan[level][log_ppa->g.blk]) {

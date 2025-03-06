@@ -15,7 +15,6 @@
 
 // ftl.h ===================================================
 
-#define ASYNC_IO_UNIT 64
 //#define CACHE_UPDATE
 
 uint64_t pink_ssd_advance_status(struct ssd *ssd, struct femu_ppa *ppa, struct nand_cmd *ncmd);
@@ -292,12 +291,6 @@ struct line *select_victim_data_line(struct ssd *ssd, bool force);
 void mark_line_free(struct ssd *ssd, struct femu_ppa *ppa);
 
 struct nand_lun *get_lun(struct ssd *ssd, struct femu_ppa *ppa);
-
-static inline void wait_pending_reads(struct ssd *ssd) {
-    while (qatomic_read(&ssd->n->pending_reads) > 0) {
-        usleep(1);
-    }
-}
 
 void pink_adjust_lines(struct ssd *ssd);
 void pink_open(struct kv_lsm_options *opts);
