@@ -22,6 +22,6 @@ typedef struct pink_length_bucket {
 } pink_l_bucket;
 
 pink_l_bucket *pink_skiplist_make_length_bucket(kv_skiplist *sl);
-kv_skiplist *pink_skiplist_cutting_header(kv_skiplist *in, bool align_data_segment);
+kv_skiplist *pink_skiplist_cutting_header(kv_skiplist *in);
 
 #endif

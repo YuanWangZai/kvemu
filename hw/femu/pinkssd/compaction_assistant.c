@@ -125,7 +125,7 @@ void pink_do_compaction(struct ssd *ssd)
             bool done = false;
             while (!done)
             {
-                kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->temptable, false);
+                kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->temptable);
                 done = (tmp == pink_lsm->temptable);
 
                 kv_skiplist_get_start_end_key(tmp, &lnode.start, &lnode.end);
