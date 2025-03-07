@@ -72,12 +72,6 @@ uint32_t lksv3_leveling(struct ssd *ssd, lksv3_level *from, lksv3_level *to, lev
     uint32_t res = lksv3_level_change(ssd, from, to, target);
     check_473(ssd);
     lksv_lsm->c_level = NULL;
-    if (from == NULL) {
-        kv_assert(l_node->mem == lksv_lsm->temptable);
-        kv_skiplist *tmp = lksv_lsm->temptable;
-        lksv_lsm->temptable = NULL;
-        kv_skiplist_free(tmp);
-    }
 
     if(target->idx == LSM_LEVELN-1){
         kv_debug("last level %d/%d (n:f)\n",target->n_num,target->m_num);

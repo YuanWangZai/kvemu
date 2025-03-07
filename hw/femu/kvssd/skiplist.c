@@ -3,9 +3,9 @@
 
 kv_skiplist *kv_skiplist_init(void)
 {
-    kv_skiplist *skl = (kv_skiplist *) malloc(sizeof(kv_skiplist));
-    skl->header = (kv_snode *) malloc(sizeof(kv_snode));
-    skl->header->list = (kv_snode **) malloc(sizeof(kv_snode*)*(MAX_L+1));
+    kv_skiplist *skl = (kv_skiplist *) calloc(1, sizeof(kv_skiplist));
+    skl->header = (kv_snode *) calloc(1, sizeof(kv_snode));
+    skl->header->list = (kv_snode **) calloc(MAX_L+1, sizeof(kv_snode*));
     skl->level = 1;
     for(int i = 0; i < MAX_L; i++)
         skl->header->list[i] = skl->header;

@@ -109,7 +109,7 @@ static void log_write(struct ssd *ssd, kv_skiplist *mem) {
 
         kv_value *v;
         v = calloc(1, sizeof(kv_value));
-        v->length = t->value->length;
+        v->length = PPA_LENGTH;
         v->value = NULL;
 
         tmp_key[tmp_i] = key;
@@ -213,94 +213,71 @@ void lksv3_do_compaction(struct ssd *ssd)
         QTAILQ_REMOVE(&lksv_lsm->compaction_queue, req, entry);
         leveling_node lnode;
 
-        bool log = true;
-        if (log && ssd->lm.data.free_line_cnt > 0) {
-        if (req->fromL == -2) {
-            if (lksv_lsm->kmemtable == NULL) {
-                lksv_lsm->kmemtable = kv_skiplist_init();
-            }
-            log_write(ssd, req->temptable);
+        kv_assert(ssd->lm.data.free_line_cnt > 0);
+
+        if (kv_skiplist_approximate_memory_usage(lksv_lsm->memtable) >= WRITE_BUFFER_SIZE)
+        {
+            log_write(ssd, lksv_lsm->memtable);
             check_473(ssd);
 
-            kv_assert(lksv_lsm->temptable);
-            kv_skiplist_free(lksv_lsm->temptable);
-            lksv_lsm->temptable = NULL;
-            // TODO: cascading to L0. don't forget the balancing kmemtable (one left, one right)
+            kv_skiplist_free(lksv_lsm->memtable);
+            lksv_lsm->memtable = kv_skiplist_init();
         }
 
-        static bool left = true;
-        // TODO: adjust key length
-        if (lksv_lsm->kmemtable->key_size + lksv_lsm->kmemtable->n * (PPA_LENGTH + LKSV3_SSTABLE_META_BLK_SIZE + LKSV3_SSTABLE_STR_IDX_SIZE) > PAGESIZE * PG_N) {
-            kv_skiplist *tmp = lksv_skiplist_cutting_header(lksv_lsm->kmemtable, false, false, left);
-            if (!left) {
-                kv_skiplist *t = lksv_lsm->kmemtable;
-                lksv_lsm->kmemtable = tmp;
-                tmp = t;
-            }
-            left = !left;
-            
-            lksv_lsm->temptable = req->temptable = tmp;
+        // TODO: make temp table immutable.
+        if (kv_skiplist_approximate_memory_usage(lksv_lsm->kmemtable) >= KEY_ONLY_WRITE_BUFFER_SIZE)
+        {
+            lksv_lsm->temptable = lksv_lsm->kmemtable;
+            lksv_lsm->kmemtable = kv_skiplist_init();
 
-            kv_snode *t;
-            for_each_sk (t, lksv_lsm->temptable) {
-                if (!lksv_lsm->flush_reference_lines[snode_ppa(t)->g.blk]) {
-                    lksv_lsm->flush_reference_lines[snode_ppa(t)->g.blk] = true;
-                    per_line_data(&ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush = true;
-                }
-            }
-            for (int i = 0; i < 512; i++) {
-                if (is_meta_line(ssd, i)) {
-                    continue;
-                }
-                if (lksv_lsm->flush_buffer_reference_lines[i]) {
-                    per_line_data(&ssd->lm.lines[i])->referenced_flush_buffer = false;
-                }
-            }
             memset(lksv_lsm->flush_buffer_reference_lines, 0, 512 * sizeof(bool));
-            for_each_sk (t, lksv_lsm->kmemtable) {
-                if (!lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk]) {
+            kv_snode *t;
+            for_each_sk (t, lksv_lsm->temptable)
+            {
+                if (!lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk])
+                {
                     lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk] = true;
                     per_line_data(&ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush_buffer = true;
                 }
             }
-            req->fromL = -1;
-        } else {
-            FREE(req);
-            return;
-        }
 
-        if (req->fromL == -1) {
-            lnode.mem = req->temptable;
-            lksv3_compaction_data_write(ssd, &lnode);
-            compaction_selector(ssd, NULL, lksv_lsm->disk[0], &lnode);
-        }
+            bool done = false;
+            while (!done)
+            {
+                kv_skiplist *tmp = lksv_skiplist_cutting_header(lksv_lsm->temptable, false, false, true);
+                done = (tmp == lksv_lsm->temptable);
 
-        } else {
-#ifndef OURS
-            if (log) {
-                printf("urgent. put values to lsm-t.\n");
+                for_each_sk (t, tmp)
+                {
+                    if (!lksv_lsm->flush_reference_lines[snode_ppa(t)->g.blk])
+                    {
+                        lksv_lsm->flush_reference_lines[snode_ppa(t)->g.blk] = true;
+                        per_line_data(&ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush = true;
+                    }
+
+                    if (lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk])
+                        per_line_data(&ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush_buffer = false;
+                }
+
+                lnode.mem = tmp;
+                lksv3_compaction_data_write(ssd, &lnode);
+                compaction_selector(ssd, NULL, lksv_lsm->disk[0], &lnode);
+                compaction_cascading(ssd);
+
+                FREE(lnode.start.key);
+                FREE(lnode.end.key);
+                kv_skiplist_free(tmp);
+
+                while (lksv3_should_meta_gc_high(ssd)) {
+                    if (lksv3_gc_meta_femu(ssd))
+                        break;
+                }
             }
-#endif
-        /*
-         * from L0.
-         * temptable is a cut skiplist.
-         */
-        if (req->fromL == -2) {
-            lnode.mem = req->temptable;
-            lksv3_compaction_data_write(ssd, &lnode);
-            compaction_selector(ssd, NULL, lksv_lsm->disk[0], &lnode);
-        }
-        }
-        compaction_cascading(ssd);
 
-        FREE(lnode.start.key);
-        FREE(lnode.end.key);
+            lksv_lsm->temptable = NULL;
+        }
+
         FREE(req);
-
-        while (lksv3_should_meta_gc_high(ssd)) {
-            if (lksv3_gc_meta_femu(ssd))
-                break;
-        }
 
         if (rand() % 100 == 0) {
             kv_debug("write_cnt %lu\n", lksv_lsm->num_data_written);
@@ -316,27 +293,10 @@ void lksv3_do_compaction(struct ssd *ssd)
 }
 
 void lksv3_compaction_check(struct ssd *ssd) {
-    // LSM->temptable means there is a pending compaction request
-    if (kv_skiplist_approximate_memory_usage(lksv_lsm->memtable) < WRITE_BUFFER_SIZE || lksv_lsm->temptable) {
+    if (kv_skiplist_approximate_memory_usage(lksv_lsm->memtable) < WRITE_BUFFER_SIZE)
         return;
-    }
 
-    compR *req;
-    kv_skiplist *t1=NULL;
-    t1 = lksv_skiplist_cutting_header(lksv_lsm->memtable, true, false, true);
-    if (t1 == lksv_lsm->memtable) {
-        kv_debug("skiplist should be larger\n");
-        abort();
-    }
-    /*
-     * Constructs a compaction request in units of one meta-segment.
-     */
-    req = (compR*)calloc(1, sizeof(compR));
-    req->fromL = -2;    /* from memtable (L0) to key only table */
-    req->temptable = t1;
-    kv_assert(lksv_lsm->temptable == NULL);
-    lksv_lsm->temptable = t1;
-
+    compR *req = calloc(1, sizeof(compR));
     compaction_assign(lksv_lsm, req);
 }
 

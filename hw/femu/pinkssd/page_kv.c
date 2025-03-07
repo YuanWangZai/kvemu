@@ -39,11 +39,14 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
         return false;
     }
 
-    for (int z = 0; z < pink_lsm->temp_n; z++) {
-        target_node = kv_skiplist_find(pink_lsm->temptable[z], key);
-        if (target_node) {
-            return false;
-        }
+    target_node = kv_skiplist_find(pink_lsm->kmemtable, key);
+    if (target_node) {
+        return false;
+    }
+
+    target_node = kv_skiplist_find(pink_lsm->temptable, key);
+    if (target_node) {
+        return false;
     }
 
     pink_level_list_entry *entries = NULL;

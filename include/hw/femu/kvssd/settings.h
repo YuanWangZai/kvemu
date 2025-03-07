@@ -373,6 +373,7 @@ static inline void stat_range_lun(struct range_lun *l)
 
 #define MAXVALUESIZE 4096
 #define WRITE_BUFFER_SIZE ((1*1024*1024))
+#define KEY_ONLY_WRITE_BUFFER_SIZE ((1*1024*1024))
 
 #endif
 

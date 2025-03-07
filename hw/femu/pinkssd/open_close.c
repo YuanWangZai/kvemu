@@ -19,6 +19,7 @@ void pink_open(struct kv_lsm_options *opts)
 
     kv_init_min_max_key();
     pink_lsm->memtable = kv_skiplist_init();
+    pink_lsm->kmemtable = kv_skiplist_init();
 
     pink_lsm->level_list_entries = g_hash_table_new(uint64_t_hash,
                                                     uint64_t_equal);

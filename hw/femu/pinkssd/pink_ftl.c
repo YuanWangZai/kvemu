@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include "hw/femu/kvssd/pink/pink_ftl.h"
+#include "hw/femu/kvssd/pink/skiplist.h"
 
 static void *ftl_thread(void *arg);
 
@@ -809,7 +810,7 @@ void mark_line_free(struct ssd *ssd, struct femu_ppa *ppa)
     lm->free_line_cnt++;
 }
 
-static keyset* find_from_list(kv_key key, kv_skiplist *list) {
+static keyset* find_from_list(struct ssd *ssd, kv_key key, kv_skiplist *list) {
     keyset *target_set = NULL;
     kv_snode *target_node;
     if (list) {
@@ -817,10 +818,23 @@ static keyset* find_from_list(kv_key key, kv_skiplist *list) {
         if(target_node) {
             target_set = (keyset *) malloc(sizeof(struct keyset));
             kv_copy_key(&target_set->lpa.k, &target_node->key);
-            target_set->value.length = target_node->value->length;
-            target_set->value.value = g_malloc0(target_set->value.length);
-            memcpy(target_set->value.value, target_node->value->value, target_set->value.length);
-            target_set->ppa.ppa = UNMAPPED_PPA;
+            if (target_node->private) {
+                target_set->ppa = *snode_ppa(target_node);
+                int off = *snode_off(target_node);
+
+                struct nand_page *pg2 = get_pg(ssd, &target_set->ppa);
+                kv_assert(((uint16_t *)pg2->data)[0]);
+                kv_assert(strncmp(pg2->data + ((uint16_t *)pg2->data)[off+1],
+                                  target_set->lpa.k.key, target_set->lpa.k.len) == 0);
+                target_set->value.length = ((uint16_t *)pg2->data)[off+2] - ((uint16_t *)pg2->data)[off+1] - target_set->lpa.k.len;
+                target_set->value.value = (char *) malloc(target_set->value.length * sizeof(char));
+                memcpy(target_set->value.value, pg2->data + ((uint16_t *)pg2->data)[off+1] + target_set->lpa.k.len, target_set->value.length);
+            } else {
+                target_set->ppa.ppa = UNMAPPED_PPA;
+                target_set->value.length = target_node->value->length;
+                target_set->value.value = g_malloc0(target_set->value.length);
+                memcpy(target_set->value.value, target_node->value->value, target_set->value.length);
+            }
         }
     }
     return target_set;
@@ -840,7 +854,19 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     k.len = req->key_length;
 
     /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(k, pink_lsm->memtable);
+    found = find_from_list(ssd, k, pink_lsm->memtable);
+    if (found) {
+        req->value_length = found->value.length;
+        req->value = (uint8_t *) found->value.value;
+        FREE(found->lpa.k.key);
+        FREE(found);
+        FREE(k.key);
+
+        return req->etime - req->stime;
+    }
+
+    /* 2. Check key only memtable (skiplist). */
+    found = find_from_list(ssd, k, pink_lsm->kmemtable);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
@@ -852,16 +878,14 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     }
 
     /* 2. Check compaction temp table (skiplist). */
-    for (int z = 0; z < pink_lsm->temp_n; z++) {
-        found = find_from_list(k, pink_lsm->temptable[z]);
-        if (found) {
-            req->value_length = found->value.length;
-            req->value = (uint8_t *) found->value.value;
-            FREE(found->lpa.k.key);
-            FREE(found);
-            FREE(k.key);
-            return req->etime - req->stime;
-        }
+    found = find_from_list(ssd, k, pink_lsm->temptable);
+    if (found) {
+        req->value_length = found->value.length;
+        req->value = (uint8_t *) found->value.value;
+        FREE(found->lpa.k.key);
+        FREE(found);
+        FREE(k.key);
+        return req->etime - req->stime;
     }
 
     /* 3. Walk lower levels. prepare params */

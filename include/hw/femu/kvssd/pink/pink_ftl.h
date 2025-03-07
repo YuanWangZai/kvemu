@@ -163,7 +163,7 @@ void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct p
 bool meta_segment_read_preproc(pink_level_list_entry *r);
 void meta_segment_read_postproc(struct ssd *ssd, pink_level_list_entry *r);
 
-void compaction_data_write(struct ssd *ssd, leveling_node* lnode);
+void compaction_data_write(struct ssd *ssd, kv_skiplist *skl);
 struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data);
 bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *ent);
 void pink_flush_cache_when_evicted(kv_cache_entry *ent);
@@ -210,9 +210,9 @@ typedef struct pink_lsmtree {
     struct ssd *ssd;
     uint8_t LEVELCACHING;
 
-    struct kv_skiplist *temptable[64];    /* Compaction temp data */
-    int temp_n;
+    struct kv_skiplist *temptable;    /* Compaction temp data */
     struct kv_skiplist *memtable;     /* L0 */
+    struct kv_skiplist *kmemtable;
     pink_level **disk;                  /* L1 ~ */
     pink_level *c_level;
     kv_compaction_info comp_ctx;

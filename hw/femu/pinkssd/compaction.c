@@ -28,14 +28,6 @@ uint32_t leveling(struct ssd *ssd, pink_level *from, pink_level *to, leveling_no
     if (entry) FREE(entry);
     uint32_t res = level_change(pink_lsm, from, to, target);
     pink_lsm->c_level = NULL;
-    if (from == NULL) {
-        kv_assert(l_node->mem == pink_lsm->temptable[0]);
-        for (int z = 0; z < pink_lsm->temp_n; z++) {
-            kv_skiplist_free(pink_lsm->temptable[z]);
-            pink_lsm->temptable[z] = NULL;
-        }
-        pink_lsm->temp_n = 0;
-    }
 
     if(target->idx == LSM_LEVELN-1){
         kv_debug("last level %d/%d (n:f)\n",target->n_num,target->m_num);

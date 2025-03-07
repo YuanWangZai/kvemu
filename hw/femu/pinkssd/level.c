@@ -398,29 +398,10 @@ void merger(struct ssd *ssd, struct kv_skiplist* mem, pink_level_list_entry** s,
     int o_num=0; int u_num=0;
     char **u_data;
     if(mem){
-        kv_skiplist *skip = NULL;
-        skip = pink_skiplist_cutting_header(mem, false);
-        u_num = (mem->n / skip->n) + 2;
+        kv_skiplist *skip = mem;
+        u_num = 1;
         u_data=(char**)malloc(sizeof(char*)*u_num);
-        int i = 0;
-        while (true) {
-            if (!skip) {
-                skip = pink_skiplist_cutting_header(mem, false);
-            }
-
-            u_data[i]=array_skip_cvt2_data(ssd, skip);
-            i++;
-
-            if (skip == mem) {
-                break;
-            } else {
-                pink_lsm->temptable[pink_lsm->temp_n] = skip;
-                pink_lsm->temp_n++;
-                //kv_skiplist_free(skip);
-                skip = NULL;
-            }
-        }
-        u_num = i;
+        u_data[0]=array_skip_cvt2_data(ssd, skip);
     }
     else{
         for(int i=0; s[i]!=NULL; i++) u_num++;

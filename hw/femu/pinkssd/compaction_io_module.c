@@ -42,6 +42,9 @@ static void log_cvt2table(void **data, kv_snode **targets, int n)
         offset_map[i+1] = data_start;
         keylen_map[i+1] = targets[i]->key.len;
         data_start += keylen_map[i+1] + targets[i]->value->length;
+
+        // To prevent double free: key is reused in kmemtable.
+        targets[i]->key.key = NULL;
     }
     offset_map[n+1] = data_start;
     keylen_map[n+1] = -1;
@@ -51,9 +54,8 @@ static void log_cvt2table(void **data, kv_snode **targets, int n)
  * Write data segments to the data partition.
  * This is only called when the skiplist is flushed from L0 to L1.
  */
-void compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
-    kv_skiplist_get_start_end_key(lnode->mem, &lnode->start, &lnode->end);
-    pink_l_bucket *lb = pink_skiplist_make_length_bucket(lnode->mem);
+void compaction_data_write(struct ssd *ssd, kv_skiplist *skl) {
+    pink_l_bucket *lb = pink_skiplist_make_length_bucket(skl);
     int max_vsize = MAXVALUESIZE;
     int min_vsize = 0;
 
@@ -105,9 +107,15 @@ void compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
 
                 int i = --lb->indices[vsize];
                 target = lb->bucket[vsize][i];
-                target->private = malloc(sizeof(pink_per_snode_data));
-                *snode_ppa(target) = ppa;
-                *snode_off(target) = in_page_idx;
+
+                kv_snode *t2;
+                kv_value *v2 = calloc(1, sizeof(kv_value));
+                v2->length = PPA_LENGTH;
+                t2 = kv_skiplist_insert(pink_lsm->kmemtable, target->key, v2);
+                if (t2->private == NULL)
+                    t2->private = calloc(1, sizeof(pink_per_snode_data));
+                *snode_ppa(t2) = ppa;
+                *snode_off(t2) = in_page_idx;
                 targets[in_page_idx] = target;
                 in_page_idx++;
                 n_vals--;
