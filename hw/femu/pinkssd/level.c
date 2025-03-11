@@ -17,8 +17,6 @@ pink_level* level_init(int idx)
     
     for (int i = 0; i < idx; i++)
         size *= (int) pink_lsm->opts->level_multiplier;
-    if (idx == 0)
-        size += BULK_FLUSH_MARGIN;
 
     pink_level *res = (pink_level*) calloc(1, sizeof(pink_level));
     res->level_data = (pink_level_list_entry**)calloc(size, sizeof(pink_level_list_entry *));

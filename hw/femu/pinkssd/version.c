@@ -54,3 +54,26 @@ pink_lnew(void)
     return e;
 }
 
+void
+update_compaction_score(void)
+{
+    double compaction_score;
+    double max_meta_segments;
+    int i;
+
+    pink_lsm->compaction_level = 0;
+    pink_lsm->compaction_score = 0;
+
+    for (i = 0; i < LSM_LEVELN-1; i++)
+    {
+        max_meta_segments = pink_lsm->disk[i]->m_num * 0.9;
+        compaction_score = (double) pink_lsm->disk[i]->n_num / max_meta_segments;
+
+        if (compaction_score > pink_lsm->compaction_score)
+        {
+            pink_lsm->compaction_score = compaction_score;
+            pink_lsm->compaction_level = i;
+        }
+    }
+}
+

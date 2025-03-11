@@ -66,8 +66,6 @@ typedef struct pipe_line_run{
     pink_level_list_entry *r;
 }pl_run;
 
-#define BULK_FLUSH_MARGIN 5
-
 #define LEVEL_LIST_ENTRY_PER_PAGE (PAGESIZE/(AVGKEYLENGTH+PPA_LENGTH))
 #define MAXKEYINMETASEG ((PAGESIZE - KEYBITMAP - VERSIONBITMAP)/(AVGKEYLENGTH+PPA_LENGTH))
 #define KEYFORMAT(input) input.len>AVGKEYLENGTH?AVGKEYLENGTH:input.len,input.key
@@ -149,8 +147,6 @@ typedef struct leveling_node{
 
 struct pink_lsmtree;
 
-bool should_compact(pink_level *l);
-
 uint32_t level_change(struct pink_lsmtree *LSM, pink_level *from, pink_level *to, pink_level *target);
 uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, leveling_node *lnode, pink_level* upper);
 uint32_t leveling(struct ssd *ssd, pink_level *from, pink_level *to, leveling_node *l_node);
@@ -215,7 +211,8 @@ typedef struct pink_lsmtree {
     QemuMutex mu;
     QemuThread comp_thread;
     bool compacting;
-    int compaction_score;
+    double compaction_score;
+    int compaction_level;
     uint64_t compaction_calls;
 
     pink_level **disk;                  /* L1 ~ */
@@ -302,5 +299,6 @@ extern pink_lsmtree *pink_lsm;
 void pink_lput(pink_level_list_entry *e);
 pink_level_list_entry *pink_lget(uint64_t id);
 pink_level_list_entry *pink_lnew(void);
+void update_compaction_score(void);
 
 #endif

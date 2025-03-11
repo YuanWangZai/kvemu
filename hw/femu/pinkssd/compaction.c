@@ -72,31 +72,6 @@ static void compaction_selector(struct ssd *ssd, pink_level *a, pink_level *b, l
     kv_reset_compaction_info(&pink_lsm->comp_ctx);
 }
 
-static void compaction_cascading(struct ssd *ssd) {
-    int start_level = 0, des_level;
-    while (should_compact(pink_lsm->disk[start_level])) {
-        if (start_level < LSM_LEVELN - 3)
-            des_level = start_level + 1;
-        else
-            break;
-        compaction_selector(ssd, pink_lsm->disk[start_level], pink_lsm->disk[des_level], NULL);
-        start_level++;
-    }
-
-    /*
-       L0 - don't care.
-       L1 - if L2 should be compacted, then compact after L2 compaction.
-       L2 - compact only if L1 should be compacted.
-       L3 - (last level).
-     */
-    if (should_compact(pink_lsm->disk[LSM_LEVELN - 3])) {
-        if (should_compact(pink_lsm->disk[LSM_LEVELN - 2])) {
-            compaction_selector(ssd, pink_lsm->disk[LSM_LEVELN - 2], pink_lsm->disk[LSM_LEVELN - 1], NULL);
-        }
-        compaction_selector(ssd, pink_lsm->disk[LSM_LEVELN - 3], pink_lsm->disk[LSM_LEVELN - 2], NULL);
-    }
-}
-
 static int
 compact_memtable(void)
 {
@@ -120,7 +95,6 @@ compact_memtable(void)
         kv_skiplist_get_start_end_key(tmp, &lnode.start, &lnode.end);
         lnode.mem = tmp;
         compaction_selector(pink_lsm->ssd, NULL, pink_lsm->disk[0], &lnode);
-        compaction_cascading(pink_lsm->ssd);
 
         FREE(lnode.start.key);
         FREE(lnode.end.key);
@@ -139,10 +113,35 @@ compact_memtable(void)
 }
 
 static int
+compact_disk_tables(void)
+{
+    compaction_selector(pink_lsm->ssd,
+                        pink_lsm->disk[pink_lsm->compaction_level],
+                        pink_lsm->disk[pink_lsm->compaction_level+1],
+                        NULL);
+
+    return 0;
+}
+
+static int
 compact1(void)
 {
     if (pink_lsm->imm || pink_lsm->key_only_imm)
+    {
         compact_memtable();
+
+        // TODO: move this function into the version update function.
+        update_compaction_score();
+    }
+
+    if (pink_lsm->compaction_score >= 1)
+    {
+        compact_disk_tables();
+
+        // TODO: move this function into the version update function.
+        update_compaction_score();
+    }
+
     return 0;
 }
 
