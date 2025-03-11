@@ -871,6 +871,23 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     kv_key k;
     //uint64_t sublat, maxlat = 0;
     uint64_t sublat = 0;
+    kv_skiplist *mem, *imm, *key_only_mem, *key_only_imm;
+
+    qemu_mutex_lock(&pink_lsm->mu);
+
+    mem = pink_lsm->mem;
+    kv_skiplist_get(mem);
+
+    imm = pink_lsm->imm;
+    kv_skiplist_get(imm);
+
+    key_only_mem = pink_lsm->key_only_mem;
+    kv_skiplist_get(key_only_mem);
+
+    key_only_imm = pink_lsm->key_only_imm;
+    kv_skiplist_get(key_only_imm);
+
+    qemu_mutex_unlock(&pink_lsm->mu);
 
     req->etime = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 
@@ -879,7 +896,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     k.len = req->key_length;
 
     /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(ssd, k, pink_lsm->mem);
+    found = find_from_list(ssd, k, mem);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
@@ -887,10 +904,12 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
         FREE(found);
         FREE(k.key);
 
+        kv_skiplist_put(mem);
         return req->etime - req->stime;
     }
+    kv_skiplist_put(mem);
 
-    found = find_from_list(ssd, k, pink_lsm->imm);
+    found = find_from_list(ssd, k, imm);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
@@ -898,11 +917,13 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
         FREE(found);
         FREE(k.key);
 
+        kv_skiplist_put(imm);
         return req->etime - req->stime;
     }
+    kv_skiplist_put(imm);
 
     /* 2. Check key only memtable (skiplist). */
-    found = find_from_list(ssd, k, pink_lsm->key_only_mem);
+    found = find_from_list(ssd, k, key_only_mem);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
@@ -910,19 +931,24 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
         FREE(found);
         FREE(k.key);
 
+        kv_skiplist_put(key_only_mem);
         return req->etime - req->stime;
     }
+    kv_skiplist_put(key_only_mem);
 
     /* 2. Check compaction temp table (skiplist). */
-    found = find_from_list(ssd, k, pink_lsm->key_only_imm);
+    found = find_from_list(ssd, k, key_only_imm);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
         FREE(found->lpa.k.key);
         FREE(found);
         FREE(k.key);
+
+        kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
+    kv_skiplist_put(key_only_imm);
 
     /* 3. Walk lower levels. prepare params */
     int level = 0;

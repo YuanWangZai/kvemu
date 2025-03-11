@@ -220,7 +220,7 @@ void lksv3_do_compaction(struct ssd *ssd)
             log_write(ssd, lksv_lsm->mem);
             check_473(ssd);
 
-            kv_skiplist_free(lksv_lsm->mem);
+            kv_skiplist_put(lksv_lsm->mem);
             lksv_lsm->mem = kv_skiplist_init();
         }
 
@@ -266,7 +266,7 @@ void lksv3_do_compaction(struct ssd *ssd)
 
                 FREE(lnode.start.key);
                 FREE(lnode.end.key);
-                kv_skiplist_free(tmp);
+                kv_skiplist_put(tmp);
 
                 while (lksv3_should_meta_gc_high(ssd)) {
                     if (lksv3_gc_meta_femu(ssd))

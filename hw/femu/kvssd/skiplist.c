@@ -13,7 +13,77 @@ kv_skiplist *kv_skiplist_init(void)
     skl->header->key = kv_key_max;
     skl->header->value = NULL;
     skl->n = 0;
+
+    pthread_spin_init(&skl->lock, PTHREAD_PROCESS_SHARED);
+    skl->ref_count = 1;
     return skl;
+}
+
+static void
+kv_skiplist_clear(kv_skiplist *list)
+{
+    kv_snode *now=list->header->list[1];
+    kv_snode *next=now->list[1];
+    while(now!=list->header){
+        if(now->value){
+            if (now->value->value) {
+                FREE(now->value->value);
+            }
+            FREE(now->value);
+        }
+        if (now->private) {
+            FREE(now->private);
+        }
+        FREE(now->key.key);
+        FREE(now->list);
+        FREE(now);
+        now=next;
+        next=now->list[1];
+    }
+    list->n=0;
+    list->level=0;
+    for(int i=0; i<MAX_L; i++)
+        list->header->list[i]=list->header;
+    list->header->key=kv_key_max;
+}
+
+static void
+kv_skiplist_free (kv_skiplist *list)
+{
+    if(list==NULL) return;
+    kv_skiplist_clear(list);
+    FREE(list->header->list);
+    FREE(list->header);
+    FREE(list);
+    return;
+}
+
+void
+kv_skiplist_put(kv_skiplist *skl)
+{
+    if (!skl)
+        return;
+
+    pthread_spin_lock(&skl->lock);
+
+    skl->ref_count--;
+    if (skl->ref_count == 0)
+        kv_skiplist_free(skl);
+
+    pthread_spin_unlock(&skl->lock);
+}
+
+void
+kv_skiplist_get(kv_skiplist *skl)
+{
+    if (!skl)
+        return;
+
+    pthread_spin_lock(&skl->lock);
+
+    skl->ref_count++;
+
+    pthread_spin_unlock(&skl->lock);
 }
 
 kv_snode *kv_skiplist_find(kv_skiplist *list, kv_key key)
@@ -105,41 +175,6 @@ void kv_skiplist_get_start_end_key(kv_skiplist *sl, kv_key *start, kv_key *end)
     kv_assert(sl->n > 0);
     kv_copy_key(start, &sl->header->list[1]->key);
     kv_copy_key(end, &sl->header->back->key);
-}
-
-static void kv_skiplist_clear(kv_skiplist *list){
-    kv_snode *now=list->header->list[1];
-    kv_snode *next=now->list[1];
-    while(now!=list->header){
-        if(now->value){
-            if (now->value->value) {
-                FREE(now->value->value);
-            }
-            FREE(now->value);
-        }
-        if (now->private) {
-            FREE(now->private);
-        }
-        FREE(now->key.key);
-        FREE(now->list);
-        FREE(now);
-        now=next;
-        next=now->list[1];
-    }
-    list->n=0;
-    list->level=0;
-    for(int i=0; i<MAX_L; i++)
-        list->header->list[i]=list->header;
-    list->header->key=kv_key_max;
-}
-
-void kv_skiplist_free (kv_skiplist *list) {
-    if(list==NULL) return;
-    kv_skiplist_clear(list);
-    FREE(list->header->list);
-    FREE(list->header);
-    FREE(list);
-    return;
 }
 
 kv_skiplist *kv_skiplist_divide(kv_skiplist *in, kv_snode *target, int num, int key_size, int val_size) {

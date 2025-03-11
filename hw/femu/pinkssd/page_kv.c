@@ -34,6 +34,7 @@ static void gc_erase_delay(struct ssd *ssd, struct femu_ppa *ppa)
 }
 
 static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int idx) {
+    // pink_lsm->mu protects below memtable lookups.
     kv_snode *target_node = kv_skiplist_find(pink_lsm->mem, key);
     if (target_node) {
         return false;

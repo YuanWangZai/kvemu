@@ -106,7 +106,7 @@ compact_memtable(void)
     {
         compaction_data_write(pink_lsm->ssd, pink_lsm->imm);
 
-        kv_skiplist_free(pink_lsm->imm);
+        kv_skiplist_put(pink_lsm->imm);
         pink_lsm->imm = NULL;
 
         do_gc(pink_lsm->ssd);
@@ -132,7 +132,7 @@ compact_memtable(void)
             FREE(lnode.start.key);
             FREE(lnode.end.key);
 
-            kv_skiplist_free(tmp);
+            kv_skiplist_put(tmp);
 
             do_gc(pink_lsm->ssd);
         }
@@ -269,7 +269,7 @@ uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, le
         //wait_delay(ssd, true);
         compaction_subprocessing(ssd, NULL,data,target_s,t);
     }
-    if(!lnode) kv_skiplist_free(skip);
+    if(!lnode) kv_skiplist_put(skip);
     return 1;
 }
 
