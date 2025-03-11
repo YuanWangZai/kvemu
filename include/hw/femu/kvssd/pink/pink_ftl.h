@@ -210,9 +210,10 @@ typedef struct pink_lsmtree {
     struct ssd *ssd;
     uint8_t LEVELCACHING;
 
-    struct kv_skiplist *temptable;    /* Compaction temp data */
-    struct kv_skiplist *memtable;     /* L0 */
-    struct kv_skiplist *kmemtable;
+    struct kv_skiplist *mem;
+    struct kv_skiplist *imm;
+    struct kv_skiplist *key_only_mem;
+    struct kv_skiplist *key_only_imm;
     pink_level **disk;                  /* L1 ~ */
     pink_level *c_level;
     kv_compaction_info comp_ctx;

@@ -43,7 +43,7 @@ static void log_cvt2table(void **data, kv_snode **targets, int n)
         keylen_map[i+1] = targets[i]->key.len;
         data_start += keylen_map[i+1] + targets[i]->value->length;
 
-        // To prevent double free: key is reused in kmemtable.
+        // To prevent double free: key is reused in key_only_mem.
         targets[i]->key.key = NULL;
     }
     offset_map[n+1] = data_start;
@@ -111,7 +111,7 @@ void compaction_data_write(struct ssd *ssd, kv_skiplist *skl) {
                 kv_snode *t2;
                 kv_value *v2 = calloc(1, sizeof(kv_value));
                 v2->length = PPA_LENGTH;
-                t2 = kv_skiplist_insert(pink_lsm->kmemtable, target->key, v2);
+                t2 = kv_skiplist_insert(pink_lsm->key_only_mem, target->key, v2);
                 if (t2->private == NULL)
                     t2->private = calloc(1, sizeof(pink_per_snode_data));
                 *snode_ppa(t2) = ppa;

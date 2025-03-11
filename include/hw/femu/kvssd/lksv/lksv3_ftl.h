@@ -366,9 +366,11 @@ typedef struct lksv3_lsmtree {
     uint8_t bottom_level; // Indicates the current bottom level index.
     uint8_t LEVELCACHING;
 
-    struct kv_skiplist *temptable;    /* Compaction temp data */
-    struct kv_skiplist *kmemtable;    /* keyonly memtable for flush */
-    struct kv_skiplist *memtable;     /* L0 */
+    struct kv_skiplist *mem;
+    struct kv_skiplist *imm;
+    struct kv_skiplist *key_only_mem;
+    struct kv_skiplist *key_only_imm;
+
     lksv3_level **disk;                  /* L1 ~ */
     lksv3_level *c_level;
 

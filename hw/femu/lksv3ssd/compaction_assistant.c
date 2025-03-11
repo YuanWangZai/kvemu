@@ -177,7 +177,7 @@ retry:
     }
 
     for (int i = 0; i < tmp_i; i++) {
-        t2 = lksv3_skiplist_insert(lksv_lsm->kmemtable, tmp_key[i], tmp_val[i], true, ssd);
+        t2 = lksv3_skiplist_insert(lksv_lsm->key_only_mem, tmp_key[i], tmp_val[i], true, ssd);
         if (t2->private == NULL)
             t2->private = malloc(sizeof(lksv_per_snode_data));
         *snode_ppa(t2) = tmp_ppa[i];
@@ -215,24 +215,24 @@ void lksv3_do_compaction(struct ssd *ssd)
 
         kv_assert(ssd->lm.data.free_line_cnt > 0);
 
-        if (kv_skiplist_approximate_memory_usage(lksv_lsm->memtable) >= WRITE_BUFFER_SIZE)
+        if (kv_skiplist_approximate_memory_usage(lksv_lsm->mem) >= WRITE_BUFFER_SIZE)
         {
-            log_write(ssd, lksv_lsm->memtable);
+            log_write(ssd, lksv_lsm->mem);
             check_473(ssd);
 
-            kv_skiplist_free(lksv_lsm->memtable);
-            lksv_lsm->memtable = kv_skiplist_init();
+            kv_skiplist_free(lksv_lsm->mem);
+            lksv_lsm->mem = kv_skiplist_init();
         }
 
         // TODO: make temp table immutable.
-        if (kv_skiplist_approximate_memory_usage(lksv_lsm->kmemtable) >= KEY_ONLY_WRITE_BUFFER_SIZE)
+        if (kv_skiplist_approximate_memory_usage(lksv_lsm->key_only_mem) >= KEY_ONLY_WRITE_BUFFER_SIZE)
         {
-            lksv_lsm->temptable = lksv_lsm->kmemtable;
-            lksv_lsm->kmemtable = kv_skiplist_init();
+            lksv_lsm->key_only_imm = lksv_lsm->key_only_mem;
+            lksv_lsm->key_only_mem = kv_skiplist_init();
 
             memset(lksv_lsm->flush_buffer_reference_lines, 0, 512 * sizeof(bool));
             kv_snode *t;
-            for_each_sk (t, lksv_lsm->temptable)
+            for_each_sk (t, lksv_lsm->key_only_imm)
             {
                 if (!lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk])
                 {
@@ -244,8 +244,8 @@ void lksv3_do_compaction(struct ssd *ssd)
             bool done = false;
             while (!done)
             {
-                kv_skiplist *tmp = lksv_skiplist_cutting_header(lksv_lsm->temptable, false, false, true);
-                done = (tmp == lksv_lsm->temptable);
+                kv_skiplist *tmp = lksv_skiplist_cutting_header(lksv_lsm->key_only_imm, false, false, true);
+                done = (tmp == lksv_lsm->key_only_imm);
 
                 for_each_sk (t, tmp)
                 {
@@ -274,7 +274,7 @@ void lksv3_do_compaction(struct ssd *ssd)
                 }
             }
 
-            lksv_lsm->temptable = NULL;
+            lksv_lsm->key_only_imm = NULL;
         }
 
         FREE(req);
@@ -293,7 +293,7 @@ void lksv3_do_compaction(struct ssd *ssd)
 }
 
 void lksv3_compaction_check(struct ssd *ssd) {
-    if (kv_skiplist_approximate_memory_usage(lksv_lsm->memtable) < WRITE_BUFFER_SIZE)
+    if (kv_skiplist_approximate_memory_usage(lksv_lsm->mem) < WRITE_BUFFER_SIZE)
         return;
 
     compR *req = calloc(1, sizeof(compR));

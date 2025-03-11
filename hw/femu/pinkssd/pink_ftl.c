@@ -854,7 +854,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     k.len = req->key_length;
 
     /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(ssd, k, pink_lsm->memtable);
+    found = find_from_list(ssd, k, pink_lsm->mem);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
@@ -866,7 +866,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     }
 
     /* 2. Check key only memtable (skiplist). */
-    found = find_from_list(ssd, k, pink_lsm->kmemtable);
+    found = find_from_list(ssd, k, pink_lsm->key_only_mem);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
@@ -878,7 +878,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     }
 
     /* 2. Check compaction temp table (skiplist). */
-    found = find_from_list(ssd, k, pink_lsm->temptable);
+    found = find_from_list(ssd, k, pink_lsm->key_only_imm);
     if (found) {
         req->value_length = found->value.length;
         req->value = (uint8_t *) found->value.value;
@@ -1089,12 +1089,12 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
     v->length = req->value_length;
     v->value = (char *) req->value;
 
-    kv_skiplist_insert(pink_lsm->memtable, k, v);
+    kv_skiplist_insert(pink_lsm->mem, k, v);
 
     /*
     static uint64_t cnt = 0;
     if (cnt++ % 10000 == 0) {
-        printf("pink_lsm->memtable.size %ld\n", pink_lsm->memtable->size);
+        printf("pink_lsm->mem.size %ld\n", pink_lsm->memtable->size);
     }
     */
 

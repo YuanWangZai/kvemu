@@ -106,27 +106,27 @@ void pink_do_compaction(struct ssd *ssd)
         QTAILQ_REMOVE(&pink_lsm->compaction_queue, req, entry);
         leveling_node lnode;
 
-        if (kv_skiplist_approximate_memory_usage(pink_lsm->memtable) >= WRITE_BUFFER_SIZE)
+        if (kv_skiplist_approximate_memory_usage(pink_lsm->mem) >= WRITE_BUFFER_SIZE)
         {
-            compaction_data_write(ssd, pink_lsm->memtable);
+            compaction_data_write(ssd, pink_lsm->mem);
 
-            kv_skiplist_free(pink_lsm->memtable);
-            pink_lsm->memtable = kv_skiplist_init();
+            kv_skiplist_free(pink_lsm->mem);
+            pink_lsm->mem = kv_skiplist_init();
 
             do_gc(ssd);
         }
 
-        if (kv_skiplist_approximate_memory_usage(pink_lsm->kmemtable) >= KEY_ONLY_WRITE_BUFFER_SIZE)
+        if (kv_skiplist_approximate_memory_usage(pink_lsm->key_only_mem) >= KEY_ONLY_WRITE_BUFFER_SIZE)
         {
-            // TODO: make temptable immutable.
-            pink_lsm->temptable = pink_lsm->kmemtable;
-            pink_lsm->kmemtable = kv_skiplist_init();
+            // TODO: make key_only_imm immutable.
+            pink_lsm->key_only_imm = pink_lsm->key_only_mem;
+            pink_lsm->key_only_mem = kv_skiplist_init();
 
             bool done = false;
             while (!done)
             {
-                kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->temptable);
-                done = (tmp == pink_lsm->temptable);
+                kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->key_only_imm);
+                done = (tmp == pink_lsm->key_only_imm);
 
                 kv_skiplist_get_start_end_key(tmp, &lnode.start, &lnode.end);
                 lnode.mem = tmp;
@@ -141,7 +141,7 @@ void pink_do_compaction(struct ssd *ssd)
                 do_gc(ssd);
             }
 
-            pink_lsm->temptable = NULL;
+            pink_lsm->key_only_imm = NULL;
         }
 
         FREE(req);
@@ -160,7 +160,7 @@ void pink_do_compaction(struct ssd *ssd)
 }
 
 void compaction_check(struct ssd *ssd) {
-    if (kv_skiplist_approximate_memory_usage(pink_lsm->memtable) < WRITE_BUFFER_SIZE)
+    if (kv_skiplist_approximate_memory_usage(pink_lsm->mem) < WRITE_BUFFER_SIZE)
         return;
 
     compR *req = (compR*)malloc(sizeof(compR));

@@ -34,17 +34,17 @@ static void gc_erase_delay(struct ssd *ssd, struct femu_ppa *ppa)
 }
 
 static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int idx) {
-    kv_snode *target_node = kv_skiplist_find(pink_lsm->memtable, key);
+    kv_snode *target_node = kv_skiplist_find(pink_lsm->mem, key);
     if (target_node) {
         return false;
     }
 
-    target_node = kv_skiplist_find(pink_lsm->kmemtable, key);
+    target_node = kv_skiplist_find(pink_lsm->key_only_mem, key);
     if (target_node) {
         return false;
     }
 
-    target_node = kv_skiplist_find(pink_lsm->temptable, key);
+    target_node = kv_skiplist_find(pink_lsm->key_only_imm, key);
     if (target_node) {
         return false;
     }
@@ -147,7 +147,7 @@ static void gc_data_one_block(struct ssd *ssd, struct femu_ppa ppa)
                 // Give our m allocated key to skiplist.
                 // No need to free that.
                 //compaction_check(ssd);
-                kv_skiplist_insert(pink_lsm->memtable, key, value);
+                kv_skiplist_insert(pink_lsm->mem, key, value);
             } else {
                 gc_erased++;
             }

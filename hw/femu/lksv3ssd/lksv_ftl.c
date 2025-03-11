@@ -828,7 +828,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     k.len = req->key_length;
 
     /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(ssd, k, lksv_lsm->memtable);
+    found = find_from_list(ssd, k, lksv_lsm->mem);
     if (found) {
         req->value_length = found->value_len;
         req->value = (uint8_t *) found->value;
@@ -839,7 +839,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     }
 
     /* 2. Check compaction temp table (skiplist). */
-    found = find_from_list(ssd, k, lksv_lsm->temptable);
+    found = find_from_list(ssd, k, lksv_lsm->key_only_imm);
     if (found) {
         req->value_length = found->value_len;
         req->value = (uint8_t *) found->value;
@@ -866,7 +866,7 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
         }
     }
 
-    found = find_from_list(ssd, k, lksv_lsm->kmemtable);
+    found = find_from_list(ssd, k, lksv_lsm->key_only_mem);
     if (found) {
         req->value_length = found->value_len;
         req->value = (uint8_t *) found->value;
@@ -949,7 +949,7 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
         if (sampling % 100000 == 0)
             printf("val: %ld, inv: %ld\n", lksv_lsm->val, lksv_lsm->inv);
         keyset *found = NULL;
-        found = find_from_list(ssd, k, lksv_lsm->memtable);
+        found = find_from_list(ssd, k, lksv_lsm->mem);
         if (found) {
             FREE(found->value);
             FREE(found->lpa.key);
@@ -957,7 +957,7 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
             lksv_lsm->inv++;
             goto out;
         }
-        found = find_from_list(ssd, k, lksv_lsm->temptable);
+        found = find_from_list(ssd, k, lksv_lsm->key_only_imm);
         if (found) {
             FREE(found->value);
             FREE(found->lpa.key);
@@ -965,7 +965,7 @@ static uint64_t ssd_store(struct ssd *ssd, NvmeRequest *req)
             lksv_lsm->inv++;
             goto out;
         }
-        found = find_from_list(ssd, k, lksv_lsm->kmemtable);
+        found = find_from_list(ssd, k, lksv_lsm->key_only_mem);
         if (found) {
             FREE(found->value);
             FREE(found->lpa.key);
@@ -995,13 +995,13 @@ out:
     v->length = req->value_length;
     v->value = (char *) req->value;
 
-    lksv3_skiplist_insert(lksv_lsm->memtable, k, v, true, ssd);
+    lksv3_skiplist_insert(lksv_lsm->mem, k, v, true, ssd);
     lksv3_compaction_check(ssd);
 
     /*
     static uint64_t cnt = 0;
     if (cnt++ % 10000 == 0) {
-        printf("lksv_lsm->memtable.size %ld\n", ssd->lsm.memtable->n);
+        printf("lksv_lsm->mem.size %ld\n", ssd->lsm.memtable->n);
     }
     */
 
