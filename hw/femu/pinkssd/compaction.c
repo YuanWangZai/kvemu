@@ -1,4 +1,204 @@
 #include "hw/femu/kvssd/pink/pink_ftl.h"
+#include "hw/femu/kvssd/pink/skiplist.h"
+
+static void
+do_gc(struct ssd *ssd)
+{
+    while (pink_should_data_gc_high(ssd)) {
+        int n = ssd->lm.data.lines / 10;
+        if (n < 10)
+            n = 10;
+
+        int gc_pick_err = 0;
+        int gc_pick_err_threshold = n / 3;
+        for (int i = 0; i < n; i ++) {
+            switch (gc_data_femu(ssd)) {
+                case 0:
+                    break;
+                case -2:
+                    gc_pick_err++;
+                    break;
+                default:
+                    kv_log("unknown return code\n");
+                    abort();
+            }
+        }
+        if (gc_pick_err > gc_pick_err_threshold) {
+            kv_log("gc_pick_err exceeds threshold: %d times\n", gc_pick_err);
+            print_level_summary(pink_lsm);
+            kv_log("line_partition meta: %d lines, %d frees, %d victims, %d fulls, %ld age\n", ssd->lm.meta.lines, ssd->lm.meta.free_line_cnt, ssd->lm.meta.victim_line_cnt, ssd->lm.meta.full_line_cnt, ssd->lm.meta.age);
+            kv_log("line_partition data: %d lines, %d frees, %d victims, %d fulls, %ld age\n", ssd->lm.data.lines, ssd->lm.data.free_line_cnt, ssd->lm.data.victim_line_cnt, ssd->lm.data.full_line_cnt, ssd->lm.data.age);
+            abort();
+        }
+    }
+    while (pink_should_meta_gc_high(ssd)) {
+        int n = ssd->lm.meta.lines / 10;
+        if (n < 2)
+            n = 2;
+        for (int i = 0; i < n; i ++) {
+            gc_meta_femu(ssd);
+        }
+    }
+}
+
+static void
+print_stats(void)
+{
+    if (rand() % 1000 == 0) {
+        kv_debug("write_cnt %lu\n", pink_lsm->num_data_written);
+        kv_debug("[META] free line cnt: %d\n", ssd->lm.meta.free_line_cnt);
+        kv_debug("[META] full line cnt: %d\n", ssd->lm.meta.full_line_cnt);
+        kv_debug("[META] victim line cnt: %d\n", ssd->lm.meta.victim_line_cnt);
+        kv_debug("[DATA] free line cnt: %d\n", ssd->lm.data.free_line_cnt);
+        kv_debug("[DATA] full line cnt: %d\n", ssd->lm.data.full_line_cnt);
+        kv_debug("[DATA] victim line cnt: %d\n", ssd->lm.data.victim_line_cnt);
+        print_level_summary(pink_lsm);
+    }
+}
+
+static void compaction_selector(struct ssd *ssd, pink_level *a, pink_level *b, leveling_node *lnode){
+    if (a)
+        kv_set_compaction_info(&pink_lsm->comp_ctx, a->idx, b->idx);
+    else
+        kv_set_compaction_info(&pink_lsm->comp_ctx, -1, b->idx);
+
+    leveling(ssd, a, b, lnode);
+
+    if (b->idx == LSM_LEVELN - 1)
+        pink_lsm_adjust_level_multiplier();
+    if (b->idx > 0) // We don't want too many calling adjust_lines().
+        pink_adjust_lines(ssd);
+
+    kv_reset_compaction_info(&pink_lsm->comp_ctx);
+}
+
+static void compaction_cascading(struct ssd *ssd) {
+    int start_level = 0, des_level;
+    while (should_compact(pink_lsm->disk[start_level])) {
+        if (start_level < LSM_LEVELN - 3)
+            des_level = start_level + 1;
+        else
+            break;
+        compaction_selector(ssd, pink_lsm->disk[start_level], pink_lsm->disk[des_level], NULL);
+        start_level++;
+    }
+
+    /*
+       L0 - don't care.
+       L1 - if L2 should be compacted, then compact after L2 compaction.
+       L2 - compact only if L1 should be compacted.
+       L3 - (last level).
+     */
+    if (should_compact(pink_lsm->disk[LSM_LEVELN - 3])) {
+        if (should_compact(pink_lsm->disk[LSM_LEVELN - 2])) {
+            compaction_selector(ssd, pink_lsm->disk[LSM_LEVELN - 2], pink_lsm->disk[LSM_LEVELN - 1], NULL);
+        }
+        compaction_selector(ssd, pink_lsm->disk[LSM_LEVELN - 3], pink_lsm->disk[LSM_LEVELN - 2], NULL);
+    }
+}
+
+static int
+compact_memtable(void)
+{
+    print_stats();
+
+    if (pink_lsm->imm)
+    {
+        compaction_data_write(pink_lsm->ssd, pink_lsm->imm);
+
+        kv_skiplist_free(pink_lsm->imm);
+        pink_lsm->imm = NULL;
+
+        do_gc(pink_lsm->ssd);
+    }
+
+    if (kv_skiplist_approximate_memory_usage(pink_lsm->key_only_mem) >= KEY_ONLY_WRITE_BUFFER_SIZE)
+    {
+        pink_lsm->key_only_imm = pink_lsm->key_only_mem;
+        pink_lsm->key_only_mem = kv_skiplist_init();
+
+        leveling_node lnode;
+        bool done = false;
+        while (!done)
+        {
+            kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->key_only_imm);
+            done = (tmp == pink_lsm->key_only_imm);
+
+            kv_skiplist_get_start_end_key(tmp, &lnode.start, &lnode.end);
+            lnode.mem = tmp;
+            compaction_selector(pink_lsm->ssd, NULL, pink_lsm->disk[0], &lnode);
+            compaction_cascading(pink_lsm->ssd);
+
+            FREE(lnode.start.key);
+            FREE(lnode.end.key);
+
+            kv_skiplist_free(tmp);
+
+            do_gc(pink_lsm->ssd);
+        }
+
+        pink_lsm->key_only_imm = NULL;
+    }
+
+    return 0;
+}
+
+static int
+compact1(void)
+{
+    if (pink_lsm->imm)
+        compact_memtable();
+    return 0;
+}
+
+static void *
+compact(void *arg)
+{
+    while (true)
+    {
+        if (qatomic_read(&pink_lsm->compaction_calls) > 0)
+        {
+            qatomic_dec(&pink_lsm->compaction_calls);
+
+            qemu_mutex_lock(&pink_lsm->mu);
+
+            if (compact1() != 0)
+            {
+                // TODO: handling error.
+            }
+
+            pink_lsm->compacting = false;
+
+            maybe_schedule_compaction();
+
+            qemu_mutex_unlock(&pink_lsm->mu);
+        }
+    }
+
+    return NULL;
+}
+
+void
+compaction_init(void)
+{
+    qemu_thread_create(&pink_lsm->comp_thread, "FEMU-COMP-Thread",
+                       compact, NULL, QEMU_THREAD_JOINABLE);
+}
+
+void
+maybe_schedule_compaction(void)
+{
+    if (pink_lsm->compacting)
+        return;
+
+    if (!pink_lsm->imm)
+    {
+        if (pink_lsm->compaction_score < 1)
+            return;
+    }
+    pink_lsm->compacting = true;
+    qatomic_inc(&pink_lsm->compaction_calls);
+}
 
 uint32_t level_change(struct pink_lsmtree *LSM, pink_level *from, pink_level *to, pink_level *target) {
     pink_level **src_ptr=NULL, **des_ptr=NULL;

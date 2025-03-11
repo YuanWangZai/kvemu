@@ -38,8 +38,6 @@ void pink_lsm_create(struct ssd *ssd)
     kv_debug("SHOWINGSIZE(GB) :%lu HEADERSEG:%d DATASEG:%d\n", ((unsigned long) ssd->sp.tt_pgs * 9 / 10 * PAGESIZE) / G, ssd->sp.meta_lines, ssd->sp.data_lines);
     kv_debug("LEVELN:%d\n", LSM_LEVELN); 
 
-    compaction_init(ssd);
-
     pink_lsm->lsm_cache = kv_cache_init(pink_lsm->opts->cache_memory_size, LSM_LEVELN * CACHE_TYPES);
     pink_lsm->lsm_cache->flush_callback = pink_flush_cache_when_evicted;
 }

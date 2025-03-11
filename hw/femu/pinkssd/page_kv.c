@@ -39,6 +39,11 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
         return false;
     }
 
+    target_node = kv_skiplist_find(pink_lsm->imm, key);
+    if (target_node) {
+        return false;
+    }
+
     target_node = kv_skiplist_find(pink_lsm->key_only_mem, key);
     if (target_node) {
         return false;

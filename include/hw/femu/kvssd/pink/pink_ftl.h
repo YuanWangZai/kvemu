@@ -155,10 +155,6 @@ uint32_t level_change(struct pink_lsmtree *LSM, pink_level *from, pink_level *to
 uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, leveling_node *lnode, pink_level* upper);
 uint32_t leveling(struct ssd *ssd, pink_level *from, pink_level *to, leveling_node *l_node);
 
-bool compaction_init(struct ssd *ssd);
-void compaction_free(struct pink_lsmtree *LSM);
-void compaction_check(struct ssd *ssd);
-void pink_do_compaction(struct ssd *ssd);
 void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_level_list_entry** src, struct pink_level_list_entry** org, struct pink_level *des);
 bool meta_segment_read_preproc(pink_level_list_entry *r);
 void meta_segment_read_postproc(struct ssd *ssd, pink_level_list_entry *r);
@@ -167,6 +163,8 @@ void compaction_data_write(struct ssd *ssd, kv_skiplist *skl);
 struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data);
 bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *ent);
 void pink_flush_cache_when_evicted(kv_cache_entry *ent);
+void maybe_schedule_compaction(void);
+void compaction_init(void);
 
 // array.h ==================================================
 
@@ -214,6 +212,12 @@ typedef struct pink_lsmtree {
     struct kv_skiplist *imm;
     struct kv_skiplist *key_only_mem;
     struct kv_skiplist *key_only_imm;
+    QemuMutex mu;
+    QemuThread comp_thread;
+    bool compacting;
+    int compaction_score;
+    uint64_t compaction_calls;
+
     pink_level **disk;                  /* L1 ~ */
     pink_level *c_level;
     kv_compaction_info comp_ctx;
@@ -259,11 +263,6 @@ struct ssd {
     struct rte_ring **to_poller;
     bool *dataplane_started_ptr;
     QemuThread ftl_thread;
-    QemuThread comp_thread;
-    QemuMutex comp_mu;
-    QemuMutex comp_q_mu;
-    QemuMutex memtable_mu;
-    QemuMutex lat_mu;
     pthread_spinlock_t nand_lock;
 
     FemuCtrl *n;
