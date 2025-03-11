@@ -108,37 +108,32 @@ compact_memtable(void)
 
         kv_skiplist_put(pink_lsm->imm);
         pink_lsm->imm = NULL;
-
-        do_gc(pink_lsm->ssd);
     }
 
-    if (kv_skiplist_approximate_memory_usage(pink_lsm->key_only_mem) >= KEY_ONLY_WRITE_BUFFER_SIZE)
+    if (pink_lsm->key_only_imm)
+    {
+        leveling_node lnode;
+        kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->key_only_imm);
+        if (tmp == pink_lsm->key_only_imm)
+            pink_lsm->key_only_imm = NULL;
+
+        kv_skiplist_get_start_end_key(tmp, &lnode.start, &lnode.end);
+        lnode.mem = tmp;
+        compaction_selector(pink_lsm->ssd, NULL, pink_lsm->disk[0], &lnode);
+        compaction_cascading(pink_lsm->ssd);
+
+        FREE(lnode.start.key);
+        FREE(lnode.end.key);
+
+        kv_skiplist_put(tmp);
+    }
+    else if (kv_skiplist_approximate_memory_usage(pink_lsm->key_only_mem) >= KEY_ONLY_WRITE_BUFFER_SIZE)
     {
         pink_lsm->key_only_imm = pink_lsm->key_only_mem;
         pink_lsm->key_only_mem = kv_skiplist_init();
-
-        leveling_node lnode;
-        bool done = false;
-        while (!done)
-        {
-            kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->key_only_imm);
-            done = (tmp == pink_lsm->key_only_imm);
-
-            kv_skiplist_get_start_end_key(tmp, &lnode.start, &lnode.end);
-            lnode.mem = tmp;
-            compaction_selector(pink_lsm->ssd, NULL, pink_lsm->disk[0], &lnode);
-            compaction_cascading(pink_lsm->ssd);
-
-            FREE(lnode.start.key);
-            FREE(lnode.end.key);
-
-            kv_skiplist_put(tmp);
-
-            do_gc(pink_lsm->ssd);
-        }
-
-        pink_lsm->key_only_imm = NULL;
     }
+
+    do_gc(pink_lsm->ssd);
 
     return 0;
 }
@@ -146,7 +141,7 @@ compact_memtable(void)
 static int
 compact1(void)
 {
-    if (pink_lsm->imm)
+    if (pink_lsm->imm || pink_lsm->key_only_imm)
         compact_memtable();
     return 0;
 }
@@ -191,12 +186,14 @@ maybe_schedule_compaction(void)
     if (pink_lsm->compacting)
         return;
 
-    if (!pink_lsm->imm)
+    if (!pink_lsm->imm && !pink_lsm->key_only_imm)
     {
         if (pink_lsm->compaction_score < 1)
             return;
     }
+
     pink_lsm->compacting = true;
+
     qatomic_inc(&pink_lsm->compaction_calls);
 }
 

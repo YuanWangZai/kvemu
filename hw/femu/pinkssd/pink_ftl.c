@@ -818,7 +818,7 @@ make_room_for_write(void)
         if (kv_skiplist_approximate_memory_usage(pink_lsm->mem) < WRITE_BUFFER_SIZE)
             break;
 
-        if (pink_lsm->imm || pink_lsm->key_only_imm)
+        if (pink_lsm->imm)
         {
             qemu_mutex_unlock(&pink_lsm->mu);
             usleep(1000);
