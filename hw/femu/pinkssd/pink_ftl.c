@@ -453,9 +453,6 @@ void pinkssd_init(FemuCtrl *n) {
     ssd->lops->open(lopts);
     pink_lsm_create(ssd);
 
-    // Note that kv_init_compaction_info MUST be called
-    // before FTL and COMP threads are created.
-    kv_init_compaction_info(&pink_lsm->comp_ctx);
     pthread_spin_init(&ssd->nand_lock, PTHREAD_PROCESS_PRIVATE);
     qemu_thread_create(&ssd->ftl_thread, "FEMU-FTL-Thread", ftl_thread, n, QEMU_THREAD_JOINABLE);
     ssd->do_reset = true;
@@ -1013,11 +1010,6 @@ retry:
                     sublat = pink_ssd_advance_status(ssd, &entry->ppa, &srd);
                     //maxlat = (sublat > maxlat) ? sublat : maxlat;
                     req->etime += sublat;
-                    if (kv_cache_available(pink_lsm->lsm_cache, cache_level(META_SEGMENT, level))) {
-                       if (!kv_level_being_compacted_without_unlock(&pink_lsm->comp_ctx, level))
-                           kv_cache_insert(pink_lsm->lsm_cache, &entry->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, level), KV_CACHE_WITHOUT_FLAGS);
-                       kv_unlock_compaction_info(&pink_lsm->comp_ctx);
-                    }
                     pink_lsm->cache_miss++;
                     req->flash_access_count++;
                 }
@@ -1077,9 +1069,7 @@ retry:
                 //maxlat = (sublat > maxlat) ? sublat : maxlat;
                 req->etime += sublat;
                 if (kv_cache_available(pink_lsm->lsm_cache, cache_level(META_SEGMENT, level))) {
-                    if (!kv_level_being_compacted_without_unlock(&pink_lsm->comp_ctx, level))
-                        kv_cache_insert(pink_lsm->lsm_cache, &entry->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, level), KV_CACHE_WITHOUT_FLAGS);
-                    kv_unlock_compaction_info(&pink_lsm->comp_ctx);
+                    kv_cache_insert(pink_lsm->lsm_cache, &entry->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, level), KV_CACHE_WITHOUT_FLAGS);
                 }
                 pink_lsm->cache_miss++;
                 req->flash_access_count++;

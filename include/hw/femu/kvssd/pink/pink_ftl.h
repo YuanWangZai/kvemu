@@ -11,7 +11,6 @@
 #include "hw/femu/kvssd/cache.h"
 #include "hw/femu/kvssd/pink/cache.h"
 #include "hw/femu/kvssd/lsm.h"
-#include "hw/femu/kvssd/compaction_info.h"
 
 // ftl.h ===================================================
 
@@ -217,7 +216,6 @@ typedef struct pink_lsmtree {
 
     pink_level **disk;                  /* L1 ~ */
     pink_level *c_level;
-    kv_compaction_info comp_ctx;
 
     struct kv_cache* lsm_cache;
 

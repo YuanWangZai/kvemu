@@ -87,11 +87,6 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
         pg = get_pg(ssd, &entries->ppa);
         if (!kv_is_cached(pink_lsm->lsm_cache, entries->cache[META_SEGMENT])) {
             gc_read_delay(ssd, &entries->ppa);
-            if (kv_cache_available(pink_lsm->lsm_cache, cache_level(META_SEGMENT, i))) {
-               if (!kv_level_being_compacted_without_unlock(&pink_lsm->comp_ctx, i))
-                   kv_cache_insert(pink_lsm->lsm_cache, &entries->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, i), KV_CACHE_WITHOUT_FLAGS);
-               kv_unlock_compaction_info(&pink_lsm->comp_ctx);
-            }
             pink_lsm->cache_miss++;
         } else {
 #ifdef CACHE_UPDATE

@@ -57,19 +57,12 @@ print_stats(void)
 }
 
 static void compaction_selector(struct ssd *ssd, pink_level *a, pink_level *b, leveling_node *lnode){
-    if (a)
-        kv_set_compaction_info(&pink_lsm->comp_ctx, a->idx, b->idx);
-    else
-        kv_set_compaction_info(&pink_lsm->comp_ctx, -1, b->idx);
-
     leveling(ssd, a, b, lnode);
 
     if (b->idx == LSM_LEVELN - 1)
         pink_lsm_adjust_level_multiplier();
     if (b->idx > 0) // We don't want too many calling adjust_lines().
         pink_adjust_lines(ssd);
-
-    kv_reset_compaction_info(&pink_lsm->comp_ctx);
 }
 
 static int
