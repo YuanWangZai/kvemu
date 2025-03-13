@@ -826,7 +826,7 @@ make_room_for_write(void)
         pink_lsm->imm = pink_lsm->mem;
         pink_lsm->mem = kv_skiplist_init();
 
-        maybe_schedule_compaction();
+        pink_maybe_schedule_compaction();
     }
 
     return 0;

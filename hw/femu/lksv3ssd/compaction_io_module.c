@@ -11,14 +11,6 @@ static void comp_write_delay(struct ssd *ssd, struct femu_ppa *ppa)
     }
 }
 
-/*
- * Write data segments to the data partition.
- * This is only called when the skiplist is flushed from L0 to L1.
- */
-void lksv3_compaction_data_write(struct ssd *ssd, leveling_node* lnode) {
-    kv_skiplist_get_start_end_key(lnode->mem, &lnode->start, &lnode->end);
-}
-
 struct femu_ppa lksv3_compaction_meta_segment_write_femu(struct ssd *ssd, char *data, int level) {
     struct femu_ppa fppa;
     struct nand_page *pg;

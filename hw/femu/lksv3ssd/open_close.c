@@ -20,9 +20,11 @@ void lksv_open(struct kv_lsm_options *opts)
     kv_init_min_max_key();
     lksv_lsm->mem = kv_skiplist_init();
     lksv_lsm->key_only_mem = kv_skiplist_init();
+    qemu_mutex_init(&lksv_lsm->mu);
 
     lksv_lsm->level_list_entries = g_hash_table_new(uint64_t_hash,
                                                     uint64_t_equal);
     pthread_spin_init(&lksv_lsm->level_list_entries_lock,
                       PTHREAD_PROCESS_PRIVATE);
+    lksv_compaction_init();
 }

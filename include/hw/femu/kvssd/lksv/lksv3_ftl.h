@@ -281,15 +281,11 @@ struct lksv3_lsmtree;
 
 bool lksv3_should_compact(lksv3_level *l);
 
+void lksv_compaction_init(void);
+void lksv_maybe_schedule_compaction(void);
 uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to, lksv3_level *target);
 uint32_t lksv3_leveling(struct ssd *ssd, lksv3_level *from, lksv3_level *to, leveling_node *l_node);
 
-void lksv3_do_compaction(struct ssd *ssd);
-bool lksv3_compaction_init(struct ssd *ssd);
-void lksv3_compaction_free(struct lksv3_lsmtree *LSM);
-void lksv3_compaction_check(struct ssd *ssd);
-
-void lksv3_compaction_data_write(struct ssd *ssd, leveling_node* lnode);
 struct femu_ppa lksv3_compaction_meta_segment_write_femu(struct ssd *ssd, char *data, int level);
 struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(struct ssd *ssd, lksv3_level *target, lksv_level_list_entry *entry);
 
@@ -363,6 +359,7 @@ enum READTYPE{
 typedef struct lksv3_lsmtree {
     struct kv_lsm_options *opts;
 
+    struct ssd *ssd;
     uint8_t bottom_level; // Indicates the current bottom level index.
     uint8_t LEVELCACHING;
 
@@ -370,13 +367,17 @@ typedef struct lksv3_lsmtree {
     struct kv_skiplist *imm;
     struct kv_skiplist *key_only_mem;
     struct kv_skiplist *key_only_imm;
+    QemuMutex mu;
+    QemuThread comp_thread;
+    bool compacting;
+    double compaction_score;
+    int compaction_level;
+    uint64_t compaction_calls;
 
     lksv3_level **disk;                  /* L1 ~ */
     lksv3_level *c_level;
 
     struct kv_cache *lsm_cache;
-
-    QTAILQ_HEAD(compaction_queue, compaction_req) compaction_queue;
 
     uint64_t num_data_written;
     uint64_t cache_hit;
@@ -898,5 +899,6 @@ void lksv_open(struct kv_lsm_options *opts);
 void lksv_lput(lksv_level_list_entry *e);
 lksv_level_list_entry *lksv_lget(uint64_t id);
 lksv_level_list_entry *lksv_lnew(void);
+void lksv_update_compaction_score(void);
 
 #endif

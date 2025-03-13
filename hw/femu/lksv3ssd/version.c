@@ -54,3 +54,26 @@ lksv_lnew(void)
     return e;
 }
 
+void
+lksv_update_compaction_score(void)
+{
+    double compaction_score;
+    double max_meta_segments;
+    int i;
+
+    lksv_lsm->compaction_level = 0;
+    lksv_lsm->compaction_score = 0;
+
+    for (i = 0; i < LSM_LEVELN-1; i++)
+    {
+        max_meta_segments = lksv_lsm->disk[i]->m_num * 0.9;
+        compaction_score = (double) lksv_lsm->disk[i]->n_num / max_meta_segments;
+
+        if (compaction_score > lksv_lsm->compaction_score)
+        {
+            lksv_lsm->compaction_score = compaction_score;
+            lksv_lsm->compaction_level = i;
+        }
+    }
+}
+

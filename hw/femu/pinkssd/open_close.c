@@ -26,5 +26,5 @@ void pink_open(struct kv_lsm_options *opts)
                                                     uint64_t_equal);
     pthread_spin_init(&pink_lsm->level_list_entries_lock,
                       PTHREAD_PROCESS_PRIVATE);
-    compaction_init();
+    pink_compaction_init();
 }

@@ -55,7 +55,7 @@ pink_lnew(void)
 }
 
 void
-update_compaction_score(void)
+pink_update_compaction_score(void)
 {
     double compaction_score;
     double max_meta_segments;

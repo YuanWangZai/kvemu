@@ -158,8 +158,8 @@ void compaction_data_write(struct ssd *ssd, kv_skiplist *skl);
 struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data);
 bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *ent);
 void pink_flush_cache_when_evicted(kv_cache_entry *ent);
-void maybe_schedule_compaction(void);
-void compaction_init(void);
+void pink_maybe_schedule_compaction(void);
+void pink_compaction_init(void);
 
 // array.h ==================================================
 
@@ -297,6 +297,6 @@ extern pink_lsmtree *pink_lsm;
 void pink_lput(pink_level_list_entry *e);
 pink_level_list_entry *pink_lget(uint64_t id);
 pink_level_list_entry *pink_lnew(void);
-void update_compaction_score(void);
+void pink_update_compaction_score(void);
 
 #endif

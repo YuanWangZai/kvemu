@@ -124,7 +124,7 @@ compact1(void)
         compact_memtable();
 
         // TODO: move this function into the version update function.
-        update_compaction_score();
+        pink_update_compaction_score();
     }
 
     if (pink_lsm->compaction_score >= 1)
@@ -132,7 +132,7 @@ compact1(void)
         compact_disk_tables();
 
         // TODO: move this function into the version update function.
-        update_compaction_score();
+        pink_update_compaction_score();
     }
 
     return 0;
@@ -156,7 +156,7 @@ compact(void *arg)
 
             pink_lsm->compacting = false;
 
-            maybe_schedule_compaction();
+            pink_maybe_schedule_compaction();
 
             qemu_mutex_unlock(&pink_lsm->mu);
         }
@@ -166,14 +166,14 @@ compact(void *arg)
 }
 
 void
-compaction_init(void)
+pink_compaction_init(void)
 {
     qemu_thread_create(&pink_lsm->comp_thread, "FEMU-COMP-Thread",
                        compact, NULL, QEMU_THREAD_JOINABLE);
 }
 
 void
-maybe_schedule_compaction(void)
+pink_maybe_schedule_compaction(void)
 {
     if (pink_lsm->compacting)
         return;

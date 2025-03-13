@@ -784,6 +784,31 @@ void lksv3_mark_line_free(struct ssd *ssd, struct femu_ppa *ppa)
     lm->free_line_cnt++;
 }
 
+static int
+make_room_for_write(void)
+{
+    while (true)
+    {
+        if (kv_skiplist_approximate_memory_usage(lksv_lsm->mem) < WRITE_BUFFER_SIZE)
+            break;
+
+        if (lksv_lsm->imm)
+        {
+            qemu_mutex_unlock(&lksv_lsm->mu);
+            usleep(1000);
+            qemu_mutex_lock(&lksv_lsm->mu);
+            continue;
+        }
+
+        lksv_lsm->imm = lksv_lsm->mem;
+        lksv_lsm->mem = kv_skiplist_init();
+
+        lksv_maybe_schedule_compaction();
+    }
+
+    return 0;
+}
+
 static keyset* find_from_list(struct ssd *ssd, kv_key key, kv_skiplist *list) {
     keyset *target_set = NULL;
     kv_snode *target_node;
@@ -817,6 +842,24 @@ static keyset* find_from_list(struct ssd *ssd, kv_key key, kv_skiplist *list) {
 
 static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
 {
+    kv_skiplist *mem, *imm, *key_only_mem, *key_only_imm;
+
+    qemu_mutex_lock(&lksv_lsm->mu);
+
+    mem = lksv_lsm->mem;
+    kv_skiplist_get(mem);
+
+    imm = lksv_lsm->imm;
+    kv_skiplist_get(imm);
+
+    key_only_mem = lksv_lsm->key_only_mem;
+    kv_skiplist_get(key_only_mem);
+
+    key_only_imm = lksv_lsm->key_only_imm;
+    kv_skiplist_get(key_only_imm);
+
+    qemu_mutex_unlock(&lksv_lsm->mu);
+
     keyset *found = NULL;
     kv_key k;
     //uint64_t sublat, maxlat = 0;
@@ -828,18 +871,34 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
     k.len = req->key_length;
 
     /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(ssd, k, lksv_lsm->mem);
+    found = find_from_list(ssd, k, mem);
     if (found) {
         req->value_length = found->value_len;
         req->value = (uint8_t *) found->value;
         FREE(found->lpa.key);
         FREE(found);
         FREE(k.key);
+
+        kv_skiplist_put(mem);
         return req->etime - req->stime;
     }
+    kv_skiplist_put(mem);
+
+    found = find_from_list(ssd, k, imm);
+    if (found) {
+        req->value_length = found->value_len;
+        req->value = (uint8_t *) found->value;
+        FREE(found->lpa.key);
+        FREE(found);
+        FREE(k.key);
+
+        kv_skiplist_put(imm);
+        return req->etime - req->stime;
+    }
+    kv_skiplist_put(imm);
 
     /* 2. Check compaction temp table (skiplist). */
-    found = find_from_list(ssd, k, lksv_lsm->key_only_imm);
+    found = find_from_list(ssd, k, key_only_imm);
     if (found) {
         req->value_length = found->value_len;
         req->value = (uint8_t *) found->value;
@@ -857,16 +916,19 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
             FREE(found->lpa.key);
             FREE(found);
             FREE(k.key);
+            kv_skiplist_put(key_only_imm);
             return req->etime - req->stime;
         } else {
             FREE(found->lpa.key);
             FREE(found);
             FREE(k.key);
+            kv_skiplist_put(key_only_imm);
             return req->etime - req->stime;
         }
     }
+    kv_skiplist_put(key_only_imm);
 
-    found = find_from_list(ssd, k, lksv_lsm->key_only_mem);
+    found = find_from_list(ssd, k, key_only_mem);
     if (found) {
         req->value_length = found->value_len;
         req->value = (uint8_t *) found->value;
@@ -884,8 +946,10 @@ static uint64_t ssd_retrieve(struct ssd *ssd, NvmeRequest *req)
         FREE(found->lpa.key);
         FREE(found);
         FREE(k.key);
+        kv_skiplist_put(key_only_mem);
         return req->etime - req->stime;
     }
+    kv_skiplist_put(key_only_mem);
 
     /* 3. Walk lower levels. prepare params */
     int level = 0;
@@ -995,15 +1059,15 @@ out:
     v->length = req->value_length;
     v->value = (char *) req->value;
 
-    lksv3_skiplist_insert(lksv_lsm->mem, k, v, true, ssd);
-    lksv3_compaction_check(ssd);
+    qemu_mutex_lock(&lksv_lsm->mu);
 
-    /*
-    static uint64_t cnt = 0;
-    if (cnt++ % 10000 == 0) {
-        printf("lksv_lsm->mem.size %ld\n", ssd->lsm.memtable->n);
+    if (make_room_for_write() != 0)
+    {
+        return -1;
     }
-    */
+    lksv3_skiplist_insert(lksv_lsm->mem, k, v, true, ssd);
+
+    qemu_mutex_unlock(&lksv_lsm->mu);
 
     return 0;
 }
@@ -1070,7 +1134,6 @@ static void *ftl_thread(void *arg)
             switch (req->cmd_opcode) {
             case NVME_CMD_KV_STORE:
                 lat = ssd_store(ssd, req);
-                lksv3_do_compaction(ssd);
                 break;
             case NVME_CMD_KV_RETRIEVE:
                 if (ssd->start_log == false) {
@@ -1123,8 +1186,6 @@ static void *ftl_thread(void *arg)
             }
         }
     }
-
-    lksv3_compaction_free(lksv_lsm);
 
     return NULL;
 }

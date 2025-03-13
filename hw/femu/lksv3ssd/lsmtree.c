@@ -6,6 +6,7 @@ struct lksv3_lsmtree *lksv_lsm;
 
 void lksv3_lsm_create(struct ssd *ssd)
 {
+    lksv_lsm->ssd = ssd;
     lksv3_llp *llp = &ssd->llp;
 
     lksv3_lsm_setup_params(ssd);
@@ -35,8 +36,6 @@ void lksv3_lsm_create(struct ssd *ssd)
 
     kv_debug("SHOWINGSIZE(GB) :%lu HEADERSEG:%d DATASEG:%d\n", ((unsigned long) ssd->sp.tt_pgs * 9 / 10 * PAGESIZE) / G, ssd->sp.meta_lines, ssd->sp.data_lines);
     kv_debug("LEVELN:%d\n", LSM_LEVELN);
-
-    lksv3_compaction_init(ssd);
 
     lksv_lsm->lsm_cache = kv_cache_init(lksv_lsm->opts->cache_memory_size, LSM_LEVELN * CACHE_TYPES);
     lksv_lsm->avg_value_bytes = 1024;
