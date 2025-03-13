@@ -29,6 +29,60 @@ extern struct lksv3_lsmtree *lksv_lsm;
  */
 //#define OURS
 
+typedef struct lksv3_lsmtree_setting_parmaters {
+    uint8_t LEVELCACHING;
+
+    uint32_t TOTAL_KEYS;
+    uint32_t LAST_LEVEL_HEADERNUM;
+    uint32_t ALL_LEVEL_HEADERNUM;
+    float LEVEL_SIZE_FACTOR;
+    uint32_t HEADERNUM;
+    float caching_size;
+
+    uint64_t total_memory;
+    uint64_t level_list_memory;
+    uint64_t pinned_level_list_memory;
+    uint64_t pinned_meta_segs_memory;
+    uint64_t level_list_cache_memory;
+    uint64_t cache_memory;
+    uint64_t pin_memory;
+    int64_t remain_memory;
+} lksv3_lsp;
+
+typedef struct lksv3_lsmtree_levelsize_params {
+    float size_factor;
+    float last_size_factor;
+    bool* size_factor_change;//true: it will be changed size
+    //keynum_in_header real;
+    uint32_t keynum_in_header;
+} lksv3_llp;
+
+struct ssd {
+    char *ssdname;
+    struct ssdparams sp;
+    struct ssd_channel *ch;
+    struct write_pointer wp;
+    struct line_mgmt lm;
+
+    /* lockless ring for communication with NVMe IO thread */
+    struct rte_ring **to_ftl;
+    struct rte_ring **to_poller;
+    bool *dataplane_started_ptr;
+    QemuThread ftl_thread;
+
+    lksv3_lsp     lsp;
+    lksv3_llp     llp;
+
+    FemuCtrl *n;
+    bool do_reset;
+    bool start_log;
+    bool start_ramp;
+    uint64_t ramp_start_time;
+
+    struct kvssd_latency lat;
+    const struct kv_lsm_operations *lops;
+};
+
 typedef struct per_line_data {
     bool    referenced_levels[LSM_LEVELN];
     bool    referenced_flush_buffer;
@@ -411,65 +465,11 @@ typedef struct lksv3_lsmtree {
     uint64_t next_level_list_entry_id;
 } lksv3_lsmtree;
 
-typedef struct lksv3_lsmtree_setting_parmaters {
-    uint8_t LEVELCACHING;
-
-    uint32_t TOTAL_KEYS;
-    uint32_t LAST_LEVEL_HEADERNUM;
-    uint32_t ALL_LEVEL_HEADERNUM;
-    float LEVEL_SIZE_FACTOR;
-    uint32_t HEADERNUM;
-    float caching_size;
-
-    uint64_t total_memory;
-    uint64_t level_list_memory;
-    uint64_t pinned_level_list_memory;
-    uint64_t pinned_meta_segs_memory;
-    uint64_t level_list_cache_memory;
-    uint64_t cache_memory;
-    uint64_t pin_memory;
-    int64_t remain_memory;
-} lksv3_lsp;
-
-typedef struct lksv3_lsmtree_levelsize_params {
-    float size_factor;
-    float last_size_factor;
-    bool* size_factor_change;//true: it will be changed size
-    //keynum_in_header real;
-    uint32_t keynum_in_header;
-} lksv3_llp;
-
 void lksv3_lsm_create(struct ssd *ssd);
 void lksv3_lsm_setup_params(struct ssd *ssd);
 uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
-
-struct ssd {
-    char *ssdname;
-    struct ssdparams sp;
-    struct ssd_channel *ch;
-    struct write_pointer wp;
-    struct line_mgmt lm;
-
-    /* lockless ring for communication with NVMe IO thread */
-    struct rte_ring **to_ftl;
-    struct rte_ring **to_poller;
-    bool *dataplane_started_ptr;
-    QemuThread ftl_thread;
-
-    lksv3_lsp     lsp;
-    lksv3_llp     llp;
-
-    FemuCtrl *n;
-    bool do_reset;
-    bool start_log;
-    bool start_ramp;
-    uint64_t ramp_start_time;
-
-    struct kvssd_latency lat;
-    const struct kv_lsm_operations *lops;
-};
 
 void lksv3ssd_init(FemuCtrl *n);
 

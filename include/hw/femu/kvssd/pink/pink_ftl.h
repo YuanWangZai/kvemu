@@ -16,6 +16,29 @@
 
 //#define CACHE_UPDATE
 
+struct ssd {
+    char *ssdname;
+    struct ssdparams sp;
+    struct ssd_channel *ch;
+    struct write_pointer wp;
+    struct line_mgmt lm;
+
+    /* lockless ring for communication with NVMe IO thread */
+    struct rte_ring **to_ftl;
+    struct rte_ring **to_poller;
+    bool *dataplane_started_ptr;
+    QemuThread ftl_thread;
+    pthread_spinlock_t nand_lock;
+
+    FemuCtrl *n;
+    bool do_reset;
+    bool start_log;
+
+    struct kvssd_latency lat;
+
+    const struct kv_lsm_operations *lops;
+};
+
 uint64_t pink_ssd_advance_status(struct ssd *ssd, struct femu_ppa *ppa, struct nand_cmd *ncmd);
 
 // kvssd.h ================================================
@@ -245,29 +268,6 @@ uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry,
 uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
-
-struct ssd {
-    char *ssdname;
-    struct ssdparams sp;
-    struct ssd_channel *ch;
-    struct write_pointer wp;
-    struct line_mgmt lm;
-
-    /* lockless ring for communication with NVMe IO thread */
-    struct rte_ring **to_ftl;
-    struct rte_ring **to_poller;
-    bool *dataplane_started_ptr;
-    QemuThread ftl_thread;
-    pthread_spinlock_t nand_lock;
-
-    FemuCtrl *n;
-    bool do_reset;
-    bool start_log;
-
-    struct kvssd_latency lat;
-
-    const struct kv_lsm_operations *lops;
-};
 
 void pinkssd_init(FemuCtrl *n);
 

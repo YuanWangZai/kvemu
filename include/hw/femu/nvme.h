@@ -1332,7 +1332,7 @@ typedef struct FemuCtrl {
     int64_t blk_er_lat_ns;
     int64_t chnl_pg_xfer_lat_ns;
 
-    struct ssd      *ssd;
+    void            *ssd;
     SsdBackend      *be;
     SsdBackendOps   be_ops;
     int             completed;
