@@ -20,7 +20,7 @@ struct kv_lsm_options *kv_lsm_default_opts(void)
     return opts;
 }
 
-float calc_level_multiplier(int floor_n)
+float kv_calc_level_multiplier(int floor_n)
 {
     float f = ceil(pow(10, log10(floor_n) / LSM_LEVELN));
     while (pow(f, LSM_LEVELN) > floor_n)

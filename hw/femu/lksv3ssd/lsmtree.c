@@ -7,9 +7,8 @@ struct lksv3_lsmtree *lksv_lsm;
 void lksv3_lsm_create(struct ssd *ssd)
 {
     lksv_lsm->ssd = ssd;
-    lksv3_llp *llp = &ssd->llp;
 
-    lksv3_lsm_setup_params(ssd);
+    lksv_lsm_setup_params(ssd);
 
     float m_num = 1;
     uint64_t all_header_num = 0;
@@ -17,15 +16,15 @@ void lksv3_lsm_create(struct ssd *ssd)
     kv_debug("|-----LSMTREE params ---------\n");
     // TODO: apply last level to different size factor
     for (int i = 0; i < LSM_LEVELN; i++) {
-        int m = ceil(m_num * llp->size_factor);
+        int m = ceil(m_num * lksv_lsm->opts->level_multiplier);
 
         lksv_lsm->disk[i] = lksv3_level_init(m, i);
         kv_debug("| [%d] noe:%d\n", i, lksv_lsm->disk[i]->m_num);
         all_header_num += lksv_lsm->disk[i]->m_num;
-        m_num *= llp->size_factor;
+        m_num *= lksv_lsm->opts->level_multiplier;
     }
 
-    kv_debug("| level:%d sizefactor:%lf last:%lf\n",LSM_LEVELN, llp->size_factor, llp->last_size_factor);
+    kv_debug("| level:%d sizefactor:%lf\n",LSM_LEVELN, lksv_lsm->opts->level_multiplier);
     //uint64_t level_bytes = all_header_num * lsp->ONESEGMENT;
     //kv_debug("| all level size:%lu(MB), %lf(GB)", level_bytes / M, (double) level_bytes / G);
     // TODO: all level header size

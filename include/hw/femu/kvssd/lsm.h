@@ -22,6 +22,6 @@ enum lsm_type {
 
 struct kv_lsm_options *kv_lsm_default_opts(void);
 void kv_lsm_setup_db(const struct kv_lsm_operations **lops, enum lsm_type type);
-float calc_level_multiplier(int floor_n);
+float kv_calc_level_multiplier(int floor_n);
 
 #endif
