@@ -1,191 +1,233 @@
 #include "hw/femu/kvssd/lksv/lksv3_ftl.h"
 #include "hw/femu/kvssd/lksv/skiplist.h"
 
-static void compaction_selector(lksv3_level *a, lksv3_level *b, leveling_node *lnode){
-    lksv3_leveling(a, b, lnode);
+void
+lksv_comp_read_delay(struct femu_ppa *ppa)
+{
+    struct nand_cmd cpr;
+    cpr.type = COMP_IO;
+    cpr.cmd = NAND_READ;
+    cpr.stime = 0;
+    lksv3_ssd_advance_status(ppa, &cpr);
+}
+
+void
+lksv_comp_write_delay(struct femu_ppa *ppa)
+{
+    struct nand_cmd cpw;
+    cpw.type = COMP_IO;
+    cpw.cmd = NAND_WRITE;
+    cpw.stime = 0;
+    lksv3_ssd_advance_status(ppa, &cpw);
+}
+
+static void
+free_compaction(lksv_compaction *c)
+{
+    free(c->inputs[0]);
+    free(c->inputs[1]);
+    free(c);
+}
+
+static void
+setup_other_inputs(lksv_compaction *c)
+{
+    c->inputs[1] = lksv_overlaps(c->level+1,
+                                 c->inputs[0][0]->smallest,
+                                 c->inputs[0][c->input_n[0]-1]->largest,
+                                 &c->input_n[1]);
+}
+
+static lksv_compaction *
+pick_compaction(void)
+{
+    lksv_compaction *c;
+
+    if (lksv_lsm->versions.compaction_score <= 1)
+        return NULL;
+
+    c = (lksv_compaction *) malloc(sizeof(lksv_compaction));
+    c->log_triggered = false;
+    c->log_triggered_line_id = -1;
+    c->level = lksv_lsm->versions.compaction_level;
+
+    int size = lksv_lsm->versions.n_files[c->level] - lksv_lsm->versions.m_files[c->level];
+    int offset = rand() % (lksv_lsm->versions.n_files[c->level] - size);
+
+    c->inputs[0] = (lksv_level_list_entry **) malloc(size * sizeof(lksv_level_list_entry *));
+    for (int i = 0; i < size; i++)
+        c->inputs[0][i] = lksv_lsm->versions.files[c->level][offset+i];
+    c->input_n[0] = size;
+
+    setup_other_inputs(c);
+
+    return c;
+}
+
+static gboolean
+find_first_kv (gpointer key, gpointer value, gpointer user_data)
+{
+    return true;
+}
+
+static int
+compact_disk_tables(lksv_compaction *c)
+{
+    lksv_write_level123_table(c);
+
+    free_compaction(c);
+
+    return 0;
 }
 
 static void
 call_log_triggered_compaction(void)
 {
-    lksv_lsm->force = true;
+    // TODO: pick the lowest referenced line.
+    struct line *victim_line = NULL;
+    int i, max;
 
-    /*
-     * During the code cleanup, we temporarily apply a simple and stupid policy.
-     * Policy: Do compaction sequentially from the lowest to the highest level.
-     */
-    for (int i = 0; i < LSM_LEVELN - 1; i++)
+    max = INT32_MAX;
+
+    for (i = 0; i < lksv_ssd->lm.tt_lines; i++)
     {
-        if (!lksv3_should_data_gc_high(5))
-            break;
+        struct line *l = &lksv_ssd->lm.lines[i];
 
-        if (lksv_lsm->disk[i]->n_num == 0)
+        if (l->meta)
             continue;
 
-        kv_log("Log-triggered compaction: %d->%d\n", i, i+1);
-        compaction_selector(lksv_lsm->disk[i], lksv_lsm->disk[i+1], NULL);
+        if (l->vsc == 0 && l->isc == 0)
+            continue;
+
+        if (i == lksv_ssd->lm.data.wp.blk)
+            continue;
+
+        if (per_line_data(l)->referenced_by_memtable > 0)
+            continue;
+
+        if (per_line_data(l)->referenced_by_files < max)
+        {
+            victim_line = l;
+            max = per_line_data(l)->referenced_by_files;
+        }
     }
 
-    lksv_lsm->force = false;
+    if (!victim_line)
+        return;
+
+    kv_log("Log-triggered compaction: picked line id: %d\n", victim_line->id);
+
+    const int max_compactions = 4;
+    int compactions = 0;
+
+    for (i = 0; i < LSM_LEVELN; i++)
+    {
+        while (true)
+        {
+            lksv_level_list_entry *e = g_hash_table_find(
+                    per_line_data(victim_line)->files[i],
+                    find_first_kv,
+                    NULL);
+            if (!e)
+                break;
+
+            lksv_compaction *c = malloc(sizeof(lksv_compaction));
+            c->log_triggered = true;
+            c->log_triggered_line_id = victim_line->id;
+            c->level = i;
+            c->inputs[0] = (lksv_level_list_entry **) malloc(1 * sizeof(lksv_level_list_entry *));
+            c->inputs[0][0] = e;
+            c->input_n[0] = 1;
+
+            setup_other_inputs(c);
+
+            compact_disk_tables(c);
+
+            compactions++;
+            if (compactions > max_compactions)
+                return;
+        }
+    }
+
+    lksv_ssd->lm.data.victim_line_cnt--;
+
+    kv_assert(per_line_data(victim_line)->referenced_by_files == 0);
+    lksv_gc_data_femu(victim_line->id);
 }
 
-static void log_write(kv_skiplist *mem) {
-    int wp = 0;
-    lksv3_sst_t sst;
+static void
+write_value_logs(kv_skiplist *skl)
+{
+    kv_snode *n, *t;
+    kv_key k;
+    kv_value *v;
+    lksv_value_log_writer *w;
+    lksv_kv_descriptor desc;
 
-    memset(&sst, 0, sizeof(lksv3_sst_t));
-    void *meta = calloc(2048, sizeof(lksv_block_meta));
+    w = lksv_new_value_log_writer();
 
-    struct femu_ppa fppa = lksv3_get_new_data_page();
-    struct nand_page *pg = lksv3_get_pg(&fppa);
-    if (pg->data == NULL) {
-        pg->data = calloc(1, PAGESIZE);
+    for_each_sk(n, skl)
+    {
+        desc.key = n->key;
+        desc.value = *n->value;
+        desc.hash = XXH32(desc.key.key, desc.key.len, 0);
+
+        lksv_set_value_log_writer(w, &desc);
+
+        kv_assert(!n->private);
+        n->private = malloc(sizeof(lksv_per_snode_data));
+        *snode_ppa(n) = desc.ppa;
+        *snode_off(n) = desc.value_log_offset;
+        *snode_hash(n) = desc.hash;
     }
-    sst.raw = pg->data;
-    sst.meta = meta;
-    kv_snode *t, *t2;
 
-    kv_key tmp_key[65536];
-    kv_value *tmp_val[65536];
-    struct femu_ppa tmp_ppa[65536];
-    uint32_t tmp_hash[65536];
-    int tmp_voff[65536];
-    int tmp_i = 0;
+    lksv_close_value_log_writer(w);
 
-    kv_key dummy_key;
-    dummy_key.key = NULL;
-    dummy_key.len = 0;
-
-    for_each_sk (t, mem) {
-        kv_assert(t->value);
-        kv_assert(t->value->length > 0);
-
-        kv_key key;
-        kv_copy_key(&key, &t->key);
-
-        kv_value *v;
+    for_each_sk(n, skl)
+    {
+        kv_copy_key(&k, &n->key);
         v = calloc(1, sizeof(kv_value));
         v->length = PPA_LENGTH;
-        v->value = NULL;
 
-        tmp_key[tmp_i] = key;
-        tmp_val[tmp_i] = v;
-        tmp_hash[tmp_i] = XXH32(key.key, key.len, 0);
-        tmp_ppa[tmp_i] = fppa;
-        tmp_voff[tmp_i] = sst.footer.g.n;
+        t = lksv3_skiplist_insert(lksv_lsm->key_only_mem, k, v, true);
 
-        lksv3_kv_pair_t kv;
-        kv.k = dummy_key;
-        kv.v.len = t->value->length;
-        kv_assert(t->value->value);
-        kv.v.val = t->value->value;
-        kv.ppa.ppa = UNMAPPED_PPA;
-
-        int ret;
-retry:
-        ret = lksv3_sst_encode2(&sst, &kv, tmp_hash[tmp_i], &wp, false);
-        if (ret == LKSV3_TABLE_FULL) {
-            struct line *line = lksv3_get_line(&fppa);
-            line->vsc += sst.footer.g.n;
-            per_line_data(line)->referenced_flush = true;
-            lksv_lsm->flush_reference_lines[fppa.g.blk] = true;
-            lksv3_mark_page_valid2(&fppa);
-            lksv3_ssd_advance_write_pointer(&lksv_ssd->lm.data);
-
-            int prev_idx = tmp_i - 1;
-            if (prev_idx < 0)
-                prev_idx = 0;
-
-            if (lksv_ssd->sp.enable_comp_delay) {
-                struct nand_cmd cpw;
-                cpw.type = COMP_IO;
-                cpw.cmd = NAND_WRITE;
-                cpw.stime = 0;
-                lksv3_ssd_advance_status(&fppa, &cpw);
-            }
-            fppa.ppa = UNMAPPED_PPA;
-
-            memset(&sst, 0, sizeof(lksv3_sst_t));
-            sst.meta = meta;
-            wp = 0;
-
-            fppa = lksv3_get_new_data_page();
-            pg = lksv3_get_pg(&fppa);
-            if (pg->data == NULL) {
-                pg->data = calloc(1, PAGESIZE);
-            }
-            sst.raw = pg->data;
-
-            tmp_ppa[tmp_i] = fppa;
-            tmp_voff[tmp_i] = sst.footer.g.n;
-            goto retry;
-        } else {
-            // kv_skiplist_free will free them.
-            //FREE(t->value->value);
-            //FREE(t->value);
-            kv_assert(ret == LKSV3_TABLE_OK);
+        if (t->private)
+        {
+            per_line_data(
+                    &lksv_ssd->lm.lines[snode_ppa(t)->g.blk]
+            )->referenced_by_memtable--;
+            free(t->private);
         }
-        tmp_i++;
 
-        if (tmp_i > 1) {
-            kv_assert(kv_cmp_key(tmp_key[tmp_i-2], tmp_key[tmp_i-1]) < 0);
-        }
+        t->private = n->private;
+        n->private = NULL;
+
+        per_line_data(
+                &lksv_ssd->lm.lines[snode_ppa(t)->g.blk]
+        )->referenced_by_memtable++;
     }
-
-    for (int i = 0; i < tmp_i; i++) {
-        t2 = lksv3_skiplist_insert(lksv_lsm->key_only_mem, tmp_key[i], tmp_val[i], true);
-        if (t2->private == NULL)
-            t2->private = malloc(sizeof(lksv_per_snode_data));
-        *snode_ppa(t2) = tmp_ppa[i];
-        *snode_off(t2) = tmp_voff[i];
-        *snode_hash(t2) = tmp_hash[i];
-        t2->value->length = PPA_LENGTH;
-    }
-
-    lksv3_mark_page_valid2(&fppa);
-    if (sst.footer.g.n) {
-        struct line *line = lksv3_get_line(&fppa);
-        line->vsc += sst.footer.g.n;
-
-        per_line_data(line)->referenced_flush = true;
-        lksv_lsm->flush_reference_lines[fppa.g.blk] = true;
-    }
-    lksv3_ssd_advance_write_pointer(&lksv_ssd->lm.data);
-    if (lksv_ssd->sp.enable_comp_delay) {
-        struct nand_cmd cpw;
-        cpw.type = COMP_IO;
-        cpw.cmd = NAND_WRITE;
-        cpw.stime = 0;
-        lksv3_ssd_advance_status(&fppa, &cpw);
-    }
-
-    FREE(sst.meta);
 }
 
 static void
 print_stats(void)
 {
-    if (rand() % 100 == 0) {
-        kv_debug("write_cnt %lu\n", lksv_lsm->num_data_written);
-        kv_debug("[META] free line cnt: %d\n", lksv_ssd->lm.meta.free_line_cnt);
-        kv_debug("[META] full line cnt: %d\n", lksv_ssd->lm.meta.full_line_cnt);
-        kv_debug("[META] victim line cnt: %d\n", lksv_ssd->lm.meta.victim_line_cnt);
-        kv_debug("[DATA] free line cnt: %d\n", lksv_ssd->lm.data.free_line_cnt);
-        kv_debug("[DATA] full line cnt: %d\n", lksv_ssd->lm.data.full_line_cnt);
-        kv_debug("[DATA] victim line cnt: %d\n", lksv_ssd->lm.data.victim_line_cnt);
-        lksv3_print_level_summary(lksv_lsm);
-    }
+    kv_debug("[META] free line cnt: %d\n", lksv_ssd->lm.meta.free_line_cnt);
+    kv_debug("[META] full line cnt: %d\n", lksv_ssd->lm.meta.full_line_cnt);
+    kv_debug("[META] victim line cnt: %d\n", lksv_ssd->lm.meta.victim_line_cnt);
+    kv_debug("[DATA] free line cnt: %d\n", lksv_ssd->lm.data.free_line_cnt);
+    kv_debug("[DATA] full line cnt: %d\n", lksv_ssd->lm.data.full_line_cnt);
+    kv_debug("[DATA] victim line cnt: %d\n", lksv_ssd->lm.data.victim_line_cnt);
 }
 
 static int
 compact_memtable(void)
 {
-    print_stats();
+    if (rand() % 100 == 0)
+        print_stats();
 
     if (lksv_lsm->imm)
     {
-        log_write(lksv_lsm->imm);
-        check_473();
+        write_value_logs(lksv_lsm->imm);
 
         kv_skiplist_put(lksv_lsm->imm);
         lksv_lsm->imm = NULL;
@@ -193,76 +235,16 @@ compact_memtable(void)
 
     if (lksv_lsm->key_only_imm)
     {
-        leveling_node lnode;
-        kv_skiplist *tmp = lksv_skiplist_cutting_header(lksv_lsm->key_only_imm, false, false, true);
-        if (tmp == lksv_lsm->key_only_imm)
-            lksv_lsm->key_only_imm = NULL;
+        lksv_write_level0_table(lksv_lsm->key_only_imm);
 
-        kv_snode *t;
-        for_each_sk (t, tmp)
-        {
-            if (!lksv_lsm->flush_reference_lines[snode_ppa(t)->g.blk])
-            {
-                lksv_lsm->flush_reference_lines[snode_ppa(t)->g.blk] = true;
-                per_line_data(&lksv_ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush = true;
-            }
-
-            if (lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk])
-                per_line_data(&lksv_ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush_buffer = false;
-        }
-
-        lnode.mem = tmp;
-        kv_skiplist_get_start_end_key(lnode.mem, &lnode.start, &lnode.end);
-        compaction_selector(NULL, lksv_lsm->disk[0], &lnode);
-
-        FREE(lnode.start.key);
-        FREE(lnode.end.key);
-
-        kv_skiplist_put(tmp);
-
-        while (lksv3_should_meta_gc_high()) {
-            if (lksv3_gc_meta_femu())
-                break;
-        }
+        kv_skiplist_put(lksv_lsm->key_only_imm);
+        lksv_lsm->key_only_imm = NULL;
     }
     else if (kv_skiplist_approximate_memory_usage(lksv_lsm->key_only_mem) >= KEY_ONLY_WRITE_BUFFER_SIZE)
     {
         lksv_lsm->key_only_imm = lksv_lsm->key_only_mem;
         lksv_lsm->key_only_mem = kv_skiplist_init();
-
-        memset(lksv_lsm->flush_buffer_reference_lines, 0, 512 * sizeof(bool));
-        kv_snode *t;
-        for_each_sk (t, lksv_lsm->key_only_imm)
-        {
-            if (!lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk])
-            {
-                lksv_lsm->flush_buffer_reference_lines[snode_ppa(t)->g.blk] = true;
-                per_line_data(&lksv_ssd->lm.lines[snode_ppa(t)->g.blk])->referenced_flush_buffer = true;
-            }
-        }
     }
-
-    return 0;
-}
-
-static int
-compact_disk_tables(void)
-{
-    compaction_selector(lksv_lsm->disk[lksv_lsm->compaction_level],
-                        lksv_lsm->disk[lksv_lsm->compaction_level+1],
-                        NULL);
-    update_lines();
-
-    if (lksv3_should_data_gc_high(0))
-    {
-        call_log_triggered_compaction();
-        update_lines();
-    }
-
-    if (lksv_ssd->lm.data.lines > lksv_ssd->sp.tt_lines - lksv_lsm->t_meta)
-        move_line_d2m(false);
-    else if (lksv_ssd->lm.data.lines < lksv_ssd->sp.tt_lines - lksv_lsm->t_meta)
-        move_line_m2d(false);
 
     return 0;
 }
@@ -270,6 +252,8 @@ compact_disk_tables(void)
 static int
 compact1(void)
 {
+    lksv_compaction *c;
+
     if (lksv_lsm->imm || lksv_lsm->key_only_imm)
     {
         compact_memtable();
@@ -278,11 +262,26 @@ compact1(void)
         lksv_update_compaction_score();
     }
 
-    if (lksv_lsm->compaction_score >= 1)
+    c = pick_compaction();
+
+    if (c)
     {
-        compact_disk_tables();
+        compact_disk_tables(c);
 
         // TODO: move this function into the version update function.
+        lksv_update_compaction_score();
+    }
+
+    while (lksv3_should_meta_gc_high(0))
+    {
+        if (lksv_gc_meta_femu() < 0)
+            break;
+    }
+
+    if (lksv3_should_data_gc_high(0))
+    {
+        call_log_triggered_compaction();
+
         lksv_update_compaction_score();
     }
 
@@ -310,6 +309,8 @@ compact(void *arg)
             lksv_maybe_schedule_compaction();
 
             qemu_mutex_unlock(&lksv_lsm->mu);
+
+            usleep(1000);
         }
     }
 
@@ -331,91 +332,12 @@ lksv_maybe_schedule_compaction(void)
 
     if (!lksv_lsm->imm && !lksv_lsm->key_only_imm)
     {
-        if (lksv_lsm->compaction_score < 1)
+        if (lksv_lsm->versions.compaction_score < 1)
             return;
     }
 
     lksv_lsm->compacting = true;
 
     qatomic_inc(&lksv_lsm->compaction_calls);
-}
-
-uint32_t lksv3_level_change(lksv3_level *from, lksv3_level *to, lksv3_level *target) {
-    lksv3_level **src_ptr=NULL, **des_ptr=NULL;
-    des_ptr=&lksv_lsm->disk[to->idx];
-
-    if(from!=NULL){ 
-        src_ptr=&lksv_lsm->disk[from->idx];
-
-        int m_num = from->m_num;
-
-        *(src_ptr)=lksv3_level_init(m_num,from->idx);
-        lksv3_free_level(lksv_lsm, from);
-    }
-
-    (*des_ptr)=target;
-    lksv3_free_level(lksv_lsm, to);
-
-    if (lksv_lsm->bottom_level < target->idx)
-        lksv_lsm->bottom_level = target->idx;
-
-    // Double check level list entries caching
-    if (target->idx == lksv_lsm->bottom_level && lksv_lsm->lsm_cache->levels[cache_level(LEVEL_LIST_ENTRY, target->idx)].n != target->n_num) {
-        for (int i = 0; i < target->n_num; i++) {
-            if (target->level_data[i]->cache[LEVEL_LIST_ENTRY]) {
-                continue;
-            }
-            uint32_t entry_size = target->level_data[i]->smallest.len + (LEVELLIST_HASH_BYTES * PG_N) + 20;
-            kv_cache_insert(lksv_lsm->lsm_cache, &target->level_data[i]->cache[LEVEL_LIST_ENTRY], entry_size, cache_level(LEVEL_LIST_ENTRY, target->idx), KV_CACHE_WITHOUT_FLAGS);
-            if (!target->level_data[i]->cache[LEVEL_LIST_ENTRY]) {
-                break;
-            }
-        }
-    }
-    // We don't need to query membership to the last level's entry.
-    if (target->idx < lksv_lsm->bottom_level) {
-        for (int i = 0; i < target->n_num - 1; i++) {
-            int n = 0;
-            for (int j = 0; j < PG_N; j++) {
-                n += target->level_data[i]->hash_lists[j].n;
-            }
-            uint32_t entry_size = (n * HASH_BYTES) + 20;
-            kv_cache_insert(lksv_lsm->lsm_cache, &target->level_data[i]->cache[HASH_LIST], entry_size, cache_level(HASH_LIST, target->idx), KV_CACHE_WITHOUT_FLAGS);
-            if (!target->level_data[i]->cache[HASH_LIST]) {
-                break;
-            }
-        }
-    }
-
-    if (target->idx > 0) {
-        kv_debug("[Level: %d] n_num: %d, m_num: %d\n", target->idx + 1, target->n_num, target->m_num);
-    }
-
-    return 1;
-}
-
-uint32_t lksv3_leveling(lksv3_level *from, lksv3_level *to, leveling_node *l_node){
-    int m_num = to->m_num;
-    lksv3_level *target = lksv3_level_init(m_num, to->idx);
-    lksv_level_list_entry *entry = NULL;
-
-    if (from) {
-        // TODO: LEVEL_COMP_READ_DELAY
-        do_lksv3_compaction2(from->idx, to->idx, NULL, target);
-    } else {
-        // TODO: LEVEL_COMP_READ_DELAY
-        lksv3_read_run_delay_comp(to);
-        do_lksv3_compaction2(-1, to->idx, l_node, target);
-    }
-
-    if (entry) FREE(entry);
-    uint32_t res = lksv3_level_change(from, to, target);
-    check_473();
-    lksv_lsm->c_level = NULL;
-
-    if(target->idx == LSM_LEVELN-1){
-        kv_debug("last level %d/%d (n:f)\n",target->n_num,target->m_num);
-    }
-    return res;
 }
 

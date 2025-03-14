@@ -4,14 +4,14 @@
 
 static void *ftl_thread(void *arg);
 
-bool lksv3_should_meta_gc_high(void)
+bool lksv3_should_meta_gc_high(int margin)
 {
-    return lksv_ssd->lm.meta.free_line_cnt < lksv_ssd->sp.tt_lines / 100;
+    return lksv_ssd->lm.meta.free_line_cnt <= 1 + margin;
 }
 
 bool lksv3_should_data_gc_high(int margin)
 {
-    return lksv_ssd->lm.data.free_line_cnt < (lksv_ssd->sp.tt_lines / 100) + margin;
+    return lksv_ssd->lm.data.free_line_cnt <= 1 + margin;
 }
 
 static inline int victim_line_cmp_vsc(pqueue_pri_t next, pqueue_pri_t curr)
@@ -92,8 +92,6 @@ static void ssd_init_lines(void)
     kv_assert(lm->meta.lines + lm->data.lines <= lm->tt_lines);
 
     lm->lines = (struct line*) calloc(lm->tt_lines, sizeof(struct line));
-    for (int i = 0; i < lm->tt_lines; i++)
-        lm->lines[i].private = calloc(1, sizeof(struct per_line_data));
 
     QTAILQ_INIT(&lm->meta.free_line_list);
     lm->meta.victim_line_pq = pqueue_init(spp->meta_lines, victim_line_cmp_pri, victim_line_get_pri, victim_line_set_pri, victim_line_get_pos, victim_line_set_pos);
@@ -182,7 +180,6 @@ void lksv3_ssd_advance_write_pointer(struct line_partition *lm)
             if (wpp->pg == spp->pgs_per_blk) {
                 wpp->pg = 0;
                 /* move current line to {victim,full} line list */
-                check_linecnt();
                 if (lm == &lksv_ssd->lm.meta) {
                     // We don't use vsc, isc in meta lines.
                     kv_assert(wpp->curline->vsc == 0);
@@ -204,9 +201,7 @@ void lksv3_ssd_advance_write_pointer(struct line_partition *lm)
                 /* current line is used up, pick another empty line */
                 check_addr(wpp->blk, spp->blks_per_pl);
                 wpp->curline = NULL;
-                check_linecnt();
                 wpp->curline = lksv3_get_next_free_line(lm);
-                check_linecnt();
                 if (!wpp->curline) {
                     /* TODO */
                     abort();
@@ -311,7 +306,8 @@ static void ssd_init_params(struct ssdparams *spp)
     kv_assert(PG_N % spp->nchs == 0);
     kv_assert(spp->pgs_per_line % PG_N == 0);
 
-    spp->meta_lines = 5;
+    // Half of the 10% over-provisioned space is allocated for value-log.
+    spp->meta_lines = spp->tt_lines * 95 / 100;
     spp->data_lines = spp->tt_lines - spp->meta_lines;
     kv_log("initial meta_lines: %d\n", spp->meta_lines);
 
@@ -426,7 +422,6 @@ void lksv3ssd_init(FemuCtrl *n) {
     /////////////////////
     kv_lsm_setup_db(&lksv_ssd->lops, LKSV);
     lksv_ssd->lops->open(lopts);
-    lksv3_lsm_create();
 
     qemu_thread_create(&lksv_ssd->ftl_thread, "FEMU-FTL-Thread", ftl_thread, n, QEMU_THREAD_JOINABLE);
     lksv_ssd->do_reset = true;
@@ -617,37 +612,12 @@ void lksv3_mark_page_invalid(struct femu_ppa *ppa)
     }
 
     if (was_full_line) {
-        check_linecnt();
         /* move line: "full" -> "victim" */
         QTAILQ_REMOVE(&lm->full_line_list, line, entry);
         lm->full_line_cnt--;
         pqueue_insert(lm->victim_line_pq, line);
         lm->victim_line_cnt++;
-        check_linecnt();
     }
-}
-
-void lksv3_mark_page_valid2(struct femu_ppa *ppa)
-{
-    struct nand_block *blk = NULL;
-    struct nand_page *pg = NULL;
-    struct line *line;
-
-    /* update page status */
-    pg = lksv3_get_pg(ppa);
-    kv_assert(pg->status == PG_FREE);
-    pg->status = PG_VALID;
-    kv_assert(pg->data);
-
-    /* update corresponding block status */
-    blk = get_blk(ppa);
-    kv_assert(blk->vpc >= 0 && blk->vpc < lksv_ssd->sp.pgs_per_blk);
-    blk->vpc++;
-
-    /* update corresponding line status */
-    line = lksv3_get_line(ppa);
-    kv_assert(line->vpc >= 0 && line->vpc < lksv_ssd->sp.pgs_per_line);
-    line->vpc++;
 }
 
 void lksv3_mark_page_valid(struct femu_ppa *ppa)
@@ -705,31 +675,8 @@ static struct line *select_victim_line(struct line_partition *lm, bool force, bo
         if (!force && victim_line->ipc < lksv_ssd->sp.pgs_per_line / 8) {
             return NULL;
         }
-
-        int inv_ratio = 100 * victim_line->ipc / (victim_line->vpc + victim_line->ipc);
-        if (inv_ratio < 90) {
-            if (lksv_lsm->should_d2m <= 0) {
-                lksv_lsm->should_d2m = 1;
-            }
-            if (move_line_d2m(true)) {
-                lksv_lsm->should_d2m--;
-                return NULL;
-            }
-        } else if (inv_ratio > 0) {
-            lksv_lsm->m2d = 0;
-        }
     } else {
-        kv_assert(victim_line == NULL);
-        kv_assert(lm->victim_line_cnt == 0);
-        kv_assert(lm->free_line_cnt == 0);
-        kv_assert(lm->full_line_cnt + 1 == lm->lines || lm->full_line_cnt == lm->lines);
-
-        struct line *l = QTAILQ_FIRST(&lm->full_line_list);
-        QTAILQ_REMOVE(&lm->full_line_list, l, entry);
-        lm->full_line_cnt--;
-        pqueue_insert(lm->victim_line_pq, l);
-        lm->victim_line_cnt++;
-        victim_line = l;
+        abort();
     }
 
     pqueue_pop(lm->victim_line_pq);
@@ -767,9 +714,6 @@ void lksv3_mark_line_free(struct femu_ppa *ppa)
     line->vpc = 0;
     line->isc = 0;
     line->vsc = 0;
-    for (int i = 0; i < 4; i++) {
-        kv_assert(!per_line_data(line)->referenced_levels[i]);
-    }
     if (line->vsc != 0) {
         printf("missing kv pairs: %d\n", line->vsc);
         abort();
@@ -806,40 +750,61 @@ make_room_for_write(void)
     return 0;
 }
 
-static keyset* find_from_list(kv_key key, kv_skiplist *list) {
-    keyset *target_set = NULL;
-    kv_snode *target_node;
-    if (list) {
-        target_node = kv_skiplist_find(list, key);
-        if(target_node) {
-            target_set = (keyset *) malloc(sizeof(struct keyset));
-            kv_copy_key(&target_set->lpa, &target_node->key);
-            if (target_node->private) {
-                target_set->ppa = *snode_ppa(target_node);
-                target_set->voff = *snode_off(target_node);
-                target_set->hash = *snode_hash(target_node);
+static kv_value*
+find_from_list(kv_key key, kv_skiplist *skl, NvmeRequest *req)
+{
+    struct nand_page *pg;
+    lksv_kv_descriptor d;
+    kv_value *v;
+    kv_snode *n;
 
-                struct nand_page *pg2 = lksv3_get_pg(&target_set->ppa);
-                int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (target_set->voff + 1));
-                lksv_block_meta meta = *(lksv_block_meta *) (pg2->data + offset);
-                kv_assert(meta.g1.hash == target_set->hash);
-                target_set->value_len = meta.g2.slen;
-                target_set->value = g_malloc0(target_set->value_len);
-                memcpy(target_set->value, pg2->data + meta.g1.off + meta.g1.klen, target_set->value_len);
-            } else {
-                target_set->ppa.ppa = UNMAPPED_PPA;
-                target_set->value_len = target_node->value->length;
-                target_set->value = g_malloc0(target_set->value_len);
-                memcpy(target_set->value, target_node->value->value, target_set->value_len);
-            }
-        }
+    if (!skl)
+        return NULL;
+
+    n = kv_skiplist_find(skl, key);
+    if (!n)
+        return NULL;
+
+    v = (kv_value *) malloc(sizeof(kv_value));
+    if (n->private)
+    {
+        d.ppa = *snode_ppa(n);
+        d.value_log_offset = *snode_off(n);
+        d.hash = *snode_hash(n);
+
+        struct nand_cmd srd;
+        srd.type = USER_IO;
+        srd.cmd = NAND_READ;
+        srd.stime = req->etime;
+        req->flash_access_count++;
+        uint64_t sublat = lksv3_ssd_advance_status(&d.ppa, &srd); 
+        req->etime += sublat;
+
+        pg = lksv3_get_pg(&d.ppa);
+        int offset = PAGESIZE -
+                     LKSV3_SSTABLE_FOOTER_BLK_SIZE -
+                     (LKSV3_SSTABLE_META_BLK_SIZE * (d.value_log_offset + 1));
+        lksv_block_meta meta = *(lksv_block_meta *) (pg->data + offset);
+        kv_assert(meta.g1.hash == d.hash);
+        v->length = meta.g2.slen;
+        v->value = (char *) malloc(v->length);
+        memcpy(v->value, pg->data + meta.g1.off + meta.g1.klen, v->length);
     }
-    return target_set;
+    else
+    {
+        v->length = n->value->length;
+        v->value = (char *) malloc(v->length);
+        memcpy(v->value, n->value->value, v->length);
+    }
+
+    return v;
 }
 
 static uint64_t ssd_retrieve(NvmeRequest *req)
 {
     kv_skiplist *mem, *imm, *key_only_mem, *key_only_imm;
+    kv_key k;
+    kv_value *v;
 
     qemu_mutex_lock(&lksv_lsm->mu);
 
@@ -857,130 +822,75 @@ static uint64_t ssd_retrieve(NvmeRequest *req)
 
     qemu_mutex_unlock(&lksv_lsm->mu);
 
-    keyset *found = NULL;
-    kv_key k;
-    //uint64_t sublat, maxlat = 0;
     req->value = NULL;
     req->etime = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 
-    k.key = g_malloc0(req->key_length);
-    memcpy(k.key, req->key_buf, req->key_length);
+    k.key = (char *) req->key_buf;
     k.len = req->key_length;
 
-    /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(k, mem);
-    if (found) {
-        req->value_length = found->value_len;
-        req->value = (uint8_t *) found->value;
-        FREE(found->lpa.key);
-        FREE(found);
-        FREE(k.key);
+    v = find_from_list(k, mem, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
         kv_skiplist_put(mem);
+        kv_skiplist_put(imm);
+        kv_skiplist_put(key_only_mem);
+        kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
     kv_skiplist_put(mem);
 
-    found = find_from_list(k, imm);
-    if (found) {
-        req->value_length = found->value_len;
-        req->value = (uint8_t *) found->value;
-        FREE(found->lpa.key);
-        FREE(found);
-        FREE(k.key);
+    v = find_from_list(k, imm, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
         kv_skiplist_put(imm);
+        kv_skiplist_put(key_only_mem);
+        kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
     kv_skiplist_put(imm);
 
-    /* 2. Check compaction temp table (skiplist). */
-    found = find_from_list(k, key_only_imm);
-    if (found) {
-        req->value_length = found->value_len;
-        req->value = (uint8_t *) found->value;
-        if (found->ppa.ppa != UNMAPPED_PPA) {
-            kv_assert(check_voffset(&found->ppa, found->voff, found->hash));
+    v = find_from_list(k, key_only_mem, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
-            struct nand_cmd srd;
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            srd.stime = req->etime;
-            req->flash_access_count++;
-            uint64_t sublat = lksv3_ssd_advance_status(&found->ppa, &srd); 
-            req->etime += sublat;
-
-            FREE(found->lpa.key);
-            FREE(found);
-            FREE(k.key);
-            kv_skiplist_put(key_only_imm);
-            return req->etime - req->stime;
-        } else {
-            FREE(found->lpa.key);
-            FREE(found);
-            FREE(k.key);
-            kv_skiplist_put(key_only_imm);
-            return req->etime - req->stime;
-        }
-    }
-    kv_skiplist_put(key_only_imm);
-
-    found = find_from_list(k, key_only_mem);
-    if (found) {
-        req->value_length = found->value_len;
-        req->value = (uint8_t *) found->value;
-
-        kv_assert(check_voffset(&found->ppa, found->voff, found->hash));
-
-        struct nand_cmd srd;
-        srd.type = USER_IO;
-        srd.cmd = NAND_READ;
-        srd.stime = req->etime;
-        req->flash_access_count++;
-        uint64_t sublat = lksv3_ssd_advance_status(&found->ppa, &srd); 
-        req->etime += sublat;
-
-        FREE(found->lpa.key);
-        FREE(found);
-        FREE(k.key);
         kv_skiplist_put(key_only_mem);
+        kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
     kv_skiplist_put(key_only_mem);
 
-    /* 3. Walk lower levels. prepare params */
-    int level = 0;
-    lksv_level_list_entry *entry = NULL;
-    uint8_t result;
-    result = lksv3_lsm_find_run(k, &entry, &found, &level, req);
+    v = find_from_list(k, key_only_imm, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
-    switch (result) {
-        case CACHING:
-            kv_assert(found != NULL);
-            req->value_length = found->value_len;
-            req->value = (uint8_t *) found->value;
-            FREE(found);
-            FREE(k.key);
-            return req->etime - req->stime;
-        case COMP_FOUND:
-            kv_assert(found);
-            req->value_length = found->value_len;
-            req->value = (uint8_t *) found->value;
-            FREE(found);
-            FREE(k.key);
-            return req->etime - req->stime;
-        case FOUND:
-            kv_assert(found);
-            req->value_length = found->value_len;
-            req->value = (uint8_t *) found->value;
-            FREE(found);
-            FREE(k.key);
-            return req->etime - req->stime;
-        case NOTFOUND:
-            kv_debug("not found?\n");
-            FREE(k.key);
-            break;
+        kv_skiplist_put(key_only_imm);
+        return req->etime - req->stime;
     }
+    kv_skiplist_put(key_only_imm);
+
+    qemu_mutex_lock(&lksv_lsm->mu);
+    v = lksv_get(k, req);
+    qemu_mutex_unlock(&lksv_lsm->mu);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
+
+        return req->etime - req->stime;
+    }
+
+    abort();
+
     return req->etime - req->stime;
 }
 
@@ -991,7 +901,6 @@ static uint64_t ssd_read(NvmeRequest *req)
 
 static uint64_t ssd_store(NvmeRequest *req)
 {
-    static int sampling = 0;
     kv_key k;
     kv_value *v;
 
@@ -999,52 +908,6 @@ static uint64_t ssd_store(NvmeRequest *req)
     memcpy(k.key, req->key_buf, req->key_length);
     k.len = req->key_length;
     kv_assert(k.len >= KV_MIN_KEY_LEN && k.len <= KV_MAX_KEY_LEN);
-
-    if (++sampling % 1000 == 0) {
-        if (sampling % 100000 == 0)
-            printf("val: %ld, inv: %ld\n", lksv_lsm->val, lksv_lsm->inv);
-        keyset *found = NULL;
-        found = find_from_list(k, lksv_lsm->mem);
-        if (found) {
-            FREE(found->value);
-            FREE(found->lpa.key);
-            FREE(found);
-            lksv_lsm->inv++;
-            goto out;
-        }
-        found = find_from_list(k, lksv_lsm->key_only_imm);
-        if (found) {
-            FREE(found->value);
-            FREE(found->lpa.key);
-            FREE(found);
-            lksv_lsm->inv++;
-            goto out;
-        }
-        found = find_from_list(k, lksv_lsm->key_only_mem);
-        if (found) {
-            FREE(found->value);
-            FREE(found->lpa.key);
-            FREE(found);
-            lksv_lsm->inv++;
-            goto out;
-        }
-        int level = 0;
-        lksv_level_list_entry *entry = NULL;
-        lksv3_lsm_find_run(k, &entry, &found, &level, req);
-        if (found) {
-            FREE(found->value);
-            FREE(found);
-            lksv_lsm->inv++;
-            goto out;
-        }
-        lksv_lsm->val++;
-    }
-out:
-    if (sampling % 10000000 == 0) {
-        sampling = 0;
-        lksv_lsm->inv /= 2;
-        lksv_lsm->val /= 2;
-    }
 
     v = g_malloc0(sizeof(kv_value));
     v->length = req->value_length;

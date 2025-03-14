@@ -46,17 +46,15 @@ struct lksv_ssd {
     FemuCtrl *n;
     bool do_reset;
     bool start_log;
-    bool start_ramp;
-    uint64_t ramp_start_time;
 
     struct kvssd_latency lat;
     const struct kv_lsm_operations *lops;
 };
 
 typedef struct per_line_data {
-    bool    referenced_levels[LSM_LEVELN];
-    bool    referenced_flush_buffer;
-    bool    referenced_flush;
+    int        referenced_by_memtable;
+    int        referenced_by_files;
+    GHashTable *files[LSM_LEVELN];
 } per_line_data;
 
 #define per_line_data(line) ((per_line_data *)((line)->private))
@@ -65,11 +63,7 @@ typedef struct per_line_data {
 uint64_t lksv3_ssd_advance_status(struct femu_ppa *ppa, struct nand_cmd *ncmd);
 
 typedef struct {
-    uint32_t hash;
-} lksv_hash;
-
-typedef struct {
-    lksv_hash   *hashes;
+    uint32_t   *hashes;
     uint16_t    n;
 } lksv_hash_list;
 
@@ -100,6 +94,11 @@ typedef struct lksv_level_list_entry
     char            *buffer[PG_N];
 
     int             ref_count;
+
+    // TODO: Change this to bitmap.
+    // TODO: 512 to const number.
+    bool            value_log_rmap[512];
+    uint8_t         level;
 } lksv_level_list_entry;
 
 #define LEVEL_LIST_ENTRY_PER_PAGE (PAGESIZE/(32+(PG_N*LEVELLIST_HASH_BYTES)+20))
@@ -111,41 +110,16 @@ typedef struct lksv_level_list_entry
 #define KEYBITMAP (PAGESIZE / 16)
 #define KEYLEN(a) (a.len)
 
-bool lksv3_should_meta_gc_high(void);
+bool lksv3_should_meta_gc_high(int margin);
 bool lksv3_should_data_gc_high(int margin);
 
-// level.h ================================================
-
-typedef struct keyset {
-    struct femu_ppa ppa;
-    kv_key lpa;
-    int value_len;
-    int voff;
-    uint32_t hash;
-    char *value;
-} keyset;
-
-typedef struct lksv3_level lksv3_level;
-typedef struct lksv3_level {
-    int32_t idx;
-    int32_t m_num,n_num,x_num;
-    kv_key start,end;
-    lksv_level_list_entry **level_data;
-    bool reference_lines[512];
-} lksv3_level_t;
-
-typedef struct lev_iter{
-    int lev_idx;
-    kv_key from,to;
-    void *iter_data;
-} lev_iter;
-
 enum lksv3_sst_meta_flag {
-    VMETA = 0,
-    VLOG = 1,
+    KEY_VALUE_PAIR = 0,
+    KEY_PPA_PAIR   = 1,
+    VALUE_LOG      = 2,
 };
 
-#define LKSV3_SSTABLE_FOOTER_BLK_SIZE 8
+#define LKSV3_SSTABLE_FOOTER_BLK_SIZE 16
 #define LKSV3_SSTABLE_META_BLK_SIZE 16
 #define LKSV3_SSTABLE_STR_IDX_SIZE 4
 /*
@@ -205,179 +179,24 @@ typedef struct lksv_block_footer {
         } g;
         uint64_t f;
     };
+    uint64_t level_list_entry_id;
 } lksv_block_footer;
-
-typedef struct lksv3_sst_str_idx_t {
-    union {
-        struct {
-            uint32_t sst : 8;
-            uint32_t off : 24;
-        } g1;
-        uint32_t i;
-    };
-} lksv3_sst_str_idx_t;
-
-typedef struct lksv_shard {
-    char *value;
-    int offset;
-    int length;
-} lksv_shard;
-
-typedef struct lksv_comp_entry {
-    kv_key                  key;
-    lksv_block_meta         meta;
-    struct femu_ppa         ppa;
-    uint32_t                hash_order;
-    struct lksv_comp_entry  *next;
-    char                    *value;
-} lksv_comp_entry;
-
-typedef struct lksv_comp_list {
-    lksv_comp_entry         *str_order_entries;
-    lksv_comp_entry         **hash_order_pointers;
-    lksv3_sst_str_idx_t     *str_order_map;
-    int                     n;
-} lksv_comp_list;
-
-typedef struct lksv_comp_lists_iterator {
-    lksv_comp_list  **l;
-    int             i;
-    int             imax;
-    int             n;
-} lksv_comp_lists_iterator;
-
-/* level operations */
-void lksv3_array_range_update(lksv3_level *lev, lksv_level_list_entry* r, kv_key key);
-lksv3_level* lksv3_level_init(int size, int idx);
-void lksv3_free_level(struct lksv3_lsmtree *, lksv3_level *);
-void lksv3_free_run(struct lksv3_lsmtree*, lksv_level_list_entry *);
-lksv_level_list_entry* lksv3_insert_run(lksv3_level_t* des, lksv_level_list_entry *r);
-lksv_level_list_entry* lksv3_insert_run2(lksv3_level *lev, lksv_level_list_entry* r);
-keyset* lksv3_find_keyset(NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level);
-lev_iter* lksv3_get_iter(lksv3_level_t*, kv_key from, kv_key to); //from<= x <to
-lksv_level_list_entry* lksv3_iter_nxt(lev_iter*);
-char *lksv3_mem_cvt2table2(lksv_comp_list *mem, lksv_level_list_entry *input);
-
-lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa);
-lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa);
-lksv_level_list_entry *lksv3_find_run(lksv3_level_t*, kv_key lpa, NvmeRequest *req);
-void lksv3_read_run_delay_comp(lksv3_level *lev);
-void lksv3_print_level_summary(struct lksv3_lsmtree*);
-
-// page.h ====================================================
-
-int lksv3_gc_meta_femu(void);
-void lksv3_gc_data_femu3(int ulevel, int level);
-
-// skiplist.h ================================================
-
-typedef struct lksv3_length_bucket {
-    kv_snode **bucket[MAXVALUESIZE+1];
-    struct lksv3_gc_node **gc_bucket[MAXVALUESIZE+1];
-    uint32_t indices[MAXVALUESIZE+1];
-    kv_value** contents;
-    int contents_num;
-} lksv3_l_bucket;
-
-lksv3_l_bucket *lksv3_skiplist_make_length_bucket(kv_skiplist *sl);
-kv_skiplist *lksv_skiplist_cutting_header(kv_skiplist *in, bool after_log_write, bool with_value, bool left);
 
 // compaction.h ==============================================
 
-typedef struct compaction_req compR;
-
-struct compaction_req {
-    int fromL;
-    kv_skiplist *temptable;
-    bool last;
-    QTAILQ_ENTRY(compaction_req) entry;
-};
-
-typedef struct leveling_node{
-    kv_skiplist *mem;
-    kv_key start;
-    kv_key end;
-    lksv_level_list_entry *entry;
-} leveling_node;
-
-struct lksv3_lsmtree;
-
-bool lksv3_should_compact(lksv3_level *l);
-
 void lksv_compaction_init(void);
 void lksv_maybe_schedule_compaction(void);
-uint32_t lksv3_level_change(lksv3_level *from, lksv3_level *to, lksv3_level *target);
-uint32_t lksv3_leveling(lksv3_level *from, lksv3_level *to, leveling_node *l_node);
-
-struct femu_ppa lksv3_compaction_meta_segment_write_femu(char *data, int level);
-struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(lksv3_level *target, lksv_level_list_entry *entry);
-
-// lksv3_table.h =================================================
-
-enum LksvTableStatusCodes {
-    LKSV3_TABLE_OK   = 0,
-    LKSV3_TABLE_FULL = 1,
-};
-
-typedef struct lksv3_str_val {
-    uint32_t len;
-    char *val;
-} lksv3_str_val;
-#define LKSV3_VALT lksv3_str_val
-
-typedef struct {
-    kv_key k;
-    LKSV3_VALT v;
-    struct femu_ppa ppa;
-    int voff;
-} lksv3_kv_pair_t;
-
-typedef struct {
-    lksv_block_footer footer;
-    lksv_block_meta *meta;
-    lksv3_sst_str_idx_t *str_idx;
-    void *raw;
-} lksv3_sst_t;
-
-typedef struct {
-    int max_keys;
-
-    lksv3_sst_t *high;
-    int cursor_high;
-    struct femu_ppa high_ppa;
-
-    lksv3_sst_t *low;
-    int cursor_low;
-    struct femu_ppa low_ppa;
-
-    lksv3_sst_t target;
-    int target_write_pointer;
-} lksv3_compaction;
-
-lksv3_compaction *new_lksv3_compaction(int max_keys);
-void free_lksv3_compaction(lksv3_compaction *c);
-void do_lksv3_compaction2(int high_lev, int low_lev, leveling_node *l_node, lksv3_level *target_level);
-
-int lksv3_sst_encode2(lksv3_sst_t *sst, lksv3_kv_pair_t *kv, uint32_t hash, int *wp, bool sharded);
-void lksv3_sst_encode_str_idx(lksv3_sst_t *sst, lksv3_sst_str_idx_t *block, int n);
-int lksv3_sst_decode(lksv3_sst_t *sst, void *raw);
-struct femu_ppa lksv3_sst_write(struct femu_ppa ppa, lksv3_sst_t *sst);
-void lksv3_sst_read(struct femu_ppa ppa, lksv3_sst_t *sst);
-
-// array.h ==================================================
-
-typedef struct array_iter{
-    lksv_level_list_entry **arrs;
-    int max;
-    int now;
-    bool ispartial;
-} a_iter;
 
 // lsmtree.h ================================================
 
-enum READTYPE{
-    NOTFOUND,FOUND,CACHING,FLYING,COMP_FOUND
-};
+typedef struct lksv_version {
+    lksv_level_list_entry **files[LSM_LEVELN];
+    int                   n_files[LSM_LEVELN];
+    int                   m_files[LSM_LEVELN];
+
+    double                compaction_score;
+    int                   compaction_level;
+} lksv_version;
 
 typedef struct lksv3_lsmtree {
     struct kv_lsm_options *opts;
@@ -392,50 +211,21 @@ typedef struct lksv3_lsmtree {
     QemuMutex mu;
     QemuThread comp_thread;
     bool compacting;
-    double compaction_score;
-    int compaction_level;
+    bool compacting_meta_lines[2][1024];
     uint64_t compaction_calls;
 
-    lksv3_level **disk;                  /* L1 ~ */
-    lksv3_level *c_level;
+    // TODO: introduce multi-versions.
+    lksv_version versions;
 
     struct kv_cache *lsm_cache;
 
-    uint64_t num_data_written;
-    uint64_t cache_hit;
-    uint64_t cache_miss;
     int header_gc_cnt;
     int data_gc_cnt;
-
-    bool gc_plan[4][512];
-    bool flush_reference_lines[512];
-    bool flush_buffer_reference_lines[512];
-    int should_d2m;
-    uint64_t m2d;
-    int gc_planned;
-
-    int t_meta;
-    int t_data;
-    int64_t inv;
-    int64_t val;
-
-    bool force;
-
-    // They are calculated based on stats sampled from the bottom level.
-    uint32_t avg_value_bytes;
-    uint32_t avg_key_bytes;
-    uint64_t sum_value_bytes;
-    uint64_t sum_key_bytes;
-    uint32_t samples_count;
 
     GHashTable *level_list_entries;
     pthread_spinlock_t level_list_entries_lock;
     uint64_t next_level_list_entry_id;
 } lksv3_lsmtree;
-
-void lksv3_lsm_create(void);
-void lksv_lsm_setup_params(void);
-uint8_t lksv3_lsm_find_run(kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
 
@@ -449,13 +239,92 @@ struct line *lksv3_get_next_free_line(struct line_partition *lm);
 void lksv3_ssd_advance_write_pointer(struct line_partition *lm);
 void lksv3_mark_page_invalid(struct femu_ppa *ppa);
 void lksv3_mark_page_valid(struct femu_ppa *ppa);
-void lksv3_mark_page_valid2(struct femu_ppa *ppa);
 void lksv3_mark_block_free(struct femu_ppa *ppa);
 struct line *lksv3_select_victim_meta_line(bool force);
 struct line *lksv3_select_victim_data_line(bool force);
 void lksv3_mark_line_free(struct femu_ppa *ppa);
-
 struct nand_lun *lksv3_get_lun(struct femu_ppa *ppa);
+
+static inline bool check_voffset(struct femu_ppa *ppa, int voff, uint32_t hash)
+{
+    struct nand_page *pg = lksv3_get_pg(ppa);
+    int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (voff + 1));
+    lksv_block_meta meta = *(lksv_block_meta *) (pg->data + offset);
+
+    return meta.g1.hash == hash;
+}
+
+void lksv_open(struct kv_lsm_options *opts);
+
+// version.c
+
+void lksv_lput(lksv_level_list_entry *e);
+lksv_level_list_entry *lksv_lget(uint64_t id);
+lksv_level_list_entry *lksv_lnew(void);
+void lksv_update_compaction_score(void);
+lksv_level_list_entry **lksv_overlaps(int level, kv_key smallest, kv_key largest, int *n);
+
+typedef struct lksv_compaction {
+    bool                  log_triggered;
+    int                   log_triggered_line_id;
+    int                   level;
+    int                   input_n[2];
+    lksv_level_list_entry **inputs[2];
+} lksv_compaction;
+
+typedef struct lksv_kv_descriptor {
+    kv_key          key;
+    kv_value        value;
+    uint32_t        hash;
+    struct femu_ppa ppa;
+    int             value_log_offset;
+    int             str_order; // Used by compaction.
+} lksv_kv_descriptor;
+
+typedef struct lksv_value_log_writer {
+    struct femu_ppa writing_ppa;
+    int             left;
+    int             wp;
+    int             n;
+} lksv_value_log_writer;
+
+lksv_value_log_writer *lksv_new_value_log_writer(void);
+void lksv_set_value_log_writer(lksv_value_log_writer *w, lksv_kv_descriptor *d);
+void lksv_close_value_log_writer(lksv_value_log_writer *w);
+
+typedef struct lksv_file_iterator {
+    int level;
+
+    lksv_level_list_entry **files;
+    int                   files_n;
+    int                   current_file;
+
+    lksv_kv_descriptor    *buffer[8192];
+    int                   buffer_n;
+    int                   current_buffer;
+
+    bool upper;
+    bool fetch_values;
+    int fetch_line_id;
+#ifndef OURS
+    bool reinsert_values;
+#endif
+} lksv_file_iterator; 
+
+typedef struct lksv_data_seg_writer {
+    struct femu_ppa    writing_ppa;
+    lksv_kv_descriptor *buffer[8192];
+    int                left;
+    int                n;
+
+    lksv_level_list_entry **results;
+    int                   *result_n;
+
+    int level;
+} lksv_data_seg_writer;
+
+void lksv_write_level0_table(kv_skiplist *mem);
+void lksv_write_level123_table(lksv_compaction *c);
 
 static inline struct femu_ppa get_next_write_ppa(struct femu_ppa pivot, int offset) {
     kv_assert(pivot.g.ch == 0);
@@ -470,403 +339,25 @@ static inline struct femu_ppa get_next_write_ppa(struct femu_ppa pivot, int offs
     return pivot;
 }
 
+int lksv_gc_meta_femu(void);
+void lksv_gc_meta_erase_only(void);
+void lksv_gc_data_femu(int lineid);
+
 static inline bool is_pivot_ppa(struct femu_ppa ppa) {
     int pg_n = ppa.g.lun * lksv_ssd->sp.nchs;
-    if (ppa.g.ch == 0
-        && pg_n % PG_N == 0) {
+    if (ppa.g.ch == 0 && pg_n % PG_N == 0) {
         return true;
     }
     return false;
 }
 
-struct lksv3_comp_entry_order {
-    int str_order;
-    int insert_order;
-};
+kv_value *lksv_get(kv_key k, NvmeRequest *req);
+kv_value *internal_get(int eid, kv_key k, uint32_t hash, NvmeRequest *req);
 
-struct lksv3_comp_entry {
-    struct kv_snode *snode;
-    uint32_t hash;
-};
+void lksv_comp_read_delay(struct femu_ppa *ppa);
+void lksv_comp_write_delay(struct femu_ppa *ppa);
+void lksv_user_read_delay(struct femu_ppa *ppa, NvmeRequest *req);
 
-static inline bool should_unify(struct femu_ppa *log_ppa, int level, int to_level) {
-    if (lksv_lsm->gc_plan[level][log_ppa->g.blk]) {
-        return true;
-    }
-    if (to_level >= (LSM_LEVELN - 1)) {
-        bool other_ref = false;
-
-        if (!lksv_lsm->flush_buffer_reference_lines[log_ppa->g.blk] && !lksv_lsm->flush_reference_lines[log_ppa->g.blk] && lksv_ssd->lm.data.wp.blk != log_ppa->g.blk) {
-            for (int i = 0; i < LSM_LEVELN; i++) {
-                if (i == to_level || i == level) {
-                    continue;
-                }
-                if (lksv_lsm->disk[i]->reference_lines[log_ppa->g.blk]) {
-                    other_ref = true;
-                }
-            }
-            if (!other_ref) {
-                lksv_lsm->gc_plan[level][log_ppa->g.blk] = true;
-                lksv_lsm->gc_plan[to_level][log_ppa->g.blk] = true;
-                lksv_lsm->gc_planned++;
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-static inline bool is_meta_line(int lineid)
-{
-    return lksv_ssd->lm.lines[lineid].meta;
-}
-
-static inline void check_473(void)
-{
-#ifdef HPCA_DEBUG
-    for (int i = 0; i < 4; i++) {
-        for (int l = 0; l < 512; l++) {
-            if (is_meta_line(l)) {
-                continue;
-            }
-            if (per_line_data(&lksv_ssd->lm.lines[l])->referenced_levels[i]) {
-                kv_assert(lksv_lsm->disk[i]->reference_lines[l]);
-            } else {
-                kv_assert(!lksv_lsm->disk[i]->reference_lines[l]);
-            }
-        }
-    }
-    for (int l = 0; l < 512; l++) {
-        if (is_meta_line(l)) {
-            continue;
-        }
-        if (lksv_lsm->flush_reference_lines[l]) {
-            kv_assert(per_line_data(&lksv_ssd->lm.lines[l])->referenced_flush);
-        } else {
-            kv_assert(!per_line_data(&lksv_ssd->lm.lines[l])->referenced_flush);
-        }
-    }
-#endif
-}
-
-struct lksv3_gc {
-    int lineid;
-    int inv_ratio;
-};
-
-void check_kv_pair_count(struct line *line);
-
-static inline void check_linecnt(void)
-{
-    int cnt = 0;
-    if (lksv_ssd->lm.meta.wp.curline) {
-        cnt++;
-    }
-    cnt += lksv_ssd->lm.meta.free_line_cnt;
-    cnt += lksv_ssd->lm.meta.full_line_cnt;
-    cnt += lksv_ssd->lm.meta.victim_line_cnt;
-    // lksv_ssd->lm.meta.lines - 1: gc flying
-    kv_assert(cnt == lksv_ssd->lm.meta.lines || cnt == lksv_ssd->lm.meta.lines - 1);
-}
-
-void gc_erase_delay(struct femu_ppa *ppa);
-
-static inline void update_lines(void)
-{
-    int pgs = 0;
-
-    for (int i = 0; i < lksv_lsm->bottom_level; i++)
-        pgs += lksv_lsm->disk[i]->m_num * 32;
-    pgs += lksv_lsm->disk[lksv_lsm->bottom_level]->n_num * 32;
-
-    lksv_lsm->t_meta = (pgs / lksv_ssd->sp.pgs_per_line);
-    lksv_lsm->t_data = lksv_ssd->sp.tt_lines - lksv_lsm->t_meta;
-    lksv_lsm->t_data /= 2;
-    lksv_lsm->t_data += ((double) lksv_lsm->inv / (double) (lksv_lsm->inv + lksv_lsm->val + 1)) * lksv_lsm->t_data;
-
-    if (lksv_lsm->t_data < lksv_ssd->sp.tt_lines * 0.05)
-        lksv_lsm->t_data = lksv_ssd->sp.tt_lines * 0.05;
-    if (lksv_lsm->t_data > lksv_ssd->sp.tt_lines * 0.98)
-        lksv_lsm->t_data = lksv_ssd->sp.tt_lines * 0.98;
-    lksv_lsm->t_meta = lksv_ssd->sp.tt_lines - lksv_lsm->t_data;
-
-    static uint64_t cnt = 0;
-    if (cnt++ % 100 == 0)
-        printf("[Update target] meta: %d, data: %d\n", lksv_lsm->t_meta, lksv_lsm->t_data);
-}
-
-bool move_line_m2d(bool force);
-bool move_line_d2m(bool force);
-
-static inline bool check_voffset(struct femu_ppa *ppa, int voff, uint32_t hash)
-{
-    struct nand_page *pg = lksv3_get_pg(ppa);
-    int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (voff + 1));
-    lksv_block_meta meta = *(lksv_block_meta *) (pg->data + offset);
-
-    return meta.g1.hash == hash;
-}
-
-static inline int round_up_pow2(int n)
-{
-    n -= 1;
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 8;
-    n |= n >> 16;
-    return n + 1;
-}
-
-static inline void bucket_sort(lksv_comp_list *list)
-{
-#ifdef LK_OH
-    uint64_t start = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
-    static uint64_t elapsed;
-    static uint64_t stat_count = 0;
-#endif
-
-    int bucket_size = round_up_pow2(list->n);
-    lksv_comp_entry **bucket = calloc(bucket_size, sizeof(lksv_comp_entry *));
-    int pow_n = 0;
-    int n = 1;
-
-    while (n < bucket_size) {
-        n = n << 1;
-        pow_n++;
-    }
-
-    //uint32_t mask = UINT32_MAX << (32 - pow_n) >> (32 - pow_n);
-    //uint32_t mask = UINT32_MAX >> (32 - pow_n) << (32 - pow_n);
-    uint32_t mask = 32 - pow_n;
-    int max = list->n;
-
-    lksv_comp_entry *se = list->str_order_entries;
-
-    for (int i = 0; i < max; i++) {
-        int idx = (se[i].meta.g1.hash >> mask);
-        if (bucket[idx] == NULL) {
-            bucket[idx] = &se[i];
-            se[i].next = NULL;
-        } else {
-            lksv_comp_entry **e = &bucket[idx];
-            while (true) {
-                if (se[i].meta.g1.hash < (*e)->meta.g1.hash) {
-                    se[i].next = (*e);
-                    (*e) = &se[i];
-                    break;
-                } else if ((*e)->next == NULL) {
-                    (*e)->next = &se[i];
-                    se[i].next = NULL;
-                    break;
-                }
-                e = &(*e)->next;
-            }
-        }
-    }
-
-    int k = 0;
-    int i = 0;
-    while (i < bucket_size) {
-        if (bucket[i] == NULL) {
-            i++;
-            continue;
-        }
-        lksv_comp_entry *en = bucket[i];
-        while (en) {
-            list->hash_order_pointers[k] = en;
-            list->hash_order_pointers[k]->hash_order = k;
-            k++;
-
-            en = en->next;
-        }
-        i++;
-    }
-
-#ifdef LK_OH
-    elapsed += qemu_clock_get_ns(QEMU_CLOCK_REALTIME) - start;
-    stat_count++;
-    if (stat_count % 100 == 0) {
-        printf("[LSORT Overhead analysis]\n");
-        printf("Average time consumed: %lu\n", elapsed / stat_count);
-    }
-#endif
-
-    kv_assert(k == list->n);
-
-    FREE(bucket);
-}
-
-struct lksv3_hash_sort_t {
-    lksv_comp_entry **u[512];
-    int un[512];
-    int u_start_i;
-    int u_start_n;
-    int u_end_i;
-    int u_end_n;
-
-    lksv_comp_entry **l[512];
-    int ln[512];
-    int l_start_i;
-    int l_start_n;
-    int l_end_i;
-    int l_end_n;
-};
-
-static inline void default_merge(struct lksv3_hash_sort_t *sort, lksv_comp_list *list, lksv_comp_lists_iterator *ui, lksv_comp_lists_iterator *li) {
-    int upper_list_n = 0;
-    while (sort->u[upper_list_n]) {
-        upper_list_n++;
-    }
-
-    int lower_list_n = 0;
-    while (sort->l[lower_list_n]) {
-        lower_list_n++;
-    }
-
-    for (int i = 0; i < upper_list_n; i++) {
-        if (sort->u[i+1] == NULL) {
-            break;
-        }
-        lksv_comp_entry **tmp = calloc(list->n, sizeof(lksv_comp_entry *));
-        int prev = 0;
-        int next = 0;
-        int merged = 0;
-        int merged_target = sort->un[i] + sort->un[i+1];
-        while (merged < merged_target) {
-            if (sort->un[i] > 0) {
-                while (sort->u[i][prev] == NULL) {
-                    prev++;
-                }
-            }
-            if (sort->un[i+1] > 0) {
-                while (sort->u[i+1][next] == NULL) {
-                    next++;
-                }
-            }
-            if (sort->un[i] == 0 || (sort->un[i+1] > 0 && sort->u[i][prev]->meta.g1.hash > sort->u[i+1][next]->meta.g1.hash)) {
-                tmp[merged] = sort->u[i+1][next];
-                next++;
-                sort->un[i+1]--;
-            } else {
-                tmp[merged] = sort->u[i][prev];
-                prev++;
-                sort->un[i]--;
-            }
-            merged++;
-        }
-        free(sort->u[i+1]);
-        sort->u[i+1] = tmp;
-        sort->un[i+1] = merged_target;
-    }
-
-    for (int i = 0; i < lower_list_n; i++) {
-        if (sort->l[i+1] == NULL) {
-            break;
-        }
-        lksv_comp_entry **tmp = calloc(list->n, sizeof(lksv_comp_entry *));
-        int prev = 0;
-        int next = 0;
-        int merged = 0;
-        int merged_target = sort->ln[i] + sort->ln[i+1];
-        while (merged < merged_target) {
-            if (sort->ln[i] > 0) {
-                while (sort->l[i][prev] == NULL) {
-                    prev++;
-                }
-            }
-            if (sort->ln[i+1] > 0) {
-                while (sort->l[i+1][next] == NULL) {
-                    next++;
-                }
-            }
-            if (sort->ln[i] == 0 || (sort->ln[i+1] > 0 && sort->l[i][prev]->meta.g1.hash > sort->l[i+1][next]->meta.g1.hash)) {
-                tmp[merged] = sort->l[i+1][next];
-                next++;
-                sort->ln[i+1]--;
-            } else {
-                tmp[merged] = sort->l[i][prev];
-                prev++;
-                sort->ln[i]--;
-            }
-            merged++;
-        }
-        free(sort->l[i+1]);
-        sort->l[i+1] = tmp;
-        sort->ln[i+1] = merged_target;
-    }
-
-    int prev = 0;
-    int next = 0;
-    int merged = 0;
-    int merged_target = list->n;
-    kv_assert(list->n == sort->un[upper_list_n - 1] + sort->ln[lower_list_n - 1]);
-    while (merged < merged_target) {
-        if (sort->ln[lower_list_n - 1] > 0) {
-            while (sort->l[lower_list_n - 1][prev] == NULL) {
-                prev++;
-            }
-        }
-        if (sort->un[upper_list_n - 1] > 0) {
-            while (sort->u[upper_list_n - 1][next] == NULL) {
-                next++;
-            }
-        }
-        if (sort->ln[lower_list_n - 1] == 0 || (sort->un[upper_list_n - 1] > 0 && sort->l[lower_list_n - 1][prev]->meta.g1.hash > sort->u[upper_list_n - 1][next]->meta.g1.hash)) {
-            list->hash_order_pointers[merged] = sort->u[upper_list_n - 1][next];
-            next++;
-            --sort->un[upper_list_n - 1];
-        } else {
-            list->hash_order_pointers[merged] = sort->l[lower_list_n - 1][prev];
-            prev++;
-            --sort->ln[lower_list_n - 1];
-        }
-        merged++;
-    }
-
-    int i_end = sort->u_end_i - sort->u_start_i;
-    if (sort->u_end_i < ui->imax) {
-        i_end++;
-    }
-    for (int i = 0; i < i_end; i++) {
-        free(sort->u[i]);
-        sort->u[i] = NULL;
-        sort->un[i] = 0;
-    }
-
-    i_end = sort->l_end_i - sort->l_start_i;
-    if (sort->l_end_i < li->imax) {
-        i_end++;
-    }
-    for (int i = 0; i < i_end; i++) {
-        free(sort->l[i]);
-        sort->l[i] = NULL;
-        sort->ln[i] = 0;
-    }
-    //memset(sort, 0, sizeof(struct lksv3_hash_sort_t));
-
-    // Keep u_start_i and u_end_i
-    //sort->u_start_i = sort->u_end_i = ui->i;
-    sort->u_start_i = sort->u_end_i;
-    //sort->u_start_n = ui->n;
-    sort->u_start_n = 0;
-    if (sort->u_start_i < ui->imax)
-        sort->u[sort->u_end_i - sort->u_start_i] = calloc((*ui->l)[sort->u_start_i].n, sizeof(lksv_comp_entry*));
-
-    sort->l_start_i = sort->l_end_i;
-    //sort->l_start_n = li->n;
-    sort->l_start_n = 0;
-    if (sort->l_start_i < li->imax)
-        sort->l[sort->l_end_i - sort->l_start_i] = calloc((*li->l)[sort->l_start_i].n, sizeof(lksv_comp_entry*));
-}
-
-void lksv_open(struct kv_lsm_options *opts);
-
-// version.c
-
-void lksv_lput(lksv_level_list_entry *e);
-lksv_level_list_entry *lksv_lget(uint64_t id);
-lksv_level_list_entry *lksv_lnew(void);
-void lksv_update_compaction_score(void);
+void lksv_bucket_sort(lksv_kv_descriptor **buffer, int n);
 
 #endif
