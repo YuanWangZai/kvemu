@@ -4,11 +4,9 @@
 
 struct lksv3_lsmtree *lksv_lsm;
 
-void lksv3_lsm_create(struct ssd *ssd)
+void lksv3_lsm_create(void)
 {
-    lksv_lsm->ssd = ssd;
-
-    lksv_lsm_setup_params(ssd);
+    lksv_lsm_setup_params();
 
     float m_num = 1;
     uint64_t all_header_num = 0;
@@ -33,7 +31,7 @@ void lksv3_lsm_create(struct ssd *ssd)
     //kv_debug("| entry cache :%luMB(%lu page)%.2f(%%)\n",lsp->cache_memory/M,lsp->cache_memory/PAGESIZE,(float)lsp->cache_memory/lsp->total_memory*100);
     kv_debug("| -------- algorithm_log END\n\n");
 
-    kv_debug("SHOWINGSIZE(GB) :%lu HEADERSEG:%d DATASEG:%d\n", ((unsigned long) ssd->sp.tt_pgs * 9 / 10 * PAGESIZE) / G, ssd->sp.meta_lines, ssd->sp.data_lines);
+    kv_debug("SHOWINGSIZE(GB) :%lu HEADERSEG:%d DATASEG:%d\n", ((unsigned long) lksv_ssd->sp.tt_pgs * 9 / 10 * PAGESIZE) / G, lksv_ssd->sp.meta_lines, lksv_ssd->sp.data_lines);
     kv_debug("LEVELN:%d\n", LSM_LEVELN);
 
     lksv_lsm->lsm_cache = kv_cache_init(lksv_lsm->opts->cache_memory_size, LSM_LEVELN * CACHE_TYPES);
@@ -44,20 +42,20 @@ void lksv3_lsm_create(struct ssd *ssd)
     lksv_lsm->samples_count = 0;
 }
 
-uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req) {
+uint8_t lksv3_lsm_find_run(kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req) {
     lksv_level_list_entry *entries=NULL;
 
     uint32_t hash;
     hash = XXH32(key.key, key.len, 0);
 
     for(int i = *level; i < LSM_LEVELN; i++){
-        entries = lksv3_find_run(lksv_lsm->disk[i], key, ssd, req);
+        entries = lksv3_find_run(lksv_lsm->disk[i], key, req);
         if(!entries) {
             continue;
         }
 
         if (entries->ppa.ppa == UNMAPPED_PPA) {
-            entries = lksv3_find_run(lksv_lsm->c_level, key, ssd, req);
+            entries = lksv3_find_run(lksv_lsm->c_level, key, req);
             if (level) {
                 *level = i = lksv_lsm->c_level->idx;
             }
@@ -65,7 +63,7 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
                 continue;
             }
 
-            keyset *find = lksv3_find_keyset(ssd, req, entries, key, hash, i);
+            keyset *find = lksv3_find_keyset(req, entries, key, hash, i);
             if (find) {
                 *found = find;
                 if (level) *level = i;
@@ -77,10 +75,10 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
                     srd.cmd = NAND_READ;
                     srd.stime = req->etime;
                     req->flash_access_count++;
-                    uint64_t sublat = lksv3_ssd_advance_status(ssd, &find->ppa, &srd); 
+                    uint64_t sublat = lksv3_ssd_advance_status(&find->ppa, &srd); 
                     req->etime += sublat;
 
-                    kv_assert(check_voffset(ssd, &find->ppa, find->voff, find->hash));
+                    kv_assert(check_voffset(&find->ppa, find->voff, find->hash));
                 }
                 return COMP_FOUND;
             } else {
@@ -88,7 +86,7 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
             }
         }
 
-        keyset *find = lksv3_find_keyset(ssd, req, entries, key, hash, i);
+        keyset *find = lksv3_find_keyset(req, entries, key, hash, i);
         bool flash_access_for_caching = false;
         // We don't need to query membership to the last level's entry.
         if (i < lksv_lsm->bottom_level) {
@@ -116,12 +114,12 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
         }
         if (flash_access_for_caching) {
             for (int k = 0; k < entries->hash_list_n; k++) {
-                struct femu_ppa cppa = get_next_write_ppa(ssd, entries->ppa, k);
+                struct femu_ppa cppa = get_next_write_ppa(entries->ppa, k);
                 struct nand_cmd srd;
                 srd.type = USER_IO;
                 srd.cmd = NAND_READ;
                 srd.stime = 0;
-                lksv3_ssd_advance_status(ssd, &cppa, &srd);
+                lksv3_ssd_advance_status(&cppa, &srd);
             }
         }
 
@@ -137,10 +135,10 @@ uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **
                 srd.cmd = NAND_READ;
                 srd.stime = req->etime;
                 req->flash_access_count++;
-                uint64_t sublat = lksv3_ssd_advance_status(ssd, &find->ppa, &srd); 
+                uint64_t sublat = lksv3_ssd_advance_status(&find->ppa, &srd); 
                 req->etime += sublat;
 
-                kv_assert(check_voffset(ssd, &find->ppa, find->voff, find->hash));
+                kv_assert(check_voffset(&find->ppa, find->voff, find->hash));
             }
             return FOUND;
         }

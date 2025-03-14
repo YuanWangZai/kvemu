@@ -1,39 +1,39 @@
 #include "hw/femu/kvssd/pink/pink_ftl.h"
 
-static void gc_read_delay(struct ssd *ssd, struct femu_ppa *ppa)
+static void gc_read_delay(struct femu_ppa *ppa)
 {
-    if (ssd->sp.enable_gc_delay) {
+    if (pink_ssd->sp.enable_gc_delay) {
         struct nand_cmd gcr;
         gcr.type = GC_IO;
         gcr.cmd = NAND_READ;
         gcr.stime = 0;
-        pink_ssd_advance_status(ssd, ppa, &gcr);
+        pink_ssd_advance_status(ppa, &gcr);
     }
 }
 
-static void gc_write_delay(struct ssd *ssd, struct femu_ppa *ppa)
+static void gc_write_delay(struct femu_ppa *ppa)
 {
-    if (ssd->sp.enable_gc_delay) {
+    if (pink_ssd->sp.enable_gc_delay) {
         struct nand_cmd gcw;
         gcw.type = GC_IO;
         gcw.cmd = NAND_WRITE;
         gcw.stime = 0;
-        pink_ssd_advance_status(ssd, ppa, &gcw);
+        pink_ssd_advance_status(ppa, &gcw);
     }
 }
 
-static void gc_erase_delay(struct ssd *ssd, struct femu_ppa *ppa)
+static void gc_erase_delay(struct femu_ppa *ppa)
 {
-    if (ssd->sp.enable_gc_delay) {
+    if (pink_ssd->sp.enable_gc_delay) {
         struct nand_cmd gce;
         gce.type = GC_IO;
         gce.cmd = NAND_ERASE;
         gce.stime = 0;
-        pink_ssd_advance_status(ssd, ppa, &gce);
+        pink_ssd_advance_status(ppa, &gce);
     }
 }
 
-static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int idx) {
+static bool is_data_valid(kv_key key, struct femu_ppa ppa, int idx) {
     // pink_lsm->mu protects below memtable lookups.
     kv_snode *target_node = kv_skiplist_find(pink_lsm->mem, key);
     if (target_node) {
@@ -57,13 +57,13 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
 
     pink_level_list_entry *entries = NULL;
     for (int i = 0; i < LSM_LEVELN; i++) {
-        entries = find_run(pink_lsm->disk[i], key, ssd, NULL);
+        entries = find_run(pink_lsm->disk[i], key, NULL);
         if (entries == NULL) {
             continue;
         }
 
         if (entries->buffer == NULL && entries->ppa.ppa == UNMAPPED_PPA) {
-            entries = find_run2(pink_lsm->c_level, key, ssd, NULL);
+            entries = find_run2(pink_lsm->c_level, key, NULL);
             i = pink_lsm->c_level->idx;
             if (!entries) {
                 continue;
@@ -84,9 +84,9 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
         }
 
         struct nand_page *pg;
-        pg = get_pg(ssd, &entries->ppa);
+        pg = get_pg(&entries->ppa);
         if (!kv_is_cached(pink_lsm->lsm_cache, entries->cache[META_SEGMENT])) {
-            gc_read_delay(ssd, &entries->ppa);
+            gc_read_delay(&entries->ppa);
             pink_lsm->cache_miss++;
         } else {
 #ifdef CACHE_UPDATE
@@ -116,15 +116,15 @@ static bool is_data_valid(struct ssd *ssd, kv_key key, struct femu_ppa ppa, int 
 int gc_erased;
 int gc_moved;
 
-static void gc_data_one_block(struct ssd *ssd, struct femu_ppa ppa)
+static void gc_data_one_block(struct femu_ppa ppa)
 {
-    struct ssdparams *spp = &ssd->sp;
+    struct ssdparams *spp = &pink_ssd->sp;
 
     struct nand_page *pg;
     for (int pg_n = 0; pg_n < spp->pgs_per_blk; pg_n++) {
         ppa.g.pg = pg_n;
-        pg = get_pg(ssd, &ppa);
-        gc_read_delay(ssd, &ppa);
+        pg = get_pg(&ppa);
+        gc_read_delay(&ppa);
         kv_assert(pg->status != PG_FREE);
 
         int nheaders = ((uint16_t *)pg->data)[0];
@@ -133,7 +133,7 @@ static void gc_data_one_block(struct ssd *ssd, struct femu_ppa ppa)
             key.len = ((uint16_t *)pg->data)[(nheaders+2)+i+1];
             key.key = pg->data + ((uint16_t *)pg->data)[i+1];
 
-            bool valid = is_data_valid(ssd, key, ppa, i);
+            bool valid = is_data_valid(key, ppa, i);
             if (valid) {
                 gc_moved++;
 
@@ -160,14 +160,14 @@ static void gc_data_one_block(struct ssd *ssd, struct femu_ppa ppa)
     }
 }
 
-int gc_data_femu(struct ssd *ssd) {
+int gc_data_femu(void) {
     struct line *victim_line = NULL;
-    struct ssdparams *spp = &ssd->sp;
+    struct ssdparams *spp = &pink_ssd->sp;
     struct femu_ppa ppa;
     //int ch, lun, pg_n;
     int ch, lun;
 
-    victim_line = select_victim_data_line(ssd, true);
+    victim_line = select_victim_data_line(true);
     if (victim_line == NULL) {
         return -1;
     }
@@ -189,14 +189,14 @@ int gc_data_femu(struct ssd *ssd) {
             ppa.g.sec = 0;
             ppa.g.rsv = 0;
 
-            gc_data_one_block(ssd, ppa);
-            gc_erase_delay(ssd, &ppa);
-            mark_block_free(ssd, &ppa);
+            gc_data_one_block(ppa);
+            gc_erase_delay(&ppa);
+            mark_block_free(&ppa);
 
             //compaction_check(ssd);
         }
     }
-    mark_line_free(ssd, &ppa);
+    mark_line_free(&ppa);
 
     //wait_delay(ssd, true);
 
@@ -210,17 +210,17 @@ int gc_data_femu(struct ssd *ssd) {
  * no noticeable difference in the experimental results when implemented
  * in a straightforward manner, so we just skipped now.
  */
-int gc_meta_femu(struct ssd *ssd) {
+int gc_meta_femu(void) {
     struct line *victim_line = NULL;
-    struct ssdparams *spp = &ssd->sp;
+    struct ssdparams *spp = &pink_ssd->sp;
     struct femu_ppa ppa;
     int ch, lun, pg_n;
 
-    victim_line = select_victim_meta_line(ssd, true);
+    victim_line = select_victim_meta_line(true);
     if (victim_line == NULL) {
         return -1;
     }
-    kv_log("%d gc_meta! invalid_pgs / pgs_per_line: %d / %d \n", ++pink_lsm->header_gc_cnt, victim_line->ipc, ssd->sp.pgs_per_line);
+    kv_log("%d gc_meta! invalid_pgs / pgs_per_line: %d / %d \n", ++pink_lsm->header_gc_cnt, victim_line->ipc, pink_ssd->sp.pgs_per_line);
 
     ppa.g.blk = victim_line->id;
 
@@ -238,14 +238,14 @@ int gc_meta_femu(struct ssd *ssd) {
 
             for (pg_n = 0; pg_n < spp->pgs_per_blk; pg_n++) {
                 ppa.g.pg = pg_n;
-                pg = get_pg(ssd, &ppa);
+                pg = get_pg(&ppa);
                 kv_assert(pg->status != PG_FREE);
                 if (pg->status == PG_INVALID) {
                     kv_assert(pg->data == NULL);
                     pg->status = PG_FREE;
                     continue;
                 }
-                gc_read_delay(ssd, &ppa);
+                gc_read_delay(&ppa);
 
                 kv_key first_key_in_meta;
                 uint16_t *bitmap = (uint16_t *) pg->data;
@@ -258,7 +258,7 @@ int gc_meta_femu(struct ssd *ssd) {
                 bool checkdone = false;
                 bool shouldwrite = false;
                 for(int j = 0; j < LSM_LEVELN; j++) {
-                    entries = find_run(pink_lsm->disk[j], first_key_in_meta, ssd, NULL);
+                    entries = find_run(pink_lsm->disk[j], first_key_in_meta, NULL);
                     if (entries == NULL) {
                         continue;
                     }
@@ -273,7 +273,7 @@ int gc_meta_femu(struct ssd *ssd) {
                 }
 
                 if (!checkdone && pink_lsm->c_level) {
-                    entries = find_run(pink_lsm->c_level, first_key_in_meta, ssd, NULL);
+                    entries = find_run(pink_lsm->c_level, first_key_in_meta, NULL);
                     if (entries && entries->ppa.ppa == ppa.ppa) {
                         checkdone = true;
                         shouldwrite = true;
@@ -291,9 +291,9 @@ int gc_meta_femu(struct ssd *ssd) {
                     struct femu_ppa new_ppa;
                     struct nand_page *new_pg;
 
-                    new_ppa = get_new_meta_page(ssd);
-                    new_pg = get_pg(ssd, &new_ppa);
-                    gc_write_delay(ssd, &new_ppa);
+                    new_ppa = get_new_meta_page();
+                    new_pg = get_pg(&new_ppa);
+                    gc_write_delay(&new_ppa);
 
                     new_pg->data = pg->data;
                     pg->data = NULL;
@@ -307,13 +307,13 @@ int gc_meta_femu(struct ssd *ssd) {
                 i++;
             }
 
-            gc_erase_delay(ssd, &ppa);
-            mark_block_free(ssd, &ppa);
+            gc_erase_delay(&ppa);
+            mark_block_free(&ppa);
             // should set gc end time.
         }
     }
 
-    mark_line_free(ssd, &ppa);
+    mark_line_free(&ppa);
 
     return 0;
 }

@@ -15,6 +15,7 @@
 #include "hw/femu/kvssd/lksv/cache.h"
 #include "hw/femu/kvssd/lsm.h"
 
+extern struct lksv_ssd      *lksv_ssd;
 extern struct lksv3_lsmtree *lksv_lsm;
 
 /* DO NOT EDIT */
@@ -29,7 +30,7 @@ extern struct lksv3_lsmtree *lksv_lsm;
  */
 //#define OURS
 
-struct ssd {
+struct lksv_ssd {
     char *ssdname;
     struct ssdparams sp;
     struct ssd_channel *ch;
@@ -61,7 +62,7 @@ typedef struct per_line_data {
 #define per_line_data(line) ((per_line_data *)((line)->private))
 
 /* Functions found in lksv_ftl.c */
-uint64_t lksv3_ssd_advance_status(struct ssd *ssd, struct femu_ppa *ppa, struct nand_cmd *ncmd);
+uint64_t lksv3_ssd_advance_status(struct femu_ppa *ppa, struct nand_cmd *ncmd);
 
 typedef struct {
     uint32_t hash;
@@ -110,8 +111,8 @@ typedef struct lksv_level_list_entry
 #define KEYBITMAP (PAGESIZE / 16)
 #define KEYLEN(a) (a.len)
 
-bool lksv3_should_meta_gc_high(struct ssd *ssd);
-bool lksv3_should_data_gc_high(struct ssd *ssd, int margin);
+bool lksv3_should_meta_gc_high(void);
+bool lksv3_should_data_gc_high(int margin);
 
 // level.h ================================================
 
@@ -250,24 +251,23 @@ void lksv3_array_range_update(lksv3_level *lev, lksv_level_list_entry* r, kv_key
 lksv3_level* lksv3_level_init(int size, int idx);
 void lksv3_free_level(struct lksv3_lsmtree *, lksv3_level *);
 void lksv3_free_run(struct lksv3_lsmtree*, lksv_level_list_entry *);
-lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level_t* des, lksv_level_list_entry *r);
-lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv_level_list_entry* r);
-keyset* lksv3_find_keyset(struct ssd *ssd, NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level);
+lksv_level_list_entry* lksv3_insert_run(lksv3_level_t* des, lksv_level_list_entry *r);
+lksv_level_list_entry* lksv3_insert_run2(lksv3_level *lev, lksv_level_list_entry* r);
+keyset* lksv3_find_keyset(NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level);
 lev_iter* lksv3_get_iter(lksv3_level_t*, kv_key from, kv_key to); //from<= x <to
 lksv_level_list_entry* lksv3_iter_nxt(lev_iter*);
-char *lksv3_mem_cvt2table2(struct ssd *ssd, lksv_comp_list *mem, lksv_level_list_entry *input);
+char *lksv3_mem_cvt2table2(lksv_comp_list *mem, lksv_level_list_entry *input);
 
-uint8_t lksv3_lsm_scan_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
-lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct ssd *ssd);
-lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa, struct ssd *ssd);
-lksv_level_list_entry *lksv3_find_run(lksv3_level_t*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
-void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev);
+lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa);
+lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa);
+lksv_level_list_entry *lksv3_find_run(lksv3_level_t*, kv_key lpa, NvmeRequest *req);
+void lksv3_read_run_delay_comp(lksv3_level *lev);
 void lksv3_print_level_summary(struct lksv3_lsmtree*);
 
 // page.h ====================================================
 
-int lksv3_gc_meta_femu(struct ssd *ssd);
-void lksv3_gc_data_femu3(struct ssd *ssd, int ulevel, int level);
+int lksv3_gc_meta_femu(void);
+void lksv3_gc_data_femu3(int ulevel, int level);
 
 // skiplist.h ================================================
 
@@ -306,11 +306,11 @@ bool lksv3_should_compact(lksv3_level *l);
 
 void lksv_compaction_init(void);
 void lksv_maybe_schedule_compaction(void);
-uint32_t lksv3_level_change(struct ssd *ssd, lksv3_level *from, lksv3_level *to, lksv3_level *target);
-uint32_t lksv3_leveling(struct ssd *ssd, lksv3_level *from, lksv3_level *to, leveling_node *l_node);
+uint32_t lksv3_level_change(lksv3_level *from, lksv3_level *to, lksv3_level *target);
+uint32_t lksv3_leveling(lksv3_level *from, lksv3_level *to, leveling_node *l_node);
 
-struct femu_ppa lksv3_compaction_meta_segment_write_femu(struct ssd *ssd, char *data, int level);
-struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(struct ssd *ssd, lksv3_level *target, lksv_level_list_entry *entry);
+struct femu_ppa lksv3_compaction_meta_segment_write_femu(char *data, int level);
+struct femu_ppa lksv3_compaction_meta_segment_write_insert_femu(lksv3_level *target, lksv_level_list_entry *entry);
 
 // lksv3_table.h =================================================
 
@@ -356,13 +356,13 @@ typedef struct {
 
 lksv3_compaction *new_lksv3_compaction(int max_keys);
 void free_lksv3_compaction(lksv3_compaction *c);
-void do_lksv3_compaction2(struct ssd *ssd, int high_lev, int low_lev, leveling_node *l_node, lksv3_level *target_level);
+void do_lksv3_compaction2(int high_lev, int low_lev, leveling_node *l_node, lksv3_level *target_level);
 
 int lksv3_sst_encode2(lksv3_sst_t *sst, lksv3_kv_pair_t *kv, uint32_t hash, int *wp, bool sharded);
 void lksv3_sst_encode_str_idx(lksv3_sst_t *sst, lksv3_sst_str_idx_t *block, int n);
 int lksv3_sst_decode(lksv3_sst_t *sst, void *raw);
-struct femu_ppa lksv3_sst_write(struct ssd *ssd, struct femu_ppa ppa, lksv3_sst_t *sst);
-void lksv3_sst_read(struct ssd *ssd, struct femu_ppa ppa, lksv3_sst_t *sst);
+struct femu_ppa lksv3_sst_write(struct femu_ppa ppa, lksv3_sst_t *sst);
+void lksv3_sst_read(struct femu_ppa ppa, lksv3_sst_t *sst);
 
 // array.h ==================================================
 
@@ -382,7 +382,6 @@ enum READTYPE{
 typedef struct lksv3_lsmtree {
     struct kv_lsm_options *opts;
 
-    struct ssd *ssd;
     uint8_t bottom_level; // Indicates the current bottom level index.
     uint8_t LEVELCACHING;
 
@@ -434,36 +433,36 @@ typedef struct lksv3_lsmtree {
     uint64_t next_level_list_entry_id;
 } lksv3_lsmtree;
 
-void lksv3_lsm_create(struct ssd *ssd);
-void lksv_lsm_setup_params(struct ssd *ssd);
-uint8_t lksv3_lsm_find_run(struct ssd *ssd, kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
+void lksv3_lsm_create(void);
+void lksv_lsm_setup_params(void);
+uint8_t lksv3_lsm_find_run(kv_key key, lksv_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
 
 void lksv3ssd_init(FemuCtrl *n);
 
-struct femu_ppa lksv3_get_new_meta_page(struct ssd *ssd);
-struct femu_ppa lksv3_get_new_data_page(struct ssd *ssd);
-struct nand_page *lksv3_get_pg(struct ssd *ssd, struct femu_ppa *ppa);
-struct line *lksv3_get_line(struct ssd *ssd, struct femu_ppa *ppa);
+struct femu_ppa lksv3_get_new_meta_page(void);
+struct femu_ppa lksv3_get_new_data_page(void);
+struct nand_page *lksv3_get_pg(struct femu_ppa *ppa);
+struct line *lksv3_get_line(struct femu_ppa *ppa);
 struct line *lksv3_get_next_free_line(struct line_partition *lm);
-void lksv3_ssd_advance_write_pointer(struct ssd *ssd, struct line_partition *lm);
-void lksv3_mark_page_invalid(struct ssd *ssd, struct femu_ppa *ppa);
-void lksv3_mark_page_valid(struct ssd *ssd, struct femu_ppa *ppa);
-void lksv3_mark_page_valid2(struct ssd *ssd, struct femu_ppa *ppa);
-void lksv3_mark_block_free(struct ssd *ssd, struct femu_ppa *ppa);
-struct line *lksv3_select_victim_meta_line(struct ssd *ssd, bool force);
-struct line *lksv3_select_victim_data_line(struct ssd *ssd, bool force);
-void lksv3_mark_line_free(struct ssd *ssd, struct femu_ppa *ppa);
+void lksv3_ssd_advance_write_pointer(struct line_partition *lm);
+void lksv3_mark_page_invalid(struct femu_ppa *ppa);
+void lksv3_mark_page_valid(struct femu_ppa *ppa);
+void lksv3_mark_page_valid2(struct femu_ppa *ppa);
+void lksv3_mark_block_free(struct femu_ppa *ppa);
+struct line *lksv3_select_victim_meta_line(bool force);
+struct line *lksv3_select_victim_data_line(bool force);
+void lksv3_mark_line_free(struct femu_ppa *ppa);
 
-struct nand_lun *lksv3_get_lun(struct ssd *ssd, struct femu_ppa *ppa);
+struct nand_lun *lksv3_get_lun(struct femu_ppa *ppa);
 
-static inline struct femu_ppa get_next_write_ppa(struct ssd *ssd, struct femu_ppa pivot, int offset) {
+static inline struct femu_ppa get_next_write_ppa(struct femu_ppa pivot, int offset) {
     kv_assert(pivot.g.ch == 0);
     kv_assert(offset < 64);
 
-    int ch_offset = offset % ssd->sp.nchs;
-    int lun_offset = (offset / ssd->sp.nchs) % ssd->sp.luns_per_ch;
+    int ch_offset = offset % lksv_ssd->sp.nchs;
+    int lun_offset = (offset / lksv_ssd->sp.nchs) % lksv_ssd->sp.luns_per_ch;
 
     pivot.g.ch += ch_offset;
     pivot.g.lun += lun_offset;
@@ -471,8 +470,8 @@ static inline struct femu_ppa get_next_write_ppa(struct ssd *ssd, struct femu_pp
     return pivot;
 }
 
-static inline bool is_pivot_ppa(struct ssd *ssd, struct femu_ppa ppa) {
-    int pg_n = ppa.g.lun * ssd->sp.nchs;
+static inline bool is_pivot_ppa(struct femu_ppa ppa) {
+    int pg_n = ppa.g.lun * lksv_ssd->sp.nchs;
     if (ppa.g.ch == 0
         && pg_n % PG_N == 0) {
         return true;
@@ -490,14 +489,14 @@ struct lksv3_comp_entry {
     uint32_t hash;
 };
 
-static inline bool should_unify(struct ssd *ssd, struct femu_ppa *log_ppa, int level, int to_level) {
+static inline bool should_unify(struct femu_ppa *log_ppa, int level, int to_level) {
     if (lksv_lsm->gc_plan[level][log_ppa->g.blk]) {
         return true;
     }
     if (to_level >= (LSM_LEVELN - 1)) {
         bool other_ref = false;
 
-        if (!lksv_lsm->flush_buffer_reference_lines[log_ppa->g.blk] && !lksv_lsm->flush_reference_lines[log_ppa->g.blk] && ssd->lm.data.wp.blk != log_ppa->g.blk) {
+        if (!lksv_lsm->flush_buffer_reference_lines[log_ppa->g.blk] && !lksv_lsm->flush_reference_lines[log_ppa->g.blk] && lksv_ssd->lm.data.wp.blk != log_ppa->g.blk) {
             for (int i = 0; i < LSM_LEVELN; i++) {
                 if (i == to_level || i == level) {
                     continue;
@@ -517,20 +516,20 @@ static inline bool should_unify(struct ssd *ssd, struct femu_ppa *log_ppa, int l
     return false;
 }
 
-static inline bool is_meta_line(struct ssd *ssd, int lineid)
+static inline bool is_meta_line(int lineid)
 {
-    return ssd->lm.lines[lineid].meta;
+    return lksv_ssd->lm.lines[lineid].meta;
 }
 
-static inline void check_473(struct ssd *ssd)
+static inline void check_473(void)
 {
 #ifdef HPCA_DEBUG
     for (int i = 0; i < 4; i++) {
         for (int l = 0; l < 512; l++) {
-            if (is_meta_line(ssd, l)) {
+            if (is_meta_line(l)) {
                 continue;
             }
-            if (per_line_data(&ssd->lm.lines[l])->referenced_levels[i]) {
+            if (per_line_data(&lksv_ssd->lm.lines[l])->referenced_levels[i]) {
                 kv_assert(lksv_lsm->disk[i]->reference_lines[l]);
             } else {
                 kv_assert(!lksv_lsm->disk[i]->reference_lines[l]);
@@ -538,13 +537,13 @@ static inline void check_473(struct ssd *ssd)
         }
     }
     for (int l = 0; l < 512; l++) {
-        if (is_meta_line(ssd, l)) {
+        if (is_meta_line(l)) {
             continue;
         }
         if (lksv_lsm->flush_reference_lines[l]) {
-            kv_assert(per_line_data(&ssd->lm.lines[l])->referenced_flush);
+            kv_assert(per_line_data(&lksv_ssd->lm.lines[l])->referenced_flush);
         } else {
-            kv_assert(!per_line_data(&ssd->lm.lines[l])->referenced_flush);
+            kv_assert(!per_line_data(&lksv_ssd->lm.lines[l])->referenced_flush);
         }
     }
 #endif
@@ -555,24 +554,24 @@ struct lksv3_gc {
     int inv_ratio;
 };
 
-void check_kv_pair_count(struct ssd *ssd, struct line *line);
+void check_kv_pair_count(struct line *line);
 
-static inline void check_linecnt(struct ssd *ssd)
+static inline void check_linecnt(void)
 {
     int cnt = 0;
-    if (ssd->lm.meta.wp.curline) {
+    if (lksv_ssd->lm.meta.wp.curline) {
         cnt++;
     }
-    cnt += ssd->lm.meta.free_line_cnt;
-    cnt += ssd->lm.meta.full_line_cnt;
-    cnt += ssd->lm.meta.victim_line_cnt;
-    // ssd->lm.meta.lines - 1: gc flying
-    kv_assert(cnt == ssd->lm.meta.lines || cnt == ssd->lm.meta.lines - 1);
+    cnt += lksv_ssd->lm.meta.free_line_cnt;
+    cnt += lksv_ssd->lm.meta.full_line_cnt;
+    cnt += lksv_ssd->lm.meta.victim_line_cnt;
+    // lksv_ssd->lm.meta.lines - 1: gc flying
+    kv_assert(cnt == lksv_ssd->lm.meta.lines || cnt == lksv_ssd->lm.meta.lines - 1);
 }
 
-void gc_erase_delay(struct ssd *ssd, struct femu_ppa *ppa);
+void gc_erase_delay(struct femu_ppa *ppa);
 
-static inline void update_lines(struct ssd *ssd)
+static inline void update_lines(void)
 {
     int pgs = 0;
 
@@ -580,28 +579,28 @@ static inline void update_lines(struct ssd *ssd)
         pgs += lksv_lsm->disk[i]->m_num * 32;
     pgs += lksv_lsm->disk[lksv_lsm->bottom_level]->n_num * 32;
 
-    lksv_lsm->t_meta = (pgs / ssd->sp.pgs_per_line);
-    lksv_lsm->t_data = ssd->sp.tt_lines - lksv_lsm->t_meta;
+    lksv_lsm->t_meta = (pgs / lksv_ssd->sp.pgs_per_line);
+    lksv_lsm->t_data = lksv_ssd->sp.tt_lines - lksv_lsm->t_meta;
     lksv_lsm->t_data /= 2;
     lksv_lsm->t_data += ((double) lksv_lsm->inv / (double) (lksv_lsm->inv + lksv_lsm->val + 1)) * lksv_lsm->t_data;
 
-    if (lksv_lsm->t_data < ssd->sp.tt_lines * 0.05)
-        lksv_lsm->t_data = ssd->sp.tt_lines * 0.05;
-    if (lksv_lsm->t_data > ssd->sp.tt_lines * 0.98)
-        lksv_lsm->t_data = ssd->sp.tt_lines * 0.98;
-    lksv_lsm->t_meta = ssd->sp.tt_lines - lksv_lsm->t_data;
+    if (lksv_lsm->t_data < lksv_ssd->sp.tt_lines * 0.05)
+        lksv_lsm->t_data = lksv_ssd->sp.tt_lines * 0.05;
+    if (lksv_lsm->t_data > lksv_ssd->sp.tt_lines * 0.98)
+        lksv_lsm->t_data = lksv_ssd->sp.tt_lines * 0.98;
+    lksv_lsm->t_meta = lksv_ssd->sp.tt_lines - lksv_lsm->t_data;
 
     static uint64_t cnt = 0;
     if (cnt++ % 100 == 0)
         printf("[Update target] meta: %d, data: %d\n", lksv_lsm->t_meta, lksv_lsm->t_data);
 }
 
-bool move_line_m2d(struct ssd *ssd, bool force);
-bool move_line_d2m(struct ssd *ssd, bool force);
+bool move_line_m2d(bool force);
+bool move_line_d2m(bool force);
 
-static inline bool check_voffset(struct ssd *ssd, struct femu_ppa *ppa, int voff, uint32_t hash)
+static inline bool check_voffset(struct femu_ppa *ppa, int voff, uint32_t hash)
 {
-    struct nand_page *pg = lksv3_get_pg(ssd, ppa);
+    struct nand_page *pg = lksv3_get_pg(ppa);
     int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (voff + 1));
     lksv_block_meta meta = *(lksv_block_meta *) (pg->data + offset);
 

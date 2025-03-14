@@ -16,6 +16,6 @@ typedef struct lksv_per_snode_data {
     int             off;
 } lksv_per_snode_data;
 
-kv_snode *lksv3_skiplist_insert(kv_skiplist *list, kv_key key, kv_value* value, bool deletef, struct ssd *ssd);
+kv_snode *lksv3_skiplist_insert(kv_skiplist *list, kv_key key, kv_value* value, bool deletef);
 
 #endif

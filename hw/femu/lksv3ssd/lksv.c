@@ -1,6 +1,8 @@
 #include "hw/femu/nvme.h"
 #include "hw/femu/kvssd/lksv/lksv3_ftl.h"
 
+struct lksv_ssd *lksv_ssd;
+
 static void lksv3_init_ctrl_str(FemuCtrl *n)
 {
     static int fsid_vlksv3 = 0;
@@ -13,23 +15,23 @@ static void lksv3_init_ctrl_str(FemuCtrl *n)
 /* kv <=> key-value */
 static void lksv3_init(FemuCtrl *n, Error **errp)
 {
-    struct ssd *ssd = n->ssd = g_malloc0(sizeof(struct ssd));
-    kvssd_init_latency(&ssd->lat, TLC);
+    lksv_ssd = n->ssd = g_malloc0(sizeof(struct lksv_ssd));
+    kvssd_init_latency(&lksv_ssd->lat, TLC);
 
     lksv3_init_ctrl_str(n);
 
-    ssd->dataplane_started_ptr = &n->dataplane_started;
-    ssd->ssdname = (char *)n->devname;
+    lksv_ssd->dataplane_started_ptr = &n->dataplane_started;
+    lksv_ssd->ssdname = (char *)n->devname;
     kv_debug("Starting FEMU in LKSV3-SSD mode ...\n");
     lksv3ssd_init(n);
     n->current_handle = 0;
     n->iterate_idx = 0;
-    ssd->n = n;
+    lksv_ssd->n = n;
 }
 
 static void lksv3_flip(FemuCtrl *n, NvmeCmd *cmd)
 {
-    struct ssd *ssd = n->ssd;
+    struct lksv_ssd *ssd = n->ssd;
     int64_t cdw10 = le64_to_cpu(cmd->cdw10);
 
     switch (cdw10) {

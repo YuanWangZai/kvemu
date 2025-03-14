@@ -1,25 +1,25 @@
 #include "hw/femu/kvssd/pink/pink_ftl.h"
 #include "hw/femu/kvssd/pink/skiplist.h"
 
-static void comp_read_delay(struct ssd *ssd, struct femu_ppa *ppa)
+static void comp_read_delay(struct femu_ppa *ppa)
 {
-    if (ssd->sp.enable_comp_delay) {
+    if (pink_ssd->sp.enable_comp_delay) {
         struct nand_cmd cpr;
         cpr.type = COMP_IO;
         cpr.cmd = NAND_READ;
         cpr.stime = 0;
-        pink_ssd_advance_status(ssd, ppa, &cpr);
+        pink_ssd_advance_status(ppa, &cpr);
     }
 }
 
-static void comp_write_delay(struct ssd *ssd, struct femu_ppa *ppa)
+static void comp_write_delay(struct femu_ppa *ppa)
 {
-    if (ssd->sp.enable_comp_delay) {
+    if (pink_ssd->sp.enable_comp_delay) {
         struct nand_cmd cpw;
         cpw.type = COMP_IO;
         cpw.cmd = NAND_WRITE;
         cpw.stime = 0;
-        pink_ssd_advance_status(ssd, ppa, &cpw);
+        pink_ssd_advance_status(ppa, &cpw);
     }
 }
 
@@ -54,7 +54,7 @@ static void log_cvt2table(void **data, kv_snode **targets, int n)
  * Write data segments to the data partition.
  * This is only called when the skiplist is flushed from L0 to L1.
  */
-void compaction_data_write(struct ssd *ssd, kv_skiplist *skl) {
+void compaction_data_write(kv_skiplist *skl) {
     pink_l_bucket *lb = pink_skiplist_make_length_bucket(skl);
     int max_vsize = MAXVALUESIZE;
     int min_vsize = 0;
@@ -81,9 +81,9 @@ void compaction_data_write(struct ssd *ssd, kv_skiplist *skl) {
     kv_snode *targets[256];
     while (n_vals > 0) {
         /* Get the new page from the write pointer of data segment partition manager */
-        ppa = get_new_data_page(ssd);
-        pg = get_pg(ssd, &ppa);
-        comp_write_delay(ssd, &ppa);
+        ppa = get_new_data_page();
+        pg = get_pg(&ppa);
+        comp_write_delay(&ppa);
         in_page_idx = 0;
         written_data = 0;
 
@@ -132,13 +132,13 @@ void compaction_data_write(struct ssd *ssd, kv_skiplist *skl) {
     FREE(lb);
 }
 
-struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data) {
+struct femu_ppa compaction_meta_segment_write_femu(char *data) {
     struct femu_ppa fppa;
     struct nand_page *pg;
 
-    fppa = get_new_meta_page(ssd);
-    pg = get_pg(ssd, &fppa);
-    comp_write_delay(ssd, &fppa);
+    fppa = get_new_meta_page();
+    pg = get_pg(&fppa);
+    comp_write_delay(&fppa);
 
     kv_assert(pg->data == NULL);
     kv_assert(data != NULL);
@@ -148,7 +148,7 @@ struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data) 
 }
 
 // Return true if read from flash.
-bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *ent) {
+bool compaction_meta_segment_read_femu(pink_level_list_entry *ent) {
     struct nand_page *pg;
     bool cached = kv_is_cached(pink_lsm->lsm_cache, ent->cache[META_SEGMENT]);
 
@@ -159,12 +159,12 @@ bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *e
             goto entry_was_cached;
         }
     } else {
-        comp_read_delay(ssd, &ent->ppa);
+        comp_read_delay(&ent->ppa);
     }
 
     // Not cached or cached but backed by flash.
     kv_assert(ent->ppa.ppa != UNMAPPED_PPA);
-    pg = get_pg(ssd, &ent->ppa);
+    pg = get_pg(&ent->ppa);
     kv_assert(pg->data != NULL);
     ent->buffer = pg->data;
 
@@ -181,6 +181,6 @@ void pink_flush_cache_when_evicted(kv_cache_entry *ent)
         return;
     }
 
-    r->ppa = compaction_meta_segment_write_femu(pink_lsm->ssd, (char *) r->buffer);
+    r->ppa = compaction_meta_segment_write_femu((char *) r->buffer);
     r->buffer = NULL;
 }

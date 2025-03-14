@@ -59,7 +59,7 @@ void lksv3_free_level(struct lksv3_lsmtree *LSM, lksv3_level* lev) {
     FREE(lev);
 }
 
-static void array_run_cpy_to(struct ssd *ssd, lksv_level_list_entry *input, lksv_level_list_entry *res, int idx){
+static void array_run_cpy_to(lksv_level_list_entry *input, lksv_level_list_entry *res, int idx){
     kv_copy_key(&res->smallest,&input->smallest);
     kv_copy_key(&res->largest,&input->largest);
 
@@ -99,7 +99,7 @@ static void array_run_cpy_to(struct ssd *ssd, lksv_level_list_entry *input, lksv
     res->hash_list_n = input->hash_list_n;
 }
 
-void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev) {
+void lksv3_read_run_delay_comp(lksv3_level *lev) {
     int p = 0;
     int end = lev->n_num / RUNINPAGE + (lev->n_num % RUNINPAGE != 0 ? 1 : 0);
     int last_read_run_idx = INT32_MAX;
@@ -117,15 +117,15 @@ void lksv3_read_run_delay_comp(struct ssd *ssd, lksv3_level *lev) {
 
             struct femu_ppa fake_ppa;
             fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
+            fake_ppa.g.blk = last_read_run_idx % lksv_ssd->sp.blks_per_pl;
 
-            lksv3_ssd_advance_status(ssd, &fake_ppa, &srd); 
+            lksv3_ssd_advance_status(&fake_ppa, &srd); 
         }
         p++;
     }
 }
 
-lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv_level_list_entry* r) {
+lksv_level_list_entry* lksv3_insert_run2(lksv3_level *lev, lksv_level_list_entry* r) {
     if(lev->m_num <= lev->n_num) {
         kv_assert(lev->x_num >= lev->n_num);
         kv_debug("WARNING: n_num(%d) exceeds m_num(%d) at level %d\n", lev->n_num, lev->m_num, lev->idx);
@@ -139,7 +139,7 @@ lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv
     lksv_level_list_entry **arrs = lev->level_data;
     arrs[lev->n_num] = lksv_lnew();
     lksv_level_list_entry *target = arrs[lev->n_num];
-    array_run_cpy_to(ssd, r, target, lev->idx);
+    array_run_cpy_to(r, target, lev->idx);
     for (int i = 0; i < PG_N; i++) {
         target->buffer[i] = r->buffer[i];
         r->buffer[i] = NULL;
@@ -152,7 +152,7 @@ lksv_level_list_entry* lksv3_insert_run2(struct ssd *ssd, lksv3_level *lev, lksv
     return target;
 }
 
-lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level *lev, lksv_level_list_entry* r) {
+lksv_level_list_entry* lksv3_insert_run(lksv3_level *lev, lksv_level_list_entry* r) {
     if(lev->m_num <= lev->n_num) {
         kv_assert(lev->x_num >= lev->n_num);
         kv_debug("WARNING: n_num(%d) exceeds m_num(%d) at level %d\n", lev->n_num, lev->m_num, lev->idx);
@@ -166,7 +166,7 @@ lksv_level_list_entry* lksv3_insert_run(struct ssd *ssd, lksv3_level *lev, lksv_
     lksv_level_list_entry **arrs = lev->level_data;
     arrs[lev->n_num] = lksv_lnew();
     lksv_level_list_entry *target = arrs[lev->n_num];
-    array_run_cpy_to(ssd, r, target, lev->idx);
+    array_run_cpy_to(r, target, lev->idx);
 
     lksv3_array_range_update(lev, NULL, target->smallest);
     lksv3_array_range_update(lev, NULL, target->largest);
@@ -219,7 +219,7 @@ find_same_hash:
     return mid;
 }
 
-keyset* lksv3_find_keyset(struct ssd *ssd, NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level) {
+keyset* lksv3_find_keyset(NvmeRequest *req, lksv_level_list_entry *run, kv_key lpa, uint32_t hash, int level) {
     bool hash_list_cached = kv_is_cached(lksv_lsm->lsm_cache, run->cache[HASH_LIST]);
     int page_idx = lksv3_find_sht_idx(run, hash >> LEVELLIST_HASH_SHIFTS);
     int in_page_idx;
@@ -229,7 +229,7 @@ find_keyset:
     if (hash_list_cached) {
         if (in_page_idx == -1) {
             if (page_idx > 0 && run->collision_bits[page_idx] && (run->hash_lists[page_idx].hashes[0].hash > hash)) {
-                qatomic_inc(&ssd->n->hash_collision_cnt);
+                qatomic_inc(&lksv_ssd->n->hash_collision_cnt);
                 page_idx--;
                 goto find_keyset;
             }
@@ -242,7 +242,7 @@ find_keyset:
     // Read a data segement.
     char *buffer;
     if (run->ppa.ppa != UNMAPPED_PPA) {
-        struct femu_ppa ppa = get_next_write_ppa(ssd, run->ppa, page_idx);
+        struct femu_ppa ppa = get_next_write_ppa(run->ppa, page_idx);
         if (!kv_is_cached(lksv_lsm->lsm_cache, run->cache[DATA_SEGMENT_GROUP])) {
             struct nand_cmd srd;
             srd.type = USER_IO;
@@ -253,12 +253,12 @@ find_keyset:
             } else {
                 srd.stime = 0;
             }
-            uint64_t sublat = lksv3_ssd_advance_status(ssd, &ppa, &srd);
+            uint64_t sublat = lksv3_ssd_advance_status(&ppa, &srd);
             if (req) {
                 req->etime += sublat;
             }
         }
-        struct nand_page *pg = lksv3_get_pg(ssd, &ppa);
+        struct nand_page *pg = lksv3_get_pg(&ppa);
         kv_assert(pg->data);
         buffer = pg->data;
     } else if (run->buffer[page_idx]) {
@@ -297,7 +297,7 @@ find_keyset:
             }
             // Handling shards.
             if (meta->g2.snum > 1 && run->ppa.ppa != UNMAPPED_PPA) {
-                struct femu_ppa ppa = get_next_write_ppa(ssd, run->ppa, page_idx+1);
+                struct femu_ppa ppa = get_next_write_ppa(run->ppa, page_idx+1);
                 if (!kv_is_cached(lksv_lsm->lsm_cache, run->cache[DATA_SEGMENT_GROUP])) {
                     struct nand_cmd srd;
                     srd.type = USER_IO;
@@ -308,7 +308,7 @@ find_keyset:
                     } else {
                         srd.stime = 0;
                     }
-                    uint64_t sublat = lksv3_ssd_advance_status(ssd, &ppa, &srd);
+                    uint64_t sublat = lksv3_ssd_advance_status(&ppa, &srd);
                     if (req) {
                         req->etime += sublat;
                     }
@@ -320,8 +320,8 @@ find_keyset:
                     ks->value = g_malloc0(ks->value_len);
                     memcpy(ks->value, buffer + meta->g1.off + meta->g1.klen, ks->value_len);
                 } else {
-                    struct femu_ppa ppa = get_next_write_ppa(ssd, run->ppa, page_idx+1);
-                    struct nand_page *pg2 = lksv3_get_pg(ssd, &ppa);
+                    struct femu_ppa ppa = get_next_write_ppa(run->ppa, page_idx+1);
+                    struct nand_page *pg2 = lksv3_get_pg(&ppa);
                     lksv_block_meta meta2 = *(lksv_block_meta *) (pg2->data);
                     ks->value_len += meta2.g2.slen;
                     ks->value = g_malloc0(ks->value_len);
@@ -329,7 +329,7 @@ find_keyset:
                     memcpy(ks->value + meta->g2.slen, pg2->data + LKSV3_SSTABLE_META_BLK_SIZE, meta2.g2.slen);
                 }
             } else {
-                struct nand_page *pg2 = lksv3_get_pg(ssd, &ks->ppa);
+                struct nand_page *pg2 = lksv3_get_pg(&ks->ppa);
                 int offset = PAGESIZE - LKSV3_SSTABLE_FOOTER_BLK_SIZE - (LKSV3_SSTABLE_META_BLK_SIZE * (ks->voff + 1));
                 lksv_block_meta meta2 = *(lksv_block_meta *) (pg2->data + offset);
                 kv_assert(meta2.g1.hash == ks->hash);
@@ -353,7 +353,7 @@ find_keyset:
         }
         */
         if (page_idx > 0 && run->collision_bits[page_idx] && in_page_idx == 0) {
-            qatomic_inc(&ssd->n->hash_collision_cnt);
+            qatomic_inc(&lksv_ssd->n->hash_collision_cnt);
             page_idx--;
             goto find_keyset;
         }
@@ -425,7 +425,7 @@ lksv_level_list_entry *lksv3_iter_nxt(lev_iter* in){
     return NULL;
 }
 
-lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
+lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, NvmeRequest *req){
     lksv_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
@@ -452,8 +452,8 @@ lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *
             }
             struct femu_ppa fake_ppa;
             fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
-            uint64_t sublat = lksv3_ssd_advance_status(ssd, &fake_ppa, &srd); 
+            fake_ppa.g.blk = last_read_run_idx % lksv_ssd->sp.blks_per_pl;
+            uint64_t sublat = lksv3_ssd_advance_status(&fake_ppa, &srd); 
             if (req) {
                 req->etime += sublat;
                 req->flash_access_count++;
@@ -474,7 +474,7 @@ lksv_level_list_entry *lksv3_find_run(lksv3_level* lev, kv_key lpa, struct ssd *
     return NULL;
 }
 
-lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct ssd *ssd){
+lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa){
     lksv_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int res1; //1:compare with start, 2:compare with end
@@ -487,7 +487,7 @@ lksv_level_list_entry *lksv3_find_run_slow(lksv3_level* lev, kv_key lpa, struct 
     return NULL;
 }
 
-lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa, struct ssd *ssd){
+lksv_level_list_entry *lksv3_find_run_slow_by_ppa(lksv3_level* lev, struct femu_ppa *ppa){
     lksv_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     for (int i = 0; i < lev->n_num; i++) {
@@ -509,7 +509,7 @@ void lksv3_print_level_summary(struct lksv3_lsmtree *LSM) {
     }
 }
 
-static void _lksv3_mem_cvt2table(struct ssd *ssd, lksv_comp_entry **mem, int n, lksv3_sst_t *sst, bool sharded, lksv_shard *shard)
+static void _lksv3_mem_cvt2table(lksv_comp_entry **mem, int n, lksv3_sst_t *sst, bool sharded, lksv_shard *shard)
 {
     int wp = 0;
 
@@ -561,7 +561,7 @@ static void _lksv3_mem_cvt2table(struct ssd *ssd, lksv_comp_entry **mem, int n, 
     }
 }
 
-char *lksv3_mem_cvt2table2(struct ssd *ssd, struct lksv_comp_list *list, lksv_level_list_entry *input)
+char *lksv3_mem_cvt2table2(struct lksv_comp_list *list, lksv_level_list_entry *input)
 {
     kv_copy_key(&input->smallest, &list->str_order_entries[0].key);
     kv_copy_key(&input->largest, &list->str_order_entries[list->n - 1].key);
@@ -622,7 +622,7 @@ char *lksv3_mem_cvt2table2(struct ssd *ssd, struct lksv_comp_list *list, lksv_le
         }
         //qsort(ces + from, n, sizeof(struct lksv3_comp_entry), key_compare);
 
-        _lksv3_mem_cvt2table(ssd, list->hash_order_pointers + from, n, &sst[idx], shard_left_size > 0, sp);
+        _lksv3_mem_cvt2table(list->hash_order_pointers + from, n, &sst[idx], shard_left_size > 0, sp);
         input->pg_start_hashes[idx] = list->hash_order_pointers[from]->meta.g1.hash >> LEVELLIST_HASH_SHIFTS;
         input->hash_lists[idx].hashes = calloc(n, sizeof(lksv_hash));
         input->hash_lists[idx].n = n;

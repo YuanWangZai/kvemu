@@ -12,11 +12,14 @@
 #include "hw/femu/kvssd/pink/cache.h"
 #include "hw/femu/kvssd/lsm.h"
 
+extern struct pink_ssd     *pink_ssd;
+extern struct pink_lsmtree *pink_lsm;
+
 // ftl.h ===================================================
 
 //#define CACHE_UPDATE
 
-struct ssd {
+struct pink_ssd {
     char *ssdname;
     struct ssdparams sp;
     struct ssd_channel *ch;
@@ -39,7 +42,7 @@ struct ssd {
     const struct kv_lsm_operations *lops;
 };
 
-uint64_t pink_ssd_advance_status(struct ssd *ssd, struct femu_ppa *ppa, struct nand_cmd *ncmd);
+uint64_t pink_ssd_advance_status(struct femu_ppa *ppa, struct nand_cmd *ncmd);
 
 // kvssd.h ================================================
 struct pink_lsmtree;
@@ -96,8 +99,8 @@ typedef struct pipe_line_run{
 #define VERSIONBITMAP (PAGESIZE / 16)
 #define KEYLEN(a) (a.len+sizeof(struct femu_ppa))
 
-bool pink_should_data_gc_high(struct ssd *ssd);
-bool pink_should_meta_gc_high(struct ssd *ssd);
+bool pink_should_data_gc_high(void);
+bool pink_should_meta_gc_high(void);
 
 // level.h ================================================
 
@@ -118,16 +121,16 @@ typedef struct pink_level {
 pink_level* level_init(int idx);
 void free_level(struct pink_lsmtree *, pink_level *);
 void free_run(struct pink_lsmtree*, pink_level_list_entry *);
-pink_level_list_entry* insert_run(struct ssd *ssd, pink_level* des, pink_level_list_entry *r);
+pink_level_list_entry* insert_run(pink_level* des, pink_level_list_entry *r);
 keyset *find_keyset(char *data, kv_key lpa);
 uint32_t range_find_compaction(pink_level *l, kv_key start, kv_key end, pink_level_list_entry ***r);
-void merger(struct ssd *ssd, kv_skiplist*, pink_level_list_entry** src, pink_level_list_entry** org, pink_level *des);
+void merger(kv_skiplist*, pink_level_list_entry** src, pink_level_list_entry** org, pink_level *des);
 pink_level_list_entry *cutter(struct pink_lsmtree *, kv_skiplist *, pink_level* des, kv_key* start, kv_key* end);
 
-pink_level_list_entry *find_run(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
-pink_level_list_entry *find_run2(pink_level*, kv_key lpa, struct ssd *ssd, NvmeRequest *req);
-pink_level_list_entry *find_run_se(struct pink_lsmtree*, pink_level *lev, kv_key lpa, pink_level_list_entry *upper_run, struct ssd *ssd, NvmeRequest *req);
-void read_run_delay_comp(struct ssd *ssd, pink_level *lev);
+pink_level_list_entry *find_run(pink_level*, kv_key lpa, NvmeRequest *req);
+pink_level_list_entry *find_run2(pink_level*, kv_key lpa, NvmeRequest *req);
+pink_level_list_entry *find_run_se(struct pink_lsmtree*, pink_level *lev, kv_key lpa, pink_level_list_entry *upper_run, NvmeRequest *req);
+void read_run_delay_comp(pink_level *lev);
 pink_level_list_entry *make_run(kv_key start, kv_key end, struct femu_ppa);
 int cache_comp_formatting(pink_level *, pink_level_list_entry ***, bool isnext_cache);
 void print_level_summary(struct pink_lsmtree*);
@@ -147,8 +150,8 @@ typedef struct pink_gc_node {
     void *params;
 } pink_gc_node;
 
-int gc_meta_femu(struct ssd *ssd);
-int gc_data_femu(struct ssd *ssd);
+int gc_meta_femu(void);
+int gc_data_femu(void);
 
 // compaction.h ==============================================
 
@@ -170,16 +173,16 @@ typedef struct leveling_node{
 struct pink_lsmtree;
 
 uint32_t level_change(struct pink_lsmtree *LSM, pink_level *from, pink_level *to, pink_level *target);
-uint32_t partial_leveling(struct ssd *ssd, pink_level* t, pink_level *origin, leveling_node *lnode, pink_level* upper);
-uint32_t leveling(struct ssd *ssd, pink_level *from, pink_level *to, leveling_node *l_node);
+uint32_t partial_leveling(pink_level* t, pink_level *origin, leveling_node *lnode, pink_level* upper);
+uint32_t leveling(pink_level *from, pink_level *to, leveling_node *l_node);
 
-void compaction_subprocessing(struct ssd *ssd, struct kv_skiplist *top, struct pink_level_list_entry** src, struct pink_level_list_entry** org, struct pink_level *des);
+void compaction_subprocessing(struct kv_skiplist *top, struct pink_level_list_entry** src, struct pink_level_list_entry** org, struct pink_level *des);
 bool meta_segment_read_preproc(pink_level_list_entry *r);
-void meta_segment_read_postproc(struct ssd *ssd, pink_level_list_entry *r);
+void meta_segment_read_postproc(pink_level_list_entry *r);
 
-void compaction_data_write(struct ssd *ssd, kv_skiplist *skl);
-struct femu_ppa compaction_meta_segment_write_femu(struct ssd *ssd, char *data);
-bool compaction_meta_segment_read_femu(struct ssd *ssd, pink_level_list_entry *ent);
+void compaction_data_write(kv_skiplist *skl);
+struct femu_ppa compaction_meta_segment_write_femu(char *data);
+bool compaction_meta_segment_read_femu(pink_level_list_entry *ent);
 void pink_flush_cache_when_evicted(kv_cache_entry *ent);
 void pink_maybe_schedule_compaction(void);
 void pink_compaction_init(void);
@@ -223,7 +226,6 @@ enum READTYPE{
 typedef struct pink_lsmtree {
     struct kv_lsm_options *opts;
 
-    struct ssd *ssd;
     uint8_t LEVELCACHING;
 
     struct kv_skiplist *mem;
@@ -263,34 +265,32 @@ typedef struct pink_lsmtree {
 } pink_lsmtree;
 
 void pink_lsm_adjust_level_multiplier(void);
-void pink_lsm_create(struct ssd *ssd);
-uint8_t lsm_find_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
-uint8_t lsm_scan_run(struct ssd *ssd, kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
+void pink_lsm_create(void);
+uint8_t lsm_find_run(kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
+uint8_t lsm_scan_run(kv_key key, pink_level_list_entry **entry, keyset **found, int *level, NvmeRequest *req);
 
 // ftl.h =====================================================
 
 void pinkssd_init(FemuCtrl *n);
 
-struct femu_ppa get_new_meta_page(struct ssd *ssd);
-struct femu_ppa get_new_data_page(struct ssd *ssd);
-struct nand_page *get_pg(struct ssd *ssd, struct femu_ppa *ppa);
-struct line *get_line(struct ssd *ssd, struct femu_ppa *ppa);
+struct femu_ppa get_new_meta_page(void);
+struct femu_ppa get_new_data_page(void);
+struct nand_page *get_pg(struct femu_ppa *ppa);
+struct line *get_line(struct femu_ppa *ppa);
 struct line *get_next_free_line(struct line_partition *lm);
-void ssd_advance_write_pointer(struct ssd *ssd, struct line_partition *lm);
-void mark_sector_invalid(struct ssd *ssd, struct femu_ppa *ppa);
-void mark_page_invalid(struct ssd *ssd, struct femu_ppa *ppa);
-void mark_page_valid(struct ssd *ssd, struct femu_ppa *ppa);
-void mark_block_free(struct ssd *ssd, struct femu_ppa *ppa);
-struct line *select_victim_meta_line(struct ssd *ssd, bool force);
-struct line *select_victim_data_line(struct ssd *ssd, bool force);
-void mark_line_free(struct ssd *ssd, struct femu_ppa *ppa);
+void ssd_advance_write_pointer(struct line_partition *lm);
+void mark_sector_invalid(struct femu_ppa *ppa);
+void mark_page_invalid(struct femu_ppa *ppa);
+void mark_page_valid(struct femu_ppa *ppa);
+void mark_block_free(struct femu_ppa *ppa);
+struct line *select_victim_meta_line(bool force);
+struct line *select_victim_data_line(bool force);
+void mark_line_free(struct femu_ppa *ppa);
 
-struct nand_lun *get_lun(struct ssd *ssd, struct femu_ppa *ppa);
+struct nand_lun *get_lun(struct femu_ppa *ppa);
 
-void pink_adjust_lines(struct ssd *ssd);
+void pink_adjust_lines(void);
 void pink_open(struct kv_lsm_options *opts);
-
-extern pink_lsmtree *pink_lsm;
 
 // version.c
 

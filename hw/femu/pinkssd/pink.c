@@ -1,6 +1,8 @@
 #include "hw/femu/nvme.h"
 #include "hw/femu/kvssd/pink/pink_ftl.h"
 
+struct pink_ssd *pink_ssd;
+
 static void pink_init_ctrl_str(FemuCtrl *n)
 {
     static int fsid_vpink = 0;
@@ -13,24 +15,24 @@ static void pink_init_ctrl_str(FemuCtrl *n)
 /* kv <=> key-value */
 static void pink_init(FemuCtrl *n, Error **errp)
 {
-    struct ssd *ssd = n->ssd = g_malloc0(sizeof(struct ssd));
+    pink_ssd = n->ssd = g_malloc0(sizeof(struct pink_ssd));
 
     pink_init_ctrl_str(n);
-    kvssd_init_latency(&ssd->lat, TLC);
+    kvssd_init_latency(&pink_ssd->lat, TLC);
 
-    ssd->dataplane_started_ptr = &n->dataplane_started;
-    ssd->ssdname = (char *)n->devname;
+    pink_ssd->dataplane_started_ptr = &n->dataplane_started;
+    pink_ssd->ssdname = (char *)n->devname;
     kv_debug("Starting FEMU in PinK-SSD mode ...\n");
     pinkssd_init(n);
 
     n->current_handle = 0;
     n->iterate_idx = 0;
-    ssd->n = n;
+    pink_ssd->n = n;
 }
 
 static void pink_flip(FemuCtrl *n, NvmeCmd *cmd)
 {
-    struct ssd *ssd = n->ssd;
+    struct pink_ssd *ssd = n->ssd;
     int64_t cdw10 = le64_to_cpu(cmd->cdw10);
 
     switch (cdw10) {

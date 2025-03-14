@@ -58,7 +58,7 @@ void free_level(struct pink_lsmtree *LSM, pink_level* lev) {
     FREE(lev);
 }
 
-static void array_run_cpy_to(struct ssd *ssd, pink_level_list_entry *input, pink_level_list_entry *res, int idx){
+static void array_run_cpy_to(pink_level_list_entry *input, pink_level_list_entry *res, int idx){
     kv_copy_key(&res->smallest, &input->smallest);
     kv_copy_key(&res->largest, &input->largest);
 
@@ -87,7 +87,7 @@ static void array_run_cpy_to(struct ssd *ssd, pink_level_list_entry *input, pink
     }
 }
 
-void read_run_delay_comp(struct ssd *ssd, pink_level *lev) {
+void read_run_delay_comp(pink_level *lev) {
     int p = 0;
     int end = lev->n_num;
     int last_read_run_idx = INT32_MAX;
@@ -105,15 +105,15 @@ void read_run_delay_comp(struct ssd *ssd, pink_level *lev) {
 
             struct femu_ppa fake_ppa;
             fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
+            fake_ppa.g.blk = last_read_run_idx % pink_ssd->sp.blks_per_pl;
 
-            pink_ssd_advance_status(ssd, &fake_ppa, &srd); 
+            pink_ssd_advance_status(&fake_ppa, &srd); 
         }
         p++;
     }
 }
 
-pink_level_list_entry* insert_run(struct ssd *ssd, pink_level *lev, pink_level_list_entry* r) {
+pink_level_list_entry* insert_run(pink_level *lev, pink_level_list_entry* r) {
     if(lev->m_num <= lev->n_num) {
         abort();
     }
@@ -123,7 +123,7 @@ pink_level_list_entry* insert_run(struct ssd *ssd, pink_level *lev, pink_level_l
     pink_level_list_entry **arrs = lev->level_data;
     arrs[lev->n_num] = pink_lnew();
     pink_level_list_entry *target = arrs[lev->n_num];
-    array_run_cpy_to(ssd, r, target, lev->idx);
+    array_run_cpy_to(r, target, lev->idx);
 
     array_range_update(lev, NULL, target->smallest);
     array_range_update(lev, NULL, target->largest);
@@ -158,7 +158,7 @@ keyset* find_keyset(char *data, kv_key lpa) {
     return NULL;
 }
 
-pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
+pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, NvmeRequest *req){
     pink_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
@@ -184,8 +184,8 @@ pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, Nv
             }
             struct femu_ppa fake_ppa;
             fake_ppa.ppa = 0;
-            fake_ppa.g.blk = last_read_run_idx % ssd->sp.blks_per_pl;
-            uint64_t sublat = pink_ssd_advance_status(ssd, &fake_ppa, &srd); 
+            fake_ppa.g.blk = last_read_run_idx % pink_ssd->sp.blks_per_pl;
+            uint64_t sublat = pink_ssd_advance_status(&fake_ppa, &srd); 
             if (req) {
                 req->etime += sublat;
                 req->flash_access_count++;
@@ -206,7 +206,7 @@ pink_level_list_entry *find_run(pink_level* lev, kv_key lpa, struct ssd *ssd, Nv
     return NULL;
 }
 
-pink_level_list_entry *find_run2(pink_level* lev, kv_key lpa, struct ssd *ssd, NvmeRequest *req){
+pink_level_list_entry *find_run2(pink_level* lev, kv_key lpa, NvmeRequest *req){
     pink_level_list_entry **arrs=lev->level_data;
     if(!arrs || lev->n_num==0) return NULL;
     int end=lev->n_num-1;
@@ -364,7 +364,7 @@ static char *pbody_clear(p_body *p){
     return NULL;
 }
 
-static char *array_skip_cvt2_data(struct ssd *ssd, kv_skiplist *mem){
+static char *array_skip_cvt2_data(kv_skiplist *mem){
     char *res=(char*)malloc(PAGESIZE);
     uint16_t *bitmap=(uint16_t *)res;
     uint32_t idx=1;
@@ -378,9 +378,8 @@ static char *array_skip_cvt2_data(struct ssd *ssd, kv_skiplist *mem){
         bitmap[idx]=data_start;
         struct line_age age;
         age.g.in_page_idx = *snode_off(temp);
-        age.g.line_age = (get_line(ssd, snode_ppa(temp))->age % LINE_AGE_MAX);
+        age.g.line_age = (get_line(snode_ppa(temp))->age % LINE_AGE_MAX);
         vbitmap[idx] = age.age;
-        //vbitmap[idx] = (get_line(ssd, &temp->fppa)->age % UINT16_MAX);
 
         data_start+=temp->key.len+sizeof(struct femu_ppa);
         idx++;
@@ -391,7 +390,7 @@ static char *array_skip_cvt2_data(struct ssd *ssd, kv_skiplist *mem){
     return res;
 }
 
-void merger(struct ssd *ssd, struct kv_skiplist* mem, pink_level_list_entry** s, pink_level_list_entry** o, struct pink_level* d){
+void merger(struct kv_skiplist* mem, pink_level_list_entry** s, pink_level_list_entry** o, struct pink_level* d){
     pink_lsm->cutter_start=true;
     int o_num=0; int u_num=0;
     char **u_data;
@@ -399,7 +398,7 @@ void merger(struct ssd *ssd, struct kv_skiplist* mem, pink_level_list_entry** s,
         kv_skiplist *skip = mem;
         u_num = 1;
         u_data=(char**)malloc(sizeof(char*)*u_num);
-        u_data[0]=array_skip_cvt2_data(ssd, skip);
+        u_data[0]=array_skip_cvt2_data(skip);
     }
     else{
         for(int i=0; s[i]!=NULL; i++) u_num++;
@@ -466,13 +465,13 @@ void merger(struct ssd *ssd, struct kv_skiplist* mem, pink_level_list_entry** s,
             else{
                 // Same key from upper level.
                 // Invalidate the lowwer level section.
-                struct line *line = get_line(ssd, &lppa);
+                struct line *line = get_line(&lppa);
                 if (line->vsc > 0 && line->age % LINE_AGE_MAX == lp_key.line_age.g.line_age) {
                     // TODO: We avoid increasing invalid sector counter on the erased block.
                     // We do this approximately by bypassing the page when the line is free status, but this is not always be true.
                     // For example, the case if the erased block is assigned to other block, this approximation is not working.
                     //kv_debug("same key from upper\n");
-                    mark_sector_invalid(ssd, &lppa);
+                    mark_sector_invalid(&lppa);
                 }
                 rppa=hppa;
                 insert_key=hp_key;
