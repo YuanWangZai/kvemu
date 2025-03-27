@@ -157,6 +157,9 @@ compact_disk_tables(pink_compaction *c)
 {
     pink_write_level123_table(c);
 
+    if (c->level == LSM_LEVELN-2)
+        pink_lsm_adjust_level_multiplier();
+
     free_compaction(c);
 
     return 0;
@@ -180,9 +183,6 @@ compact1(void)
     if (c)
     {
         compact_disk_tables(c);
-
-        if (c->level == LSM_LEVELN-2)
-            pink_lsm_adjust_level_multiplier();
 
         pink_update_compaction_score();
     }
