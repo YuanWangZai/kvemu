@@ -1,78 +1,95 @@
 #include "hw/femu/kvssd/pink/pink_ftl.h"
 #include "hw/femu/kvssd/pink/skiplist.h"
 
-static void
-do_gc(void)
+void
+pink_comp_read_delay(struct femu_ppa *ppa)
 {
-    while (pink_should_data_gc_high()) {
-        int n = pink_ssd->lm.data.lines / 10;
-        if (n < 10)
-            n = 10;
+    struct nand_cmd cpr;
+    cpr.type = COMP_IO;
+    cpr.cmd = NAND_READ;
+    cpr.stime = 0;
+    pink_ssd_advance_status(ppa, &cpr);
+}
 
-        int gc_pick_err = 0;
-        int gc_pick_err_threshold = n / 3;
-        for (int i = 0; i < n; i ++) {
-            switch (gc_data_femu()) {
-                case 0:
-                    break;
-                case -2:
-                    gc_pick_err++;
-                    break;
-                default:
-                    kv_log("unknown return code\n");
-                    abort();
-            }
-        }
-        if (gc_pick_err > gc_pick_err_threshold) {
-            kv_log("gc_pick_err exceeds threshold: %d times\n", gc_pick_err);
-            print_level_summary(pink_lsm);
-            kv_log("line_partition meta: %d lines, %d frees, %d victims, %d fulls, %ld age\n", pink_ssd->lm.meta.lines, pink_ssd->lm.meta.free_line_cnt, pink_ssd->lm.meta.victim_line_cnt, pink_ssd->lm.meta.full_line_cnt, pink_ssd->lm.meta.age);
-            kv_log("line_partition data: %d lines, %d frees, %d victims, %d fulls, %ld age\n", pink_ssd->lm.data.lines, pink_ssd->lm.data.free_line_cnt, pink_ssd->lm.data.victim_line_cnt, pink_ssd->lm.data.full_line_cnt, pink_ssd->lm.data.age);
-            abort();
-        }
+void
+pink_comp_write_delay(struct femu_ppa *ppa)
+{
+    struct nand_cmd cpw;
+    cpw.type = COMP_IO;
+    cpw.cmd = NAND_WRITE;
+    cpw.stime = 0;
+    pink_ssd_advance_status(ppa, &cpw);
+}
+
+static void
+write_data_segments(kv_skiplist *skl)
+{
+    kv_snode *n, *t;
+    kv_key k;
+    kv_value *v;
+    pink_data_seg_writer *w;
+    // TODO: fix this.
+    pink_kv_descriptor *desc = malloc(skl->n * sizeof(pink_kv_descriptor));
+    int i = 0;
+
+    w = pink_new_data_seg_writer();
+
+    for_each_sk(n, skl)
+    {
+        desc[i].key = n->key;
+        desc[i].value = *n->value;
+
+        pink_set_data_seg_writer(w, &desc[i]);
+
+        kv_assert(!n->private);
+        n->private = malloc(sizeof(pink_per_snode_data));
+        *snode_ppa(n) = desc[i].ppa;
+        *snode_off(n) = desc[i].data_seg_offset.g.in_page_idx;
+
+        i++;
     }
-    while (pink_should_meta_gc_high()) {
-        int n = pink_ssd->lm.meta.lines / 10;
-        if (n < 2)
-            n = 2;
-        for (int i = 0; i < n; i ++) {
-            gc_meta_femu();
-        }
+
+    pink_close_data_seg_writer(w);
+
+    for_each_sk(n, skl)
+    {
+        kv_copy_key(&k, &n->key);
+        v = calloc(1, sizeof(kv_value));
+        v->length = PPA_LENGTH;
+
+        t = pink_skiplist_insert(pink_lsm->key_only_mem, k, v);
+
+        if (t->private)
+            free(t->private);
+
+        t->private = n->private;
+        n->private = NULL;
     }
+
+    free(desc);
 }
 
 static void
 print_stats(void)
 {
-    if (rand() % 1000 == 0) {
-        kv_debug("write_cnt %lu\n", pink_lsm->num_data_written);
-        kv_debug("[META] free line cnt: %d\n", pink_ssd->lm.meta.free_line_cnt);
-        kv_debug("[META] full line cnt: %d\n", pink_ssd->lm.meta.full_line_cnt);
-        kv_debug("[META] victim line cnt: %d\n", pink_ssd->lm.meta.victim_line_cnt);
-        kv_debug("[DATA] free line cnt: %d\n", pink_ssd->lm.data.free_line_cnt);
-        kv_debug("[DATA] full line cnt: %d\n", pink_ssd->lm.data.full_line_cnt);
-        kv_debug("[DATA] victim line cnt: %d\n", pink_ssd->lm.data.victim_line_cnt);
-        print_level_summary(pink_lsm);
-    }
-}
-
-static void compaction_selector(pink_level *a, pink_level *b, leveling_node *lnode){
-    leveling(a, b, lnode);
-
-    if (b->idx == LSM_LEVELN - 1)
-        pink_lsm_adjust_level_multiplier();
-    if (b->idx > 0) // We don't want too many calling adjust_lines().
-        pink_adjust_lines();
+    kv_debug("write_cnt %lu\n", pink_lsm->num_data_written);
+    kv_debug("[META] free line cnt: %d\n", pink_ssd->lm.meta.free_line_cnt);
+    kv_debug("[META] full line cnt: %d\n", pink_ssd->lm.meta.full_line_cnt);
+    kv_debug("[META] victim line cnt: %d\n", pink_ssd->lm.meta.victim_line_cnt);
+    kv_debug("[DATA] free line cnt: %d\n", pink_ssd->lm.data.free_line_cnt);
+    kv_debug("[DATA] full line cnt: %d\n", pink_ssd->lm.data.full_line_cnt);
+    kv_debug("[DATA] victim line cnt: %d\n", pink_ssd->lm.data.victim_line_cnt);
 }
 
 static int
 compact_memtable(void)
 {
-    print_stats();
+    if (rand() % 100 == 0)
+        print_stats();
 
     if (pink_lsm->imm)
     {
-        compaction_data_write(pink_lsm->imm);
+        write_data_segments(pink_lsm->imm);
 
         kv_skiplist_put(pink_lsm->imm);
         pink_lsm->imm = NULL;
@@ -80,19 +97,10 @@ compact_memtable(void)
 
     if (pink_lsm->key_only_imm)
     {
-        leveling_node lnode;
-        kv_skiplist *tmp = pink_skiplist_cutting_header(pink_lsm->key_only_imm);
-        if (tmp == pink_lsm->key_only_imm)
-            pink_lsm->key_only_imm = NULL;
+        pink_write_level0_table(pink_lsm->key_only_imm);
 
-        kv_skiplist_get_start_end_key(tmp, &lnode.start, &lnode.end);
-        lnode.mem = tmp;
-        compaction_selector(NULL, pink_lsm->disk[0], &lnode);
-
-        FREE(lnode.start.key);
-        FREE(lnode.end.key);
-
-        kv_skiplist_put(tmp);
+        kv_skiplist_put(pink_lsm->key_only_imm);
+        pink_lsm->key_only_imm = NULL;
     }
     else if (kv_skiplist_approximate_memory_usage(pink_lsm->key_only_mem) >= KEY_ONLY_WRITE_BUFFER_SIZE)
     {
@@ -100,17 +108,56 @@ compact_memtable(void)
         pink_lsm->key_only_mem = kv_skiplist_init();
     }
 
-    do_gc();
-
     return 0;
 }
 
-static int
-compact_disk_tables(void)
+static void
+free_compaction(pink_compaction *c)
 {
-    compaction_selector(pink_lsm->disk[pink_lsm->compaction_level],
-                        pink_lsm->disk[pink_lsm->compaction_level+1],
-                        NULL);
+    free(c->inputs[0]);
+    free(c->inputs[1]);
+    free(c);
+}
+
+static void
+setup_other_inputs(pink_compaction *c)
+{
+    c->inputs[1] = pink_overlaps(c->level+1,
+                                 c->inputs[0][0]->smallest,
+                                 c->inputs[0][c->input_n[0]-1]->largest,
+                                 &c->input_n[1]);
+}
+
+static pink_compaction *
+pick_compaction(void)
+{
+    pink_compaction *c;
+
+    if (pink_lsm->versions.compaction_score <= 1)
+        return NULL;
+
+    c = (pink_compaction *) malloc(sizeof(pink_compaction));
+    c->level = pink_lsm->versions.compaction_level;
+
+    int size = pink_lsm->versions.n_files[c->level] - pink_lsm->versions.m_files[c->level];
+    int offset = rand() % (pink_lsm->versions.n_files[c->level] - size);
+
+    c->inputs[0] = (pink_level_list_entry **) malloc(size * sizeof(pink_level_list_entry *));
+    for (int i = 0; i < size; i++)
+        c->inputs[0][i] = pink_lsm->versions.files[c->level][offset+i];
+    c->input_n[0] = size;
+
+    setup_other_inputs(c);
+
+    return c;
+}
+
+static int
+compact_disk_tables(pink_compaction *c)
+{
+    pink_write_level123_table(c);
+
+    free_compaction(c);
 
     return 0;
 }
@@ -118,6 +165,8 @@ compact_disk_tables(void)
 static int
 compact1(void)
 {
+    pink_compaction *c;
+
     if (pink_lsm->imm || pink_lsm->key_only_imm)
     {
         compact_memtable();
@@ -126,12 +175,28 @@ compact1(void)
         pink_update_compaction_score();
     }
 
-    if (pink_lsm->compaction_score >= 1)
-    {
-        compact_disk_tables();
+    c = pick_compaction();
 
-        // TODO: move this function into the version update function.
+    if (c)
+    {
+        compact_disk_tables(c);
+
+        if (c->level == LSM_LEVELN-2)
+            pink_lsm_adjust_level_multiplier();
+
         pink_update_compaction_score();
+    }
+
+    while (pink_should_meta_gc_high(0))
+    {
+        if (pink_gc_meta_femu() < 0)
+            break;
+    }
+
+    while (pink_should_data_gc_high(0))
+    {
+        if (pink_gc_data_femu() < 0)
+            break;
     }
 
     return 0;
@@ -179,84 +244,12 @@ pink_maybe_schedule_compaction(void)
 
     if (!pink_lsm->imm && !pink_lsm->key_only_imm)
     {
-        if (pink_lsm->compaction_score < 1)
+        if (pink_lsm->versions.compaction_score < 1)
             return;
     }
 
     pink_lsm->compacting = true;
 
     qatomic_inc(&pink_lsm->compaction_calls);
-}
-
-uint32_t level_change(struct pink_lsmtree *LSM, pink_level *from, pink_level *to, pink_level *target) {
-    pink_level **src_ptr=NULL, **des_ptr=NULL;
-    des_ptr=&LSM->disk[to->idx];
-
-    if(from!=NULL){
-        src_ptr=&LSM->disk[from->idx];
-        *(src_ptr)=level_init(from->idx);
-        free_level(LSM, from);
-    }
-
-    (*des_ptr)=target;
-    free_level(LSM, to);
-
-    return 1;
-}
-
-uint32_t leveling(pink_level *from, pink_level *to, leveling_node *l_node){
-    pink_level *target_origin = to;
-    pink_level *target = level_init(to->idx);
-    pink_level_list_entry *entry = NULL;
-
-    // TODO: LEVEL_COMP_READ_DELAY
-    read_run_delay_comp(to);
-    partial_leveling(target,target_origin,l_node,from);
-
-    if (entry) FREE(entry);
-    uint32_t res = level_change(pink_lsm, from, to, target);
-    pink_lsm->c_level = NULL;
-
-    if(target->idx == LSM_LEVELN-1){
-        kv_debug("last level %d/%d (n:f)\n",target->n_num,target->m_num);
-    }
-    return res;
-}
-
-uint32_t partial_leveling(pink_level* t, pink_level *origin, leveling_node *lnode, pink_level* upper){
-    kv_key start=kv_key_min;
-    kv_key end=kv_key_max;
-    pink_level_list_entry **target_s=NULL;
-    pink_level_list_entry **data=NULL;
-    kv_skiplist *skip=lnode?lnode->mem:kv_skiplist_init();
-
-    if(!upper){
-        range_find_compaction(origin,start,end,&target_s);
-
-        for(int j=0; target_s[j]!=NULL; j++){
-            compaction_meta_segment_read_femu(target_s[j]);
-        }
-
-        compaction_subprocessing(skip,NULL,target_s,t);
-    } else {
-        int src_num, des_num; //for stream compaction
-        des_num=range_find_compaction(origin,start,end,&target_s);//for stream compaction
-        src_num=range_find_compaction(upper,start,end,&data);
-
-        for(int i=0; i < des_num; i++){
-            kv_assert(target_s[i]);
-            pink_level_list_entry *temp=target_s[i];
-            compaction_meta_segment_read_femu(temp);
-        }
-
-        for(int i=0; i < src_num; i++){
-            kv_assert(data[i]);
-            pink_level_list_entry *temp=data[i];
-            compaction_meta_segment_read_femu(temp);
-        }
-        compaction_subprocessing(NULL,data,target_s,t);
-    }
-    if(!lnode) kv_skiplist_put(skip);
-    return 1;
 }
 

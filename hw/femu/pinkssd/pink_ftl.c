@@ -4,14 +4,14 @@
 
 static void *ftl_thread(void *arg);
 
-bool pink_should_meta_gc_high(void)
+bool pink_should_meta_gc_high(int margin)
 {
-    return pink_ssd->lm.meta.free_line_cnt == 0;
+    return pink_ssd->lm.meta.free_line_cnt <= 1 + margin;
 }
 
-bool pink_should_data_gc_high(void)
+bool pink_should_data_gc_high(int margin)
 {
-    return pink_ssd->lm.data.free_line_cnt == 0;
+    return pink_ssd->lm.data.free_line_cnt <= 1 + margin;
 }
 
 static inline int victim_line_cmp_vsc(pqueue_pri_t next, pqueue_pri_t curr)
@@ -182,16 +182,14 @@ void ssd_advance_write_pointer(struct line_partition *lm)
             if (wpp->pg == spp->pgs_per_blk) {
                 wpp->pg = 0;
                 /* move current line to {victim,full} line list */
-                if (wpp->curline->vpc == spp->pgs_per_line && wpp->curline->vsc == (spp->secs_per_line * 32)) {
+                if (wpp->curline->vpc == spp->pgs_per_line && wpp->curline->isc == 0) {
                     /* all pgs are still valid, move to full line list */
                     kv_assert(wpp->curline->ipc == 0);
-                    kv_assert(wpp->curline->isc == 0);
                     QTAILQ_INSERT_TAIL(&lm->full_line_list, wpp->curline, entry);
                     lm->full_line_cnt++;
                 } else {
                     if (lm == &pink_ssd->lm.data) {
                         kv_assert(wpp->curline->vpc == spp->pgs_per_line);
-                        kv_assert(wpp->curline->vsc >= 0 && wpp->curline->vsc < (spp->secs_per_line * 32));
                     } else {
                         kv_assert(wpp->curline->vpc >= 0 && wpp->curline->vpc < spp->pgs_per_line);
                     }
@@ -237,22 +235,12 @@ static struct femu_ppa get_new_page(struct write_pointer *wpp)
 
 struct femu_ppa get_new_meta_page(void)
 {
-    pthread_spin_lock(&pink_ssd->nand_lock);
-    struct femu_ppa ppa = get_new_page(&pink_ssd->lm.meta.wp);
-    mark_page_valid(&ppa);
-    ssd_advance_write_pointer(&pink_ssd->lm.meta);
-    pthread_spin_unlock(&pink_ssd->nand_lock);
-    return ppa;
+    return get_new_page(&pink_ssd->lm.meta.wp);
 }
 
 struct femu_ppa get_new_data_page(void)
 {
-    pthread_spin_lock(&pink_ssd->nand_lock);
-    struct femu_ppa ppa = get_new_page(&pink_ssd->lm.data.wp);
-    mark_page_valid(&ppa);
-    ssd_advance_write_pointer(&pink_ssd->lm.data);
-    pthread_spin_unlock(&pink_ssd->nand_lock);
-    return ppa;
+    return get_new_page(&pink_ssd->lm.data.wp);
 }
 
 static void ssd_init_params(struct ssdparams *spp)
@@ -324,42 +312,6 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->enable_comp_delay = true;
 }
 
-static void move_line_d2m(void)
-{
-    struct line_partition *m = &pink_ssd->lm.meta;
-    struct line_partition *d = &pink_ssd->lm.data;
-    struct line *line;
-
-    if (d->free_line_cnt < 2) {
-        kv_err("no free data lines\n");
-    }
-
-    line = get_next_free_line(d);
-    kv_assert(!line->meta);
-    d->lines--;
-
-    QTAILQ_INSERT_TAIL(&m->free_line_list, line, entry);
-    line->meta = true;
-    m->free_line_cnt++;
-    m->lines++;
-
-    kv_log("d2m line(%d): data lines(%d), meta lines(%d)\n", line->id, d->lines, m->lines);
-}
-
-void pink_adjust_lines(void)
-{
-    const int compaction_margin = 5;
-    int min_meta_lines;
-    int meta_pages = 0;
-
-    for (int i = 0; i < LSM_LEVELN; i++)
-        meta_pages += pink_lsm->disk[i]->m_num;
-
-    min_meta_lines = (meta_pages / pink_ssd->sp.pgs_per_line) + compaction_margin;
-    if (pink_ssd->lm.meta.lines < min_meta_lines)
-        move_line_d2m();
-}
-
 static void ssd_init_nand_page(struct nand_page *pg, struct ssdparams *spp)
 {
     pg->nsecs = spp->secs_per_pg;
@@ -368,7 +320,7 @@ static void ssd_init_nand_page(struct nand_page *pg, struct ssdparams *spp)
         pg->sec[i] = SEC_FREE;
     }
     pg->status = PG_FREE;
-    pg->data = NULL;
+    pg->data = calloc(1, PAGESIZE);
 }
 
 static void ssd_init_nand_blk(struct nand_block *blk, struct ssdparams *spp)
@@ -450,7 +402,6 @@ void pinkssd_init(FemuCtrl *n) {
     /////////////////////
     kv_lsm_setup_db(&pink_ssd->lops, PINK);
     pink_ssd->lops->open(lopts);
-    pink_lsm_create();
 
     pthread_spin_init(&pink_ssd->nand_lock, PTHREAD_PROCESS_PRIVATE);
     qemu_thread_create(&pink_ssd->ftl_thread, "FEMU-FTL-Thread", ftl_thread, n, QEMU_THREAD_JOINABLE);
@@ -593,40 +544,32 @@ uint64_t pink_ssd_advance_status(struct femu_ppa *ppa, struct nand_cmd *ncmd)
 void mark_sector_invalid(struct femu_ppa *ppa)
 {
     struct line_partition *lm;
-    struct ssdparams *spp = &pink_ssd->sp;
     bool was_full_line = false;
+    bool open;
     struct line *line;
 
-    if (is_meta_page(ppa)) {
+    if (is_meta_page(ppa))
         lm = &pink_ssd->lm.meta;
-    } else {
+    else
         lm = &pink_ssd->lm.data;
-    }
+
+    open = (ppa->g.blk == lm->wp.curline->id);
 
     /* update corresponding line status */
     line = get_line(ppa);
-    if (line->vsc <= 0) {
-        kv_debug("line id: %d, vpc: %d, vsc(sector: 64byte): %d, isc: %d, pgs_per_line: %d\n", line->id, line->vpc, line->vsc, line->isc, spp->pgs_per_line);
-    }
-
-    const int secs_per_line = spp->secs_per_line * 32;
-    if (line->vsc == secs_per_line) {
+    if (line->isc == 0 && !open)
         was_full_line = true;
-    }
     line->isc++;
     kv_assert(line->vsc > 0);
-    kv_assert(line->vsc <= secs_per_line);
 
     /* Adjust the position of the victime line in the pq under over-writes */
-    if (line->pos) {
-        /* Note that line->vpc will be updated by this call */
+    if (line->pos)
         pqueue_change_priority(lm->victim_line_pq, line->vsc - 1, line);
-    } else {
+    else
         line->vsc--;
-    }
 
-    if (was_full_line) {
-        /* move line: "full" -> "victim" */
+    if (was_full_line)
+    {
         QTAILQ_REMOVE(&lm->full_line_list, line, entry);
         lm->full_line_cnt--;
         pqueue_insert(lm->victim_line_pq, line);
@@ -654,9 +597,6 @@ void mark_page_invalid(struct femu_ppa *ppa)
     pg = get_pg(ppa);
     kv_assert(pg->status == PG_VALID);
     pg->status = PG_INVALID;
-    if (pg->data)
-        FREE(pg->data);
-    pg->data = NULL;
 
     /* update corresponding block status */
     blk = get_blk(ppa);
@@ -714,7 +654,6 @@ void mark_page_valid(struct femu_ppa *ppa)
     line = get_line(ppa);
     kv_assert(line->vpc >= 0 && line->vpc < pink_ssd->sp.pgs_per_line);
     line->vpc++;
-    line->vsc += (pink_ssd->sp.secs_per_pg * 32);
 }
 
 void mark_block_free(struct femu_ppa *ppa)
@@ -758,11 +697,11 @@ static struct line *select_victim_line(struct line_partition *lm, bool force, bo
     }
 
     if (meta) {
-        if (!force && victim_line->ipc < pink_ssd->sp.pgs_per_line / 32) {
+        if (!force && victim_line->ipc < pink_ssd->sp.pgs_per_line / 8) {
             return NULL;
         }
     } else {
-        if (!force && victim_line->isc < pink_ssd->sp.secs_per_line / 32) {
+        if (!force && victim_line->isc < pink_ssd->sp.secs_per_line / 8) {
             return NULL;
         }
     }
@@ -831,43 +770,56 @@ make_room_for_write(void)
     return 0;
 }
 
-static keyset* find_from_list(kv_key key, kv_skiplist *list) {
-    keyset *target_set = NULL;
-    kv_snode *target_node;
-    if (list) {
-        target_node = kv_skiplist_find(list, key);
-        if(target_node) {
-            target_set = (keyset *) malloc(sizeof(struct keyset));
-            kv_copy_key(&target_set->lpa.k, &target_node->key);
-            if (target_node->private) {
-                target_set->ppa = *snode_ppa(target_node);
-                int off = *snode_off(target_node);
+static kv_value*
+find_from_list(kv_key key, kv_skiplist *skl, NvmeRequest *req)
+{
+    struct nand_page *pg;
+    pink_kv_descriptor d;
+    kv_value *v;
+    kv_snode *n;
 
-                struct nand_page *pg2 = get_pg(&target_set->ppa);
-                kv_assert(((uint16_t *)pg2->data)[0]);
-                kv_assert(strncmp(pg2->data + ((uint16_t *)pg2->data)[off+1],
-                                  target_set->lpa.k.key, target_set->lpa.k.len) == 0);
-                target_set->value.length = ((uint16_t *)pg2->data)[off+2] - ((uint16_t *)pg2->data)[off+1] - target_set->lpa.k.len;
-                target_set->value.value = (char *) malloc(target_set->value.length * sizeof(char));
-                memcpy(target_set->value.value, pg2->data + ((uint16_t *)pg2->data)[off+1] + target_set->lpa.k.len, target_set->value.length);
-            } else {
-                target_set->ppa.ppa = UNMAPPED_PPA;
-                target_set->value.length = target_node->value->length;
-                target_set->value.value = g_malloc0(target_set->value.length);
-                memcpy(target_set->value.value, target_node->value->value, target_set->value.length);
-            }
-        }
+    if (!skl)
+        return NULL;
+
+    n = kv_skiplist_find(skl, key);
+    if (!n)
+        return NULL;
+
+    v = (kv_value *) malloc(sizeof(kv_value));
+    if (n->private)
+    {
+        d.ppa = *snode_ppa(n);
+        d.data_seg_offset.g.in_page_idx = *snode_off(n);
+
+        struct nand_cmd srd;
+        srd.type = USER_IO;
+        srd.cmd = NAND_READ;
+        srd.stime = req->etime;
+        req->flash_access_count++;
+        uint64_t sublat = pink_ssd_advance_status(&d.ppa, &srd); 
+        req->etime += sublat;
+
+        pg = get_pg(&d.ppa);
+        kv_assert(strncmp(pg->data + ((uint16_t *)pg->data)[d.data_seg_offset.g.in_page_idx+1], key.key, key.len) == 0);
+        v->length = ((uint16_t *)pg->data)[d.data_seg_offset.g.in_page_idx+2] - ((uint16_t *)pg->data)[d.data_seg_offset.g.in_page_idx+1] - key.len;
+        v->value = (char *) malloc(v->length * sizeof(char));
+        memcpy(v->value, pg->data + ((uint16_t *)pg->data)[d.data_seg_offset.g.in_page_idx+1] + key.len, v->length);
     }
-    return target_set;
+    else
+    {
+        v->length = n->value->length;
+        v->value = (char *) malloc(v->length);
+        memcpy(v->value, n->value->value, v->length);
+    }
+
+    return v;
 }
 
 static uint64_t ssd_retrieve(NvmeRequest *req)
 {
-    keyset *found = NULL;
-    kv_key k;
-    //uint64_t sublat, maxlat = 0;
-    uint64_t sublat = 0;
     kv_skiplist *mem, *imm, *key_only_mem, *key_only_imm;
+    kv_key k;
+    kv_value *v;
 
     qemu_mutex_lock(&pink_lsm->mu);
 
@@ -885,230 +837,75 @@ static uint64_t ssd_retrieve(NvmeRequest *req)
 
     qemu_mutex_unlock(&pink_lsm->mu);
 
+    req->value = NULL;
     req->etime = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
 
-    k.key = g_malloc0(req->key_length);
-    memcpy(k.key, req->key_buf, req->key_length);
+    k.key = (char *) req->key_buf;
     k.len = req->key_length;
 
-    /* 1. Check L0: memtable (skiplist). */
-    found = find_from_list(k, mem);
-    if (found) {
-        req->value_length = found->value.length;
-        req->value = (uint8_t *) found->value.value;
-        FREE(found->lpa.k.key);
-        FREE(found);
-        FREE(k.key);
+    v = find_from_list(k, mem, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
         kv_skiplist_put(mem);
+        kv_skiplist_put(imm);
+        kv_skiplist_put(key_only_mem);
+        kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
     kv_skiplist_put(mem);
 
-    found = find_from_list(k, imm);
-    if (found) {
-        req->value_length = found->value.length;
-        req->value = (uint8_t *) found->value.value;
-        FREE(found->lpa.k.key);
-        FREE(found);
-        FREE(k.key);
+    v = find_from_list(k, imm, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
         kv_skiplist_put(imm);
+        kv_skiplist_put(key_only_mem);
+        kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
     kv_skiplist_put(imm);
 
-    /* 2. Check key only memtable (skiplist). */
-    found = find_from_list(k, key_only_mem);
-    if (found) {
-        req->value_length = found->value.length;
-        req->value = (uint8_t *) found->value.value;
-        FREE(found->lpa.k.key);
-        FREE(found);
-        FREE(k.key);
+    v = find_from_list(k, key_only_mem, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
         kv_skiplist_put(key_only_mem);
+        kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
     kv_skiplist_put(key_only_mem);
 
-    /* 2. Check compaction temp table (skiplist). */
-    found = find_from_list(k, key_only_imm);
-    if (found) {
-        req->value_length = found->value.length;
-        req->value = (uint8_t *) found->value.value;
-        FREE(found->lpa.k.key);
-        FREE(found);
-        FREE(k.key);
+    v = find_from_list(k, key_only_imm, req);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
         kv_skiplist_put(key_only_imm);
         return req->etime - req->stime;
     }
     kv_skiplist_put(key_only_imm);
 
-    /* 3. Walk lower levels. prepare params */
-    int level = 0;
-    pink_level_list_entry *entry = NULL;
-    uint8_t result;
-retry:
-    result = lsm_find_run(k, &entry, &found, &level, req);
+    qemu_mutex_lock(&pink_lsm->mu);
+    v = pink_get(k, req);
+    qemu_mutex_unlock(&pink_lsm->mu);
+    if (v) {
+        req->value_length = v->length;
+        req->value = (uint8_t *) v->value;
+        FREE(v);
 
-    //int i;
-    struct nand_page *pg;
-    struct nand_cmd srd;
-    switch (result) {
-        case CACHING:
-            kv_assert(found != NULL);
-
-            pg = get_pg(&found->ppa);
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            //srd.stime = req->stime;
-            srd.stime = req->etime;
-            sublat = pink_ssd_advance_status(&found->ppa, &srd);
-            // maxlat = (sublat > maxlat) ? sublat : maxlat;
-            req->etime += sublat;
-            //maxlat += sublat;
-            kv_assert(((uint16_t *)pg->data)[0]);
-            kv_assert(strncmp(
-                        pg->data + ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1],
-                        found->lpa.k.key, found->lpa.k.len) == 0);
-            found->value.length = ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+2] - ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1] - found->lpa.k.len;
-            found->value.value = (char *) malloc(found->value.length * sizeof(char));
-            memcpy(found->value.value, pg->data + ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1] + found->lpa.k.len, found->value.length);
-            req->value_length = found->value.length;
-            req->value = (uint8_t *) found->value.value;
-            FREE(found->lpa.k.key);
-            FREE(found);
-            FREE(k.key);
-            req->flash_access_count++;
-            return req->etime - req->stime;
-        case COMP_FOUND:
-            /*
-             * Success to find the run in a compaction level.
-             * Compactioning level doesn't have a range pointer yet. Reset entry to NULL.
-             */
-            if (entry->buffer) {
-                // entry has not been written to flash yet.
-                found = find_keyset((char *)entry->buffer, k);
-            } else {
-                pg = get_pg(&entry->ppa);
-                if (kv_is_cached(pink_lsm->lsm_cache, entry->cache[META_SEGMENT])) {
-#ifdef CACHE_UPDATE
-                    kv_cache_update(pink_lsm->lsm_cache, entry->cache[META_SEGMENT]);
-#endif
-                    pink_lsm->cache_hit++;
-                    if (pink_lsm->cache_hit % 10000 == 0) {
-                        kv_debug("cache hit ratio: %lu\n", pink_lsm->cache_hit * 100 / (pink_lsm->cache_hit + pink_lsm->cache_miss));
-                    }
-                } else {
-                    srd.type = USER_IO;
-                    srd.cmd = NAND_READ;
-                    //srd.stime = req->stime;
-                    srd.stime = req->etime;
-                    sublat = pink_ssd_advance_status(&entry->ppa, &srd);
-                    //maxlat = (sublat > maxlat) ? sublat : maxlat;
-                    req->etime += sublat;
-                    pink_lsm->cache_miss++;
-                    req->flash_access_count++;
-                }
-
-                kv_assert(pg->data != NULL);
-                found = find_keyset((char *)pg->data, k);
-            }
-            entry = NULL;
-            if (found == NULL) {
-                level++;
-                goto retry;
-            }
-
-            pg = get_pg(&found->ppa);
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            //srd.stime = req->stime;
-            srd.stime = req->etime;
-            sublat = pink_ssd_advance_status(&found->ppa, &srd);
-            //maxlat = (sublat > maxlat) ? sublat : maxlat;
-            req->etime += sublat;
-
-            kv_assert(((uint16_t *)pg->data)[0]);
-            kv_assert(strncmp(
-                        pg->data + ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1],
-                        found->lpa.k.key, found->lpa.k.len) == 0);
-            found->value.length = ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+2] - ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1] - found->lpa.k.len;
-            found->value.value = (char *) malloc(found->value.length * sizeof(char));
-            memcpy(found->value.value, pg->data + ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1] + found->lpa.k.len, found->value.length);
-            req->value_length = found->value.length;
-            req->value = (uint8_t *) found->value.value;
-            FREE(found->lpa.k.key);
-            FREE(found);
-            FREE(k.key);
-            req->flash_access_count++;
-            return req->etime - req->stime;
-        case FOUND:
-            /*
-             * Success to find the run in not pinned levels.
-             * But not try to find the keyset yet.
-             */
-            pg = get_pg(&entry->ppa);
-            if (kv_is_cached(pink_lsm->lsm_cache, entry->cache[META_SEGMENT])) {
-#ifdef CACHE_UPDATE
-                kv_cache_update(pink_lsm->lsm_cache, entry->cache[META_SEGMENT]);
-#endif
-                pink_lsm->cache_hit++;
-                if (pink_lsm->cache_hit % 10000 == 0) {
-                    kv_debug("cache hit ratio: %lu\n", pink_lsm->cache_hit * 100 / (pink_lsm->cache_hit + pink_lsm->cache_miss));
-                }
-            } else {
-                srd.type = USER_IO;
-                srd.cmd = NAND_READ;
-                //srd.stime = req->stime;
-                srd.stime = req->etime;
-                sublat = pink_ssd_advance_status(&entry->ppa, &srd);
-                //maxlat = (sublat > maxlat) ? sublat : maxlat;
-                req->etime += sublat;
-                if (kv_cache_available(pink_lsm->lsm_cache, cache_level(META_SEGMENT, level))) {
-                    kv_cache_insert(pink_lsm->lsm_cache, &entry->cache[META_SEGMENT], PAGESIZE, cache_level(META_SEGMENT, level), KV_CACHE_WITHOUT_FLAGS);
-                }
-                pink_lsm->cache_miss++;
-                req->flash_access_count++;
-            }
-
-            kv_assert(pg->data != NULL);
-            found = find_keyset((char *)pg->data, k);
-            if (found == NULL) {
-                level++;
-                goto retry;
-            }
-
-            pg = get_pg(&found->ppa);
-            srd.type = USER_IO;
-            srd.cmd = NAND_READ;
-            //srd.stime = req->stime;
-            srd.stime = req->etime;
-            sublat = pink_ssd_advance_status(&found->ppa, &srd);
-            //maxlat = (sublat > maxlat) ? sublat : maxlat;
-            req->etime += sublat;
-
-            kv_assert(((uint16_t *)pg->data)[0]);
-            kv_assert(strncmp(
-                        pg->data + ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1],
-                        found->lpa.k.key, found->lpa.k.len) == 0);
-            found->value.length = ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+2] - ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1] - found->lpa.k.len;
-            found->value.value = (char *) malloc(found->value.length * sizeof(char));
-            memcpy(found->value.value, pg->data + ((uint16_t *)pg->data)[found->lpa.line_age.g.in_page_idx+1] + found->lpa.k.len, found->value.length);
-            req->value_length = found->value.length;
-            req->value = (uint8_t *) found->value.value;
-            FREE(found->lpa.k.key);
-            FREE(found);
-            FREE(k.key);
-            req->flash_access_count++;
-            return req->etime - req->stime;
-        case NOTFOUND:
-            kv_debug("not found?\n");
-            FREE(k.key);
-            break;
+        return req->etime - req->stime;
     }
+
+    abort();
+
     return req->etime - req->stime;
 }
 
@@ -1135,10 +932,9 @@ static uint64_t ssd_store(NvmeRequest *req)
 
     if (make_room_for_write() != 0)
     {
-        // TODO: handling error
         return -1;
     }
-    kv_skiplist_insert(pink_lsm->mem, k, v);
+    pink_skiplist_insert(pink_lsm->mem, k, v);
 
     qemu_mutex_unlock(&pink_lsm->mu);
 

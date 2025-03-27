@@ -13,15 +13,6 @@ typedef struct pink_per_snode_data {
     int             off;
 } pink_per_snode_data;
 
-typedef struct pink_length_bucket {
-    kv_snode **bucket[MAXVALUESIZE+1];
-    struct pink_gc_node **gc_bucket[MAXVALUESIZE+1];
-    uint32_t indices[MAXVALUESIZE+1];
-    kv_value** contents;
-    int contents_num;
-} pink_l_bucket;
-
-pink_l_bucket *pink_skiplist_make_length_bucket(kv_skiplist *sl);
-kv_skiplist *pink_skiplist_cutting_header(kv_skiplist *in);
+kv_snode *pink_skiplist_insert(kv_skiplist *list, kv_key key, kv_value* value);
 
 #endif

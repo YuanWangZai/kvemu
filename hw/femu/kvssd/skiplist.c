@@ -51,9 +51,11 @@ static void
 kv_skiplist_free (kv_skiplist *list)
 {
     if(list==NULL) return;
+
     kv_skiplist_clear(list);
     FREE(list->header->list);
     FREE(list->header);
+
     FREE(list);
     return;
 }
@@ -91,14 +93,29 @@ kv_snode *kv_skiplist_find(kv_skiplist *list, kv_key key)
     kv_snode *x;
     int i;
     if (!list) return NULL;
-    if (list->n==0) return NULL;
+
+    pthread_spin_lock(&list->lock);
+
+    if (list->n==0)
+    {
+        pthread_spin_unlock(&list->lock);
+        return NULL;
+    }
+
     x = list->header;
     for (i = list->level; i >= 1; i--) {
         while (kv_cmp_key(x->list[i]->key, key) < 0)
             x = x->list[i];
     }
+
     if (kv_test_key(x->list[1]->key,key))
+    {
+        pthread_spin_unlock(&list->lock);
         return x->list[1];
+    }
+
+    pthread_spin_unlock(&list->lock);
+
     return NULL;
 }
 
@@ -117,6 +134,8 @@ static inline int get_level(void)
 
 kv_snode *kv_skiplist_insert(kv_skiplist *list, kv_key key, kv_value* value)
 {
+    pthread_spin_lock(&list->lock);
+
     kv_snode *update[MAX_L+1];
     kv_snode *x=list->header;
 
@@ -136,6 +155,7 @@ kv_snode *kv_skiplist_insert(kv_skiplist *list, kv_key key, kv_value* value)
         FREE(x->key.key);
         x->key = key;
         x->value=value;
+        pthread_spin_unlock(&list->lock);
         return x;
     } else {
         int level=get_level();
@@ -167,23 +187,32 @@ kv_snode *kv_skiplist_insert(kv_skiplist *list, kv_key key, kv_value* value)
         list->val_size += value->length;
     }
 
+    pthread_spin_unlock(&list->lock);
+
     return x;
 }
 
 void kv_skiplist_get_start_end_key(kv_skiplist *sl, kv_key *start, kv_key *end)
 {
+    pthread_spin_lock(&sl->lock);
+
     kv_assert(sl->n > 0);
     kv_copy_key(start, &sl->header->list[1]->key);
     kv_copy_key(end, &sl->header->back->key);
+
+    pthread_spin_unlock(&sl->lock);
 }
 
 kv_skiplist *kv_skiplist_divide(kv_skiplist *in, kv_snode *target, int num, int key_size, int val_size) {
+    pthread_spin_lock(&in->lock);
+
     kv_skiplist *res = kv_skiplist_init();
     if (target == in->header) {
         kv_skiplist swap;
         memcpy(&swap, in, sizeof(kv_skiplist));
         memcpy(in, res, sizeof(kv_skiplist));
         memcpy(res, &swap, sizeof(kv_skiplist));
+        pthread_spin_unlock(&in->lock);
         return res;
     }
 
@@ -238,6 +267,7 @@ kv_skiplist *kv_skiplist_divide(kv_skiplist *in, kv_snode *target, int num, int 
     if (in->level == 0)
         in->level = 1;
 
+    pthread_spin_unlock(&in->lock);
     return res;
 }
 
