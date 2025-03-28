@@ -4,6 +4,10 @@
 static void
 next_page(pink_meta_seg_writer *w)
 {
+    // TODO: find more proper ways for gc.
+    if (pink_should_meta_gc_high(0))
+        pink_gc_meta_femu();
+
     w->left = PAGESIZE - (4 * sizeof(uint16_t)) - sizeof(uint64_t);
     w->writing_ppa = get_new_meta_page();
     w->n = 0;
