@@ -791,13 +791,7 @@ find_from_list(kv_key key, kv_skiplist *skl, NvmeRequest *req)
         d.ppa = *snode_ppa(n);
         d.data_seg_offset.g.in_page_idx = *snode_off(n);
 
-        struct nand_cmd srd;
-        srd.type = USER_IO;
-        srd.cmd = NAND_READ;
-        srd.stime = req->etime;
-        req->flash_access_count++;
-        uint64_t sublat = pink_ssd_advance_status(&d.ppa, &srd); 
-        req->etime += sublat;
+        pink_user_read_delay(&d.ppa, req);
 
         pg = get_pg(&d.ppa);
         kv_assert(strncmp(pg->data + ((uint16_t *)pg->data)[d.data_seg_offset.g.in_page_idx+1], key.key, key.len) == 0);

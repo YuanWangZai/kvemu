@@ -772,13 +772,7 @@ find_from_list(kv_key key, kv_skiplist *skl, NvmeRequest *req)
         d.value_log_offset = *snode_off(n);
         d.hash = *snode_hash(n);
 
-        struct nand_cmd srd;
-        srd.type = USER_IO;
-        srd.cmd = NAND_READ;
-        srd.stime = req->etime;
-        req->flash_access_count++;
-        uint64_t sublat = lksv3_ssd_advance_status(&d.ppa, &srd); 
-        req->etime += sublat;
+        lksv_user_read_delay(&d.ppa, req);
 
         pg = lksv3_get_pg(&d.ppa);
         int offset = PAGESIZE -
