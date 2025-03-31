@@ -632,9 +632,10 @@ internal_get(int eid, kv_key k1, uint32_t hash, NvmeRequest *req)
     lksv_level_list_entry *e = lksv_lget(eid);
 
     int i;
+    uint16_t shifted_hash = hash >> LEVELLIST_HASH_SHIFTS;
     for (i = e->hash_list_n-1; i > 0; i--)
     {
-        if (e->hash_lists[i].hashes[0] <= hash)
+        if (e->pg_start_hashes[i] <= shifted_hash)
             break;
     }
 
@@ -691,7 +692,7 @@ retry:
         }
     }
 
-    if (!v && i > 0 && e->hash_lists[i].hashes[0] == hash)
+    if (!v && i > 0 && e->hash_lists[i].hashes[0] >= hash)
     {
         i--;
         goto retry;

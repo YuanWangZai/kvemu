@@ -87,9 +87,6 @@ typedef struct lksv_level_list_entry
     uint16_t        pg_start_hashes[PG_N];
     int             hash_list_n;
 
-    // TODO: Change this to bitmap.
-    bool            collision_bits[PG_N];
-
     // raw format of meta segment. (page size)
     char            *buffer[PG_N];
 
