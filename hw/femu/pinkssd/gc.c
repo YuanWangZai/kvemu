@@ -132,7 +132,7 @@ binary_search2(void *data, kv_key k, struct femu_ppa *data_seg_ppa, struct line_
 {
     int end = *(uint16_t *)data;
     int start = 0;
-    int mid, res;
+    int mid=0, res=0;
 
     uint16_t *bitmap = (uint16_t *)data;
     uint16_t *vbitmap = (uint16_t *)(data + (end+2) * sizeof(uint16_t));

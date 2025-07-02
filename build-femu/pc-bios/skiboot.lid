@@ -1,0 +1,1 @@
+/opt/work/kvemu/pc-bios/skiboot.lid
