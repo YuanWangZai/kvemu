@@ -1,0 +1,1131 @@
+[FEMU] KV-Log: Set cache memory to 57 MB
+[FEMU] KV-Log: d2m line(6): data lines(506), meta lines(6)
+[FEMU] KV-Log: d2m line(7): data lines(505), meta lines(7)
+[FEMU] KV-Log: d2m line(8): data lines(504), meta lines(8)
+[FEMU] KV-Log: d2m line(9): data lines(503), meta lines(9)
+[FEMU] KV-Log: d2m line(10): data lines(502), meta lines(10)
+[FEMU] KV-Log: d2m line(11): data lines(501), meta lines(11)
+[FEMU] KV-Log: d2m line(12): data lines(500), meta lines(12)
+[FEMU] KV-Log: d2m line(13): data lines(499), meta lines(13)
+[FEMU] KV-Log: d2m line(14): data lines(498), meta lines(14)
+[FEMU] KV-Log: d2m line(15): data lines(497), meta lines(15)
+[FEMU] KV-Log: d2m line(16): data lines(496), meta lines(16)
+[FEMU] KV-Log: d2m line(17): data lines(495), meta lines(17)
+[FEMU] KV-Log: d2m line(18): data lines(494), meta lines(18)
+[FEMU] KV-Log: d2m line(19): data lines(493), meta lines(19)
+[FEMU] KV-Log: d2m line(20): data lines(492), meta lines(20)
+[FEMU] KV-Log: d2m line(21): data lines(491), meta lines(21)
+[FEMU] KV-Log: d2m line(22): data lines(490), meta lines(22)
+c[?7l[2J[0mSeaBIOS (version rel-1.16.0-0-gd239552ce722-prebuilt.qemu.org)
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,identify
+
+
+iPXE (http://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+BFF910C0+BFEF10C0 CA00
+Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
+
+
+Booting from Hard Disk...
+[FEMU] Dbg: disabling NVMe Controller ...
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,get_log_page
+[FEMU] Dbg: admin cmd,set_feature
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[1]->virq=41
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[2]->virq=42
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[3]->virq=43
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[4]->virq=44
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[5]->virq=45
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[6]->virq=46
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[7]->virq=47
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: nvme_add_kvm_msi_virq,cq[8]->virq=48
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: admin cmd,set_db_memory
+[FEMU] Dbg: DBBUF,sq[1]:db=5033263112,ei=5041491976
+[FEMU] Dbg: DBBUF,cq[1]:db=5033263116,ei=5041491980
+[FEMU] Dbg: DBBUF,sq[2]:db=5033263120,ei=5041491984
+[FEMU] Dbg: DBBUF,cq[2]:db=5033263124,ei=5041491988
+[FEMU] Dbg: DBBUF,sq[3]:db=5033263128,ei=5041491992
+[FEMU] Dbg: DBBUF,cq[3]:db=5033263132,ei=5041491996
+[FEMU] Dbg: DBBUF,sq[4]:db=5033263136,ei=5041492000
+[FEMU] Dbg: DBBUF,cq[4]:db=5033263140,ei=5041492004
+[FEMU] Dbg: DBBUF,sq[5]:db=5033263144,ei=5041492008
+[FEMU] Dbg: DBBUF,cq[5]:db=5033263148,ei=5041492012
+[FEMU] Dbg: DBBUF,sq[6]:db=5033263152,ei=5041492016
+[FEMU] Dbg: DBBUF,cq[6]:db=5033263156,ei=5041492020
+[FEMU] Dbg: DBBUF,sq[7]:db=5033263160,ei=5041492024
+[FEMU] Dbg: DBBUF,cq[7]:db=5033263164,ei=5041492028
+[FEMU] Dbg: DBBUF,sq[8]:db=5033263168,ei=5041492032
+[FEMU] Dbg: DBBUF,cq[8]:db=5033263172,ei=5041492036
+[FEMU] Dbg: nvme-poller [0] created ...
+[FEMU] Dbg: nvme_set_db_memory returns SUCCESS!
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_sq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: admin cmd,del_cq
+[FEMU] Dbg: shutting down NVMe Controller ...
+[FEMU] Dbg: nvme_clear_ctrl,clear_guest_notifier
+[FEMU] Dbg: disabling NVMe Controller ...
+[FEMU] Dbg: shutting down NVMe Controller ...
+[FEMU] Dbg: nvme_clear_ctrl,clear_guest_notifier
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,set_feature
+[FEMU] Dbg: admin cmd,get_feature
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,set_feature
+[FEMU] Dbg: admin cmd,set_db_memory
+[FEMU] Dbg: nvme_set_db_memory returns SUCCESS!
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: CQ, db_addr=4468854796, eventidx_addr=4468846604
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: SQ[1],db=4468854792,ei=140111257612294
+[FEMU] Dbg: admin cmd,create_cq
+[FEMU] Dbg: CQ, db_addr=4468854804, eventidx_addr=4468846612
+[FEMU] Dbg: admin cmd,create_sq
+[FEMU] Dbg: SQ[2],db=4468854800,ei=140111257612296
+[FEMU] Dbg: admin cmd,identify
+[FEMU] Dbg: admin cmd,identify
+[FEMU] KV-Log: 1 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 2 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 3 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 4 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 5 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 6 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 7 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 8 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 9 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 10 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 16318 / 16384, vpc: 66 
+[FEMU] KV-Log: 11 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 16283 / 16384, vpc: 101 
+[FEMU] KV-Log: 12 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 16255 / 16384, vpc: 129 
+[FEMU] KV-Log: 13 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 16201 / 16384, vpc: 183 
+[FEMU] KV-Log: 14 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 16229 / 16384, vpc: 155 
+[FEMU] KV-Log: 15 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 16198 / 16384, vpc: 186 
+[FEMU] KV-Log: 16 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 16195 / 16384, vpc: 189 
+[FEMU] KV-Log: 17 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 16140 / 16384, vpc: 244 
+[FEMU] KV-Log: 18 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 16127 / 16384, vpc: 257 
+[FEMU] KV-Log: 19 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 16222 / 16384, vpc: 162 
+[FEMU] KV-Log: 20 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 16031 / 16384, vpc: 353 
+[FEMU] KV-Log: 21 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 16036 / 16384, vpc: 348 
+[FEMU] KV-Log: 22 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 16031 / 16384, vpc: 353 
+[FEMU] KV-Log: 23 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 16021 / 16384, vpc: 363 
+[FEMU] KV-Log: 24 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 16082 / 16384, vpc: 302 
+[FEMU] KV-Log: 25 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 16095 / 16384, vpc: 289 
+[FEMU] KV-Log: 26 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 16208 / 16384, vpc: 176 
+[FEMU] KV-Log: 27 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 16062 / 16384, vpc: 322 
+[FEMU] KV-Log: 28 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 15976 / 16384, vpc: 408 
+[FEMU] KV-Log: 29 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 15913 / 16384, vpc: 471 
+[FEMU] KV-Log: 30 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 15905 / 16384, vpc: 479 
+[FEMU] KV-Log: 31 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 15784 / 16384, vpc: 600 
+[FEMU] KV-Log: 32 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 15945 / 16384, vpc: 439 
+[FEMU] KV-Log: 33 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 15932 / 16384, vpc: 452 
+[FEMU] KV-Log: 34 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 16000 / 16384, vpc: 384 
+[FEMU] KV-Log: 35 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 15847 / 16384, vpc: 537 
+[FEMU] KV-Log: 36 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 15840 / 16384, vpc: 544 
+[FEMU] KV-Log: 37 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 15945 / 16384, vpc: 439 
+[FEMU] KV-Log: 38 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 15940 / 16384, vpc: 444 
+[FEMU] KV-Log: 39 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 15848 / 16384, vpc: 536 
+[FEMU] KV-Log: 40 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 15856 / 16384, vpc: 528 
+[FEMU] KV-Log: 41 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 16022 / 16384, vpc: 362 
+[FEMU] KV-Log: 42 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 15853 / 16384, vpc: 531 
+[FEMU] KV-Log: 43 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 15970 / 16384, vpc: 414 
+[FEMU] KV-Log: 44 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 16034 / 16384, vpc: 350 
+[FEMU] KV-Log: 45 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 15925 / 16384, vpc: 459 
+[FEMU] KV-Log: 46 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 15905 / 16384, vpc: 479 
+[FEMU] KV-Log: 47 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 15793 / 16384, vpc: 591 
+[FEMU] KV-Log: 48 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 16029 / 16384, vpc: 355 
+[FEMU] KV-Log: 49 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 15864 / 16384, vpc: 520 
+[FEMU] KV-Log: 50 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 15787 / 16384, vpc: 597 
+[FEMU] KV-Log: 51 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 15774 / 16384, vpc: 610 
+[FEMU] KV-Log: 52 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 15937 / 16384, vpc: 447 
+[FEMU] KV-Log: 53 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 15729 / 16384, vpc: 655 
+[FEMU] KV-Log: 54 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 15679 / 16384, vpc: 705 
+[FEMU] KV-Log: 55 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 15957 / 16384, vpc: 427 
+[FEMU] KV-Log: 56 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 16019 / 16384, vpc: 365 
+[FEMU] KV-Log: 57 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 15579 / 16384, vpc: 805 
+[FEMU] KV-Log: 58 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 15661 / 16384, vpc: 723 
+[FEMU] KV-Log: 59 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 15638 / 16384, vpc: 746 
+[FEMU] KV-Log: 60 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 15662 / 16384, vpc: 722 
+[FEMU] KV-Log: 61 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 15657 / 16384, vpc: 727 
+[FEMU] KV-Log: 62 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 15809 / 16384, vpc: 575 
+[FEMU] KV-Log: 63 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 15413 / 16384, vpc: 971 
+[FEMU] KV-Log: 64 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 15700 / 16384, vpc: 684 
+[FEMU] KV-Log: 65 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 15326 / 16384, vpc: 1058 
+[FEMU] KV-Log: 66 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 15303 / 16384, vpc: 1081 
+[FEMU] KV-Log: 67 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 15224 / 16384, vpc: 1160 
+[FEMU] KV-Log: 68 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 15204 / 16384, vpc: 1180 
+[FEMU] KV-Log: 69 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 15458 / 16384, vpc: 926 
+[FEMU] KV-Log: 70 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 15068 / 16384, vpc: 1316 
+[FEMU] KV-Log: 71 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 15259 / 16384, vpc: 1125 
+[FEMU] KV-Log: 72 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 15394 / 16384, vpc: 990 
+[FEMU] KV-Log: 73 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 15473 / 16384, vpc: 911 
+[FEMU] KV-Log: 74 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 15455 / 16384, vpc: 929 
+[FEMU] KV-Log: 75 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 15449 / 16384, vpc: 935 
+[FEMU] KV-Log: 76 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 15433 / 16384, vpc: 951 
+[FEMU] KV-Log: 77 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 15473 / 16384, vpc: 911 
+[FEMU] KV-Log: 78 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 15292 / 16384, vpc: 1092 
+[FEMU] KV-Log: 79 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 15265 / 16384, vpc: 1119 
+[FEMU] KV-Log: 80 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 15408 / 16384, vpc: 976 
+[FEMU] KV-Log: 81 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 15689 / 16384, vpc: 695 
+[FEMU] KV-Log: 82 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 15306 / 16384, vpc: 1078 
+[FEMU] KV-Log: 83 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 15288 / 16384, vpc: 1096 
+[FEMU] KV-Log: 84 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 15157 / 16384, vpc: 1227 
+[FEMU] KV-Log: 85 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 15648 / 16384, vpc: 736 
+[FEMU] KV-Log: 86 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 15195 / 16384, vpc: 1189 
+[FEMU] KV-Log: 87 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 15304 / 16384, vpc: 1080 
+[FEMU] KV-Log: 88 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 15117 / 16384, vpc: 1267 
+[FEMU] KV-Log: 89 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 15228 / 16384, vpc: 1156 
+[FEMU] KV-Log: 90 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 15352 / 16384, vpc: 1032 
+[FEMU] KV-Log: 91 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 15177 / 16384, vpc: 1207 
+[FEMU] KV-Log: 92 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 15308 / 16384, vpc: 1076 
+[FEMU] KV-Log: 93 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 15106 / 16384, vpc: 1278 
+[FEMU] KV-Log: 94 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 15243 / 16384, vpc: 1141 
+[FEMU] KV-Log: 95 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 15733 / 16384, vpc: 651 
+[FEMU] KV-Log: 96 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 15078 / 16384, vpc: 1306 
+[FEMU] KV-Log: 97 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 14982 / 16384, vpc: 1402 
+[FEMU] KV-Log: 98 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 14893 / 16384, vpc: 1491 
+[FEMU] KV-Log: 99 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 14875 / 16384, vpc: 1509 
+[FEMU] KV-Log: 100 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 15125 / 16384, vpc: 1259 
+[FEMU] KV-Log: 101 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 14828 / 16384, vpc: 1556 
+[FEMU] KV-Log: 102 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 15089 / 16384, vpc: 1295 
+[FEMU] KV-Log: 103 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 14709 / 16384, vpc: 1675 
+[FEMU] KV-Log: 104 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 14649 / 16384, vpc: 1735 
+[FEMU] KV-Log: 105 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 14611 / 16384, vpc: 1773 
+[FEMU] KV-Log: 106 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 14578 / 16384, vpc: 1806 
+[FEMU] KV-Log: 107 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 15506 / 16384, vpc: 878 
+[FEMU] KV-Log: 108 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 15065 / 16384, vpc: 1319 
+[FEMU] KV-Log: 109 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 14886 / 16384, vpc: 1498 
+[FEMU] KV-Log: 110 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 14673 / 16384, vpc: 1711 
+[FEMU] KV-Log: 111 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 15208 / 16384, vpc: 1176 
+[FEMU] KV-Log: 112 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 14895 / 16384, vpc: 1489 
+[FEMU] KV-Log: 113 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 14859 / 16384, vpc: 1525 
+[FEMU] KV-Log: 114 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 15192 / 16384, vpc: 1192 
+[FEMU] KV-Log: 115 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 15872 / 16384, vpc: 512 
+[FEMU] KV-Log: 116 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 14639 / 16384, vpc: 1745 
+[FEMU] KV-Log: 117 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 14607 / 16384, vpc: 1777 
+[FEMU] KV-Log: 118 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 14415 / 16384, vpc: 1969 
+[FEMU] KV-Log: 119 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 14648 / 16384, vpc: 1736 
+[FEMU] KV-Log: 120 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 14541 / 16384, vpc: 1843 
+[FEMU] KV-Log: 121 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 14693 / 16384, vpc: 1691 
+[FEMU] KV-Log: 122 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 14420 / 16384, vpc: 1964 
+[FEMU] KV-Log: 123 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 15031 / 16384, vpc: 1353 
+[FEMU] KV-Log: 124 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 14936 / 16384, vpc: 1448 
+[FEMU] KV-Log: 125 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 14794 / 16384, vpc: 1590 
+[FEMU] KV-Log: 126 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 14655 / 16384, vpc: 1729 
+[FEMU] KV-Log: 127 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 14514 / 16384, vpc: 1870 
+[FEMU] KV-Log: 128 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 14402 / 16384, vpc: 1982 
+[FEMU] KV-Log: 129 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 14711 / 16384, vpc: 1673 
+[FEMU] KV-Log: 130 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 14464 / 16384, vpc: 1920 
+[FEMU] KV-Log: 131 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 14744 / 16384, vpc: 1640 
+[FEMU] KV-Log: 132 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 14502 / 16384, vpc: 1882 
+[FEMU] KV-Log: 133 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 15149 / 16384, vpc: 1235 
+[FEMU] KV-Log: 134 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 15024 / 16384, vpc: 1360 
+[FEMU] KV-Log: 135 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 14883 / 16384, vpc: 1501 
+[FEMU] KV-Log: 136 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 14646 / 16384, vpc: 1738 
+[FEMU] KV-Log: 137 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 14574 / 16384, vpc: 1810 
+[FEMU] KV-Log: 138 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 14834 / 16384, vpc: 1550 
+[FEMU] KV-Log: 139 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 14658 / 16384, vpc: 1726 
+[FEMU] KV-Log: 140 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 14808 / 16384, vpc: 1576 
+[FEMU] KV-Log: 141 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 15101 / 16384, vpc: 1283 
+[FEMU] KV-Log: 142 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 15502 / 16384, vpc: 882 
+[FEMU] KV-Log: 143 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 14709 / 16384, vpc: 1675 
+[FEMU] KV-Log: 144 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 14360 / 16384, vpc: 2024 
+[FEMU] KV-Log: 145 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 13984 / 16384, vpc: 2400 
+[FEMU] KV-Log: 146 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 14293 / 16384, vpc: 2091 
+[FEMU] KV-Log: 147 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 13840 / 16384, vpc: 2544 
+[FEMU] KV-Log: 148 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 15126 / 16384, vpc: 1258 
+[FEMU] KV-Log: 149 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 14383 / 16384, vpc: 2001 
+[FEMU] KV-Log: 150 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 14277 / 16384, vpc: 2107 
+[FEMU] KV-Log: 151 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 13834 / 16384, vpc: 2550 
+[FEMU] KV-Log: 152 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 14242 / 16384, vpc: 2142 
+[FEMU] KV-Log: 153 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 14026 / 16384, vpc: 2358 
+[FEMU] KV-Log: 154 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 13787 / 16384, vpc: 2597 
+[FEMU] KV-Log: 155 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 14302 / 16384, vpc: 2082 
+[FEMU] KV-Log: 156 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 14962 / 16384, vpc: 1422 
+[FEMU] KV-Log: 157 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 14881 / 16384, vpc: 1503 
+[FEMU] KV-Log: 158 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 13931 / 16384, vpc: 2453 
+[FEMU] KV-Log: 159 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 13923 / 16384, vpc: 2461 
+[FEMU] KV-Log: 160 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 13648 / 16384, vpc: 2736 
+[FEMU] KV-Log: 161 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 13279 / 16384, vpc: 3105 
+[FEMU] KV-Log: 162 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 14248 / 16384, vpc: 2136 
+[FEMU] KV-Log: 163 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 13729 / 16384, vpc: 2655 
+[FEMU] KV-Log: 164 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 13874 / 16384, vpc: 2510 
+[FEMU] KV-Log: 165 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 13867 / 16384, vpc: 2517 
+[FEMU] KV-Log: 166 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 13514 / 16384, vpc: 2870 
+[FEMU] KV-Log: 167 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 13662 / 16384, vpc: 2722 
+[FEMU] KV-Log: 168 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 13537 / 16384, vpc: 2847 
+[FEMU] KV-Log: 169 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 13208 / 16384, vpc: 3176 
+[FEMU] KV-Log: 170 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 13222 / 16384, vpc: 3162 
+[FEMU] KV-Log: 171 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 13733 / 16384, vpc: 2651 
+[FEMU] KV-Log: 172 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 13894 / 16384, vpc: 2490 
+[FEMU] KV-Log: 173 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 13213 / 16384, vpc: 3171 
+[FEMU] KV-Log: 174 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 14115 / 16384, vpc: 2269 
+[FEMU] KV-Log: 175 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 14425 / 16384, vpc: 1959 
+[FEMU] KV-Log: 176 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 13471 / 16384, vpc: 2913 
+[FEMU] KV-Log: 177 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 13454 / 16384, vpc: 2930 
+[FEMU] KV-Log: 178 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 13611 / 16384, vpc: 2773 
+[FEMU] KV-Log: 179 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 14007 / 16384, vpc: 2377 
+[FEMU] KV-Log: 180 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 13425 / 16384, vpc: 2959 
+[FEMU] KV-Log: 181 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 13523 / 16384, vpc: 2861 
+[FEMU] KV-Log: 182 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 14173 / 16384, vpc: 2211 
+[FEMU] KV-Log: 183 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 13409 / 16384, vpc: 2975 
+[FEMU] KV-Log: 184 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 13623 / 16384, vpc: 2761 
+[FEMU] KV-Log: 185 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 13671 / 16384, vpc: 2713 
+[FEMU] KV-Log: 186 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 14635 / 16384, vpc: 1749 
+[FEMU] KV-Log: 187 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 13352 / 16384, vpc: 3032 
+[FEMU] KV-Log: 188 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 13189 / 16384, vpc: 3195 
+[FEMU] KV-Log: 189 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 14712 / 16384, vpc: 1672 
+[FEMU] KV-Log: 190 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 15261 / 16384, vpc: 1123 
+[FEMU] KV-Log: 191 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 13465 / 16384, vpc: 2919 
+[FEMU] KV-Log: 192 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 13175 / 16384, vpc: 3209 
+[FEMU] KV-Log: 193 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 13970 / 16384, vpc: 2414 
+[FEMU] KV-Log: 194 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 13504 / 16384, vpc: 2880 
+[FEMU] KV-Log: 195 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 14227 / 16384, vpc: 2157 
+[FEMU] KV-Log: 196 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 13907 / 16384, vpc: 2477 
+[FEMU] KV-Log: 197 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 13438 / 16384, vpc: 2946 
+[FEMU] KV-Log: 198 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 13326 / 16384, vpc: 3058 
+[FEMU] KV-Log: 199 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 13555 / 16384, vpc: 2829 
+[FEMU] KV-Log: 200 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 12906 / 16384, vpc: 3478 
+[FEMU] KV-Log: 201 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 15710 / 16384, vpc: 674 
+[FEMU] KV-Log: 202 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 14076 / 16384, vpc: 2308 
+[FEMU] KV-Log: 203 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 14362 / 16384, vpc: 2022 
+[FEMU] KV-Log: 204 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 13620 / 16384, vpc: 2764 
+[FEMU] KV-Log: 205 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 14016 / 16384, vpc: 2368 
+[FEMU] KV-Log: 206 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 14703 / 16384, vpc: 1681 
+[FEMU] KV-Log: 207 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 13613 / 16384, vpc: 2771 
+[FEMU] KV-Log: 208 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 13291 / 16384, vpc: 3093 
+[FEMU] KV-Log: 209 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 13264 / 16384, vpc: 3120 
+[FEMU] KV-Log: 210 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 14073 / 16384, vpc: 2311 
+[FEMU] KV-Log: 211 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 13272 / 16384, vpc: 3112 
+[FEMU] KV-Log: 212 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 13174 / 16384, vpc: 3210 
+[FEMU] KV-Log: 213 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 12646 / 16384, vpc: 3738 
+[FEMU] KV-Log: 214 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 13695 / 16384, vpc: 2689 
+[FEMU] KV-Log: 215 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 13108 / 16384, vpc: 3276 
+[FEMU] KV-Log: 216 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 12764 / 16384, vpc: 3620 
+[FEMU] KV-Log: 217 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 12994 / 16384, vpc: 3390 
+[FEMU] KV-Log: 218 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 13845 / 16384, vpc: 2539 
+[FEMU] KV-Log: 219 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 13705 / 16384, vpc: 2679 
+[FEMU] KV-Log: 220 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 13247 / 16384, vpc: 3137 
+[FEMU] KV-Log: 221 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 12827 / 16384, vpc: 3557 
+[FEMU] KV-Log: 222 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 12769 / 16384, vpc: 3615 
+[FEMU] KV-Log: 223 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 13260 / 16384, vpc: 3124 
+[FEMU] KV-Log: 224 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 14383 / 16384, vpc: 2001 
+[FEMU] KV-Log: 225 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 12956 / 16384, vpc: 3428 
+[FEMU] KV-Log: 226 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 13070 / 16384, vpc: 3314 
+[FEMU] KV-Log: 227 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 13013 / 16384, vpc: 3371 
+[FEMU] KV-Log: 228 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 12511 / 16384, vpc: 3873 
+[FEMU] KV-Log: 229 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 13754 / 16384, vpc: 2630 
+[FEMU] KV-Log: 230 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 14025 / 16384, vpc: 2359 
+[FEMU] KV-Log: 231 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 12553 / 16384, vpc: 3831 
+[FEMU] KV-Log: 232 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 13095 / 16384, vpc: 3289 
+[FEMU] KV-Log: 233 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 12452 / 16384, vpc: 3932 
+[FEMU] KV-Log: 234 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 12350 / 16384, vpc: 4034 
+[FEMU] KV-Log: 235 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 13386 / 16384, vpc: 2998 
+[FEMU] KV-Log: 236 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 13774 / 16384, vpc: 2610 
+[FEMU] KV-Log: 237 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 13767 / 16384, vpc: 2617 
+[FEMU] KV-Log: 238 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 13048 / 16384, vpc: 3336 
+[FEMU] KV-Log: 239 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 12792 / 16384, vpc: 3592 
+[FEMU] KV-Log: 240 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 12440 / 16384, vpc: 3944 
+[FEMU] KV-Log: 241 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 12429 / 16384, vpc: 3955 
+[FEMU] KV-Log: 242 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 12824 / 16384, vpc: 3560 
+[FEMU] KV-Log: 243 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 12978 / 16384, vpc: 3406 
+[FEMU] KV-Log: 244 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 14560 / 16384, vpc: 1824 
+[FEMU] KV-Log: 245 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 13043 / 16384, vpc: 3341 
+[FEMU] KV-Log: 246 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 12092 / 16384, vpc: 4292 
+[FEMU] KV-Log: 247 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 13002 / 16384, vpc: 3382 
+[FEMU] KV-Log: 248 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11966 / 16384, vpc: 4418 
+[FEMU] KV-Log: 249 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 12144 / 16384, vpc: 4240 
+[FEMU] KV-Log: 250 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 12744 / 16384, vpc: 3640 
+[FEMU] KV-Log: 251 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 12352 / 16384, vpc: 4032 
+[FEMU] KV-Log: 252 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 12338 / 16384, vpc: 4046 
+[FEMU] KV-Log: 253 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 12363 / 16384, vpc: 4021 
+[FEMU] KV-Log: 254 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 12092 / 16384, vpc: 4292 
+[FEMU] KV-Log: 255 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 12221 / 16384, vpc: 4163 
+[FEMU] KV-Log: 256 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11910 / 16384, vpc: 4474 
+[FEMU] KV-Log: 257 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11886 / 16384, vpc: 4498 
+[FEMU] KV-Log: 258 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 12369 / 16384, vpc: 4015 
+[FEMU] KV-Log: 259 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11990 / 16384, vpc: 4394 
+[FEMU] KV-Log: 260 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11747 / 16384, vpc: 4637 
+[FEMU] KV-Log: 261 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 12134 / 16384, vpc: 4250 
+[FEMU] KV-Log: 262 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 12944 / 16384, vpc: 3440 
+[FEMU] KV-Log: 263 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 12703 / 16384, vpc: 3681 
+[FEMU] KV-Log: 264 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 12823 / 16384, vpc: 3561 
+[FEMU] KV-Log: 265 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 12828 / 16384, vpc: 3556 
+[FEMU] KV-Log: 266 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 12551 / 16384, vpc: 3833 
+[FEMU] KV-Log: 267 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 12229 / 16384, vpc: 4155 
+[FEMU] KV-Log: 268 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 13441 / 16384, vpc: 2943 
+[FEMU] KV-Log: 269 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12558 / 16384, vpc: 3826 
+[FEMU] KV-Log: 270 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 12441 / 16384, vpc: 3943 
+[FEMU] KV-Log: 271 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 12290 / 16384, vpc: 4094 
+[FEMU] KV-Log: 272 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 12273 / 16384, vpc: 4111 
+[FEMU] KV-Log: 273 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 13432 / 16384, vpc: 2952 
+[FEMU] KV-Log: 274 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 12097 / 16384, vpc: 4287 
+[FEMU] KV-Log: 275 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11946 / 16384, vpc: 4438 
+[FEMU] KV-Log: 276 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11424 / 16384, vpc: 4960 
+[FEMU] KV-Log: 277 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 13482 / 16384, vpc: 2902 
+[FEMU] KV-Log: 278 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 12303 / 16384, vpc: 4081 
+[FEMU] KV-Log: 279 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 13577 / 16384, vpc: 2807 
+[FEMU] KV-Log: 280 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11654 / 16384, vpc: 4730 
+[FEMU] KV-Log: 281 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12402 / 16384, vpc: 3982 
+[FEMU] KV-Log: 282 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11602 / 16384, vpc: 4782 
+[FEMU] KV-Log: 283 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11346 / 16384, vpc: 5038 
+[FEMU] KV-Log: 284 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11253 / 16384, vpc: 5131 
+[FEMU] KV-Log: 285 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 12229 / 16384, vpc: 4155 
+[FEMU] KV-Log: 286 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 12052 / 16384, vpc: 4332 
+[FEMU] KV-Log: 287 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 12847 / 16384, vpc: 3537 
+[FEMU] KV-Log: 288 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 13195 / 16384, vpc: 3189 
+[FEMU] KV-Log: 289 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 12293 / 16384, vpc: 4091 
+[FEMU] KV-Log: 290 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 12185 / 16384, vpc: 4199 
+[FEMU] KV-Log: 291 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11790 / 16384, vpc: 4594 
+[FEMU] KV-Log: 292 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 12397 / 16384, vpc: 3987 
+[FEMU] KV-Log: 293 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11347 / 16384, vpc: 5037 
+[FEMU] KV-Log: 294 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11080 / 16384, vpc: 5304 
+[FEMU] KV-Log: 295 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 11032 / 16384, vpc: 5352 
+[FEMU] KV-Log: 296 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 10791 / 16384, vpc: 5593 
+[FEMU] KV-Log: 297 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 13426 / 16384, vpc: 2958 
+[FEMU] KV-Log: 298 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11203 / 16384, vpc: 5181 
+[FEMU] KV-Log: 299 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12479 / 16384, vpc: 3905 
+[FEMU] KV-Log: 300 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11406 / 16384, vpc: 4978 
+[FEMU] KV-Log: 301 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11293 / 16384, vpc: 5091 
+[FEMU] KV-Log: 302 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11126 / 16384, vpc: 5258 
+[FEMU] KV-Log: 303 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11610 / 16384, vpc: 4774 
+[FEMU] KV-Log: 304 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 13670 / 16384, vpc: 2714 
+[FEMU] KV-Log: 305 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11993 / 16384, vpc: 4391 
+[FEMU] KV-Log: 306 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 12095 / 16384, vpc: 4289 
+[FEMU] KV-Log: 307 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 11498 / 16384, vpc: 4886 
+[FEMU] KV-Log: 308 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11592 / 16384, vpc: 4792 
+[FEMU] KV-Log: 309 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11164 / 16384, vpc: 5220 
+[FEMU] KV-Log: 310 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11579 / 16384, vpc: 4805 
+[FEMU] KV-Log: 311 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 10853 / 16384, vpc: 5531 
+[FEMU] KV-Log: 312 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11388 / 16384, vpc: 4996 
+[FEMU] KV-Log: 313 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11643 / 16384, vpc: 4741 
+[FEMU] KV-Log: 314 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11260 / 16384, vpc: 5124 
+[FEMU] KV-Log: 315 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10849 / 16384, vpc: 5535 
+[FEMU] KV-Log: 316 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12407 / 16384, vpc: 3977 
+[FEMU] KV-Log: 317 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 11405 / 16384, vpc: 4979 
+[FEMU] KV-Log: 318 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 14055 / 16384, vpc: 2329 
+[FEMU] KV-Log: 319 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11576 / 16384, vpc: 4808 
+[FEMU] KV-Log: 320 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 11443 / 16384, vpc: 4941 
+[FEMU] KV-Log: 321 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11062 / 16384, vpc: 5322 
+[FEMU] KV-Log: 322 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 13159 / 16384, vpc: 3225 
+[FEMU] KV-Log: 323 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12221 / 16384, vpc: 4163 
+[FEMU] KV-Log: 324 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 11340 / 16384, vpc: 5044 
+[FEMU] KV-Log: 325 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 12086 / 16384, vpc: 4298 
+[FEMU] KV-Log: 326 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11375 / 16384, vpc: 5009 
+[FEMU] KV-Log: 327 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11173 / 16384, vpc: 5211 
+[FEMU] KV-Log: 328 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11269 / 16384, vpc: 5115 
+[FEMU] KV-Log: 329 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 12237 / 16384, vpc: 4147 
+[FEMU] KV-Log: 330 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 10853 / 16384, vpc: 5531 
+[FEMU] KV-Log: 331 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11651 / 16384, vpc: 4733 
+[FEMU] KV-Log: 332 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 12936 / 16384, vpc: 3448 
+[FEMU] KV-Log: 333 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 12758 / 16384, vpc: 3626 
+[FEMU] KV-Log: 334 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11570 / 16384, vpc: 4814 
+[FEMU] KV-Log: 335 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11292 / 16384, vpc: 5092 
+[FEMU] KV-Log: 336 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10817 / 16384, vpc: 5567 
+[FEMU] KV-Log: 337 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11044 / 16384, vpc: 5340 
+[FEMU] KV-Log: 338 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 12528 / 16384, vpc: 3856 
+[FEMU] KV-Log: 339 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 10899 / 16384, vpc: 5485 
+[FEMU] KV-Log: 340 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 12294 / 16384, vpc: 4090 
+[FEMU] KV-Log: 341 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 12134 / 16384, vpc: 4250 
+[FEMU] KV-Log: 342 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11961 / 16384, vpc: 4423 
+[FEMU] KV-Log: 343 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 12676 / 16384, vpc: 3708 
+[FEMU] KV-Log: 344 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 11765 / 16384, vpc: 4619 
+[FEMU] KV-Log: 345 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11430 / 16384, vpc: 4954 
+[FEMU] KV-Log: 346 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 12019 / 16384, vpc: 4365 
+[FEMU] KV-Log: 347 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 12111 / 16384, vpc: 4273 
+[FEMU] KV-Log: 348 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 12620 / 16384, vpc: 3764 
+[FEMU] KV-Log: 349 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 12580 / 16384, vpc: 3804 
+[FEMU] KV-Log: 350 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11319 / 16384, vpc: 5065 
+[FEMU] KV-Log: 351 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11501 / 16384, vpc: 4883 
+[FEMU] KV-Log: 352 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11401 / 16384, vpc: 4983 
+[FEMU] KV-Log: 353 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11362 / 16384, vpc: 5022 
+[FEMU] KV-Log: 354 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 10758 / 16384, vpc: 5626 
+[FEMU] KV-Log: 355 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10693 / 16384, vpc: 5691 
+[FEMU] KV-Log: 356 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10594 / 16384, vpc: 5790 
+[FEMU] KV-Log: 357 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 11375 / 16384, vpc: 5009 
+[FEMU] KV-Log: 358 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11721 / 16384, vpc: 4663 
+[FEMU] KV-Log: 359 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 11254 / 16384, vpc: 5130 
+[FEMU] KV-Log: 360 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12360 / 16384, vpc: 4024 
+[FEMU] KV-Log: 361 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11453 / 16384, vpc: 4931 
+[FEMU] KV-Log: 362 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11265 / 16384, vpc: 5119 
+[FEMU] KV-Log: 363 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10369 / 16384, vpc: 6015 
+[FEMU] KV-Log: 364 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10608 / 16384, vpc: 5776 
+[FEMU] KV-Log: 365 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10804 / 16384, vpc: 5580 
+[FEMU] KV-Log: 366 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11301 / 16384, vpc: 5083 
+[FEMU] KV-Log: 367 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 10630 / 16384, vpc: 5754 
+[FEMU] KV-Log: 368 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11848 / 16384, vpc: 4536 
+[FEMU] KV-Log: 369 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11454 / 16384, vpc: 4930 
+[FEMU] KV-Log: 370 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11232 / 16384, vpc: 5152 
+[FEMU] KV-Log: 371 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10742 / 16384, vpc: 5642 
+[FEMU] KV-Log: 372 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11881 / 16384, vpc: 4503 
+[FEMU] KV-Log: 373 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 11724 / 16384, vpc: 4660 
+[FEMU] KV-Log: 374 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10992 / 16384, vpc: 5392 
+[FEMU] KV-Log: 375 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11556 / 16384, vpc: 4828 
+[FEMU] KV-Log: 376 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10909 / 16384, vpc: 5475 
+[FEMU] KV-Log: 377 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10737 / 16384, vpc: 5647 
+[FEMU] KV-Log: 378 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 15003 / 16384, vpc: 1381 
+[FEMU] KV-Log: 379 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10894 / 16384, vpc: 5490 
+[FEMU] KV-Log: 380 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10089 / 16384, vpc: 6295 
+[FEMU] KV-Log: 381 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 9865 / 16384, vpc: 6519 
+[FEMU] KV-Log: 382 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 9636 / 16384, vpc: 6748 
+[FEMU] KV-Log: 383 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 9761 / 16384, vpc: 6623 
+[FEMU] KV-Log: 384 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11221 / 16384, vpc: 5163 
+[FEMU] KV-Log: 385 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 9778 / 16384, vpc: 6606 
+[FEMU] KV-Log: 386 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 9890 / 16384, vpc: 6494 
+[FEMU] KV-Log: 387 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 12602 / 16384, vpc: 3782 
+[FEMU] KV-Log: 388 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 12297 / 16384, vpc: 4087 
+[FEMU] KV-Log: 389 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11267 / 16384, vpc: 5117 
+[FEMU] KV-Log: 390 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10643 / 16384, vpc: 5741 
+[FEMU] KV-Log: 391 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 11992 / 16384, vpc: 4392 
+[FEMU] KV-Log: 392 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 10734 / 16384, vpc: 5650 
+[FEMU] KV-Log: 393 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 10962 / 16384, vpc: 5422 
+[FEMU] KV-Log: 394 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10433 / 16384, vpc: 5951 
+[FEMU] KV-Log: 395 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10596 / 16384, vpc: 5788 
+[FEMU] KV-Log: 396 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 11135 / 16384, vpc: 5249 
+[FEMU] KV-Log: 397 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 12055 / 16384, vpc: 4329 
+[FEMU] KV-Log: 398 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11052 / 16384, vpc: 5332 
+[FEMU] KV-Log: 399 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 9789 / 16384, vpc: 6595 
+[FEMU] KV-Log: 400 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 9773 / 16384, vpc: 6611 
+[FEMU] KV-Log: 401 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10596 / 16384, vpc: 5788 
+[FEMU] KV-Log: 402 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10735 / 16384, vpc: 5649 
+[FEMU] KV-Log: 403 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10485 / 16384, vpc: 5899 
+[FEMU] KV-Log: 404 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10006 / 16384, vpc: 6378 
+[FEMU] KV-Log: 405 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 11657 / 16384, vpc: 4727 
+[FEMU] KV-Log: 406 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10944 / 16384, vpc: 5440 
+[FEMU] KV-Log: 407 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 12396 / 16384, vpc: 3988 
+[FEMU] KV-Log: 408 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10822 / 16384, vpc: 5562 
+[FEMU] KV-Log: 409 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10708 / 16384, vpc: 5676 
+[FEMU] KV-Log: 410 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10617 / 16384, vpc: 5767 
+[FEMU] KV-Log: 411 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11172 / 16384, vpc: 5212 
+[FEMU] KV-Log: 412 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11969 / 16384, vpc: 4415 
+[FEMU] KV-Log: 413 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 12141 / 16384, vpc: 4243 
+[FEMU] KV-Log: d2m line(116): data lines(489), meta lines(23)
+[FEMU] KV-Log: d2m line(117): data lines(488), meta lines(24)
+[FEMU] KV-Log: d2m line(118): data lines(487), meta lines(25)
+[FEMU] KV-Log: d2m line(119): data lines(486), meta lines(26)
+[FEMU] KV-Log: 414 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 15915 / 16384, vpc: 469 
+[FEMU] KV-Log: 415 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 13326 / 16384, vpc: 3058 
+[FEMU] KV-Log: 416 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 16119 / 16384, vpc: 265 
+[FEMU] KV-Log: 417 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 12108 / 16384, vpc: 4276 
+[FEMU] KV-Log: 418 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 12778 / 16384, vpc: 3606 
+[FEMU] KV-Log: 419 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 12771 / 16384, vpc: 3613 
+[FEMU] KV-Log: 420 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 12800 / 16384, vpc: 3584 
+[FEMU] KV-Log: 421 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11717 / 16384, vpc: 4667 
+[FEMU] KV-Log: 422 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 12968 / 16384, vpc: 3416 
+[FEMU] KV-Log: 423 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 12330 / 16384, vpc: 4054 
+[FEMU] KV-Log: 424 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 14663 / 16384, vpc: 1721 
+[FEMU] KV-Log: 425 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 12242 / 16384, vpc: 4142 
+[FEMU] KV-Log: 426 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 13047 / 16384, vpc: 3337 
+[FEMU] KV-Log: 427 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 12897 / 16384, vpc: 3487 
+[FEMU] KV-Log: 428 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 13095 / 16384, vpc: 3289 
+[FEMU] KV-Log: 429 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 13414 / 16384, vpc: 2970 
+[FEMU] KV-Log: 430 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 12897 / 16384, vpc: 3487 
+[FEMU] KV-Log: 431 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 12855 / 16384, vpc: 3529 
+[FEMU] KV-Log: 432 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 12410 / 16384, vpc: 3974 
+[FEMU] KV-Log: 433 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 12277 / 16384, vpc: 4107 
+[FEMU] KV-Log: 434 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 12134 / 16384, vpc: 4250 
+[FEMU] KV-Log: 435 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 12085 / 16384, vpc: 4299 
+[FEMU] KV-Log: 436 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11203 / 16384, vpc: 5181 
+[FEMU] KV-Log: 437 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 12504 / 16384, vpc: 3880 
+[FEMU] KV-Log: 438 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11616 / 16384, vpc: 4768 
+[FEMU] KV-Log: 439 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11865 / 16384, vpc: 4519 
+[FEMU] KV-Log: 440 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 12094 / 16384, vpc: 4290 
+[FEMU] KV-Log: 441 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 12218 / 16384, vpc: 4166 
+[FEMU] KV-Log: 442 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11958 / 16384, vpc: 4426 
+[FEMU] KV-Log: 443 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 12618 / 16384, vpc: 3766 
+[FEMU] KV-Log: 444 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11777 / 16384, vpc: 4607 
+[FEMU] KV-Log: 445 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 11752 / 16384, vpc: 4632 
+[FEMU] KV-Log: 446 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11484 / 16384, vpc: 4900 
+[FEMU] KV-Log: 447 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11148 / 16384, vpc: 5236 
+[FEMU] KV-Log: 448 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 11114 / 16384, vpc: 5270 
+[FEMU] KV-Log: 449 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 12207 / 16384, vpc: 4177 
+[FEMU] KV-Log: 450 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11000 / 16384, vpc: 5384 
+[FEMU] KV-Log: 451 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 10611 / 16384, vpc: 5773 
+[FEMU] KV-Log: 452 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10716 / 16384, vpc: 5668 
+[FEMU] KV-Log: 453 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 12716 / 16384, vpc: 3668 
+[FEMU] KV-Log: 454 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 13604 / 16384, vpc: 2780 
+[FEMU] KV-Log: 455 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11505 / 16384, vpc: 4879 
+[FEMU] KV-Log: 456 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 11306 / 16384, vpc: 5078 
+[FEMU] KV-Log: 457 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11133 / 16384, vpc: 5251 
+[FEMU] KV-Log: 458 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 12463 / 16384, vpc: 3921 
+[FEMU] KV-Log: 459 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 12162 / 16384, vpc: 4222 
+[FEMU] KV-Log: 460 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11299 / 16384, vpc: 5085 
+[FEMU] KV-Log: 461 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 11419 / 16384, vpc: 4965 
+[FEMU] KV-Log: 462 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11232 / 16384, vpc: 5152 
+[FEMU] KV-Log: 463 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 11295 / 16384, vpc: 5089 
+[FEMU] KV-Log: 464 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 12868 / 16384, vpc: 3516 
+[FEMU] KV-Log: 465 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11279 / 16384, vpc: 5105 
+[FEMU] KV-Log: 466 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10995 / 16384, vpc: 5389 
+[FEMU] KV-Log: 467 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10859 / 16384, vpc: 5525 
+[FEMU] KV-Log: 468 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 10784 / 16384, vpc: 5600 
+[FEMU] KV-Log: 469 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 12721 / 16384, vpc: 3663 
+[FEMU] KV-Log: 470 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 11449 / 16384, vpc: 4935 
+[FEMU] KV-Log: 471 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 12202 / 16384, vpc: 4182 
+[FEMU] KV-Log: 472 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 12614 / 16384, vpc: 3770 
+[FEMU] KV-Log: 473 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11723 / 16384, vpc: 4661 
+[FEMU] KV-Log: 474 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11348 / 16384, vpc: 5036 
+[FEMU] KV-Log: 475 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11793 / 16384, vpc: 4591 
+[FEMU] KV-Log: 476 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11874 / 16384, vpc: 4510 
+[FEMU] KV-Log: 477 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 11823 / 16384, vpc: 4561 
+[FEMU] KV-Log: 478 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11098 / 16384, vpc: 5286 
+[FEMU] KV-Log: 479 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 11014 / 16384, vpc: 5370 
+[FEMU] KV-Log: 480 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10840 / 16384, vpc: 5544 
+[FEMU] KV-Log: 481 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10735 / 16384, vpc: 5649 
+[FEMU] KV-Log: 482 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 12271 / 16384, vpc: 4113 
+[FEMU] KV-Log: 483 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10644 / 16384, vpc: 5740 
+[FEMU] KV-Log: 484 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11686 / 16384, vpc: 4698 
+[FEMU] KV-Log: 485 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 12465 / 16384, vpc: 3919 
+[FEMU] KV-Log: 486 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11231 / 16384, vpc: 5153 
+[FEMU] KV-Log: 487 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10968 / 16384, vpc: 5416 
+[FEMU] KV-Log: 488 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 12403 / 16384, vpc: 3981 
+[FEMU] KV-Log: 489 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 11005 / 16384, vpc: 5379 
+[FEMU] KV-Log: 490 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10932 / 16384, vpc: 5452 
+[FEMU] KV-Log: 491 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11334 / 16384, vpc: 5050 
+[FEMU] KV-Log: 492 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 11226 / 16384, vpc: 5158 
+[FEMU] KV-Log: 493 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10950 / 16384, vpc: 5434 
+[FEMU] KV-Log: 494 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11080 / 16384, vpc: 5304 
+[FEMU] KV-Log: 495 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11116 / 16384, vpc: 5268 
+[FEMU] KV-Log: 496 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11440 / 16384, vpc: 4944 
+[FEMU] KV-Log: 497 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 11532 / 16384, vpc: 4852 
+[FEMU] KV-Log: 498 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11230 / 16384, vpc: 5154 
+[FEMU] KV-Log: 499 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11166 / 16384, vpc: 5218 
+[FEMU] KV-Log: 500 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 11202 / 16384, vpc: 5182 
+[FEMU] KV-Log: 501 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 10651 / 16384, vpc: 5733 
+[FEMU] KV-Log: 502 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11501 / 16384, vpc: 4883 
+[FEMU] KV-Log: 503 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 11429 / 16384, vpc: 4955 
+[FEMU] KV-Log: 504 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 12002 / 16384, vpc: 4382 
+[FEMU] KV-Log: 505 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11355 / 16384, vpc: 5029 
+[FEMU] KV-Log: 506 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10483 / 16384, vpc: 5901 
+[FEMU] KV-Log: 507 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10649 / 16384, vpc: 5735 
+[FEMU] KV-Log: 508 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10330 / 16384, vpc: 6054 
+[FEMU] KV-Log: 509 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11873 / 16384, vpc: 4511 
+[FEMU] KV-Log: 510 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10901 / 16384, vpc: 5483 
+[FEMU] KV-Log: 511 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10844 / 16384, vpc: 5540 
+[FEMU] KV-Log: 512 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10589 / 16384, vpc: 5795 
+[FEMU] KV-Log: 513 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 11822 / 16384, vpc: 4562 
+[FEMU] KV-Log: 514 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11190 / 16384, vpc: 5194 
+[FEMU] KV-Log: 515 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10646 / 16384, vpc: 5738 
+[FEMU] KV-Log: 516 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 10923 / 16384, vpc: 5461 
+[FEMU] KV-Log: 517 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10484 / 16384, vpc: 5900 
+[FEMU] KV-Log: 518 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 13111 / 16384, vpc: 3273 
+[FEMU] KV-Log: 519 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11252 / 16384, vpc: 5132 
+[FEMU] KV-Log: 520 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 12081 / 16384, vpc: 4303 
+[FEMU] KV-Log: 521 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10373 / 16384, vpc: 6011 
+[FEMU] KV-Log: 522 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10522 / 16384, vpc: 5862 
+[FEMU] KV-Log: 523 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10459 / 16384, vpc: 5925 
+[FEMU] KV-Log: 524 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10419 / 16384, vpc: 5965 
+[FEMU] KV-Log: 525 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10631 / 16384, vpc: 5753 
+[FEMU] KV-Log: 526 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10784 / 16384, vpc: 5600 
+[FEMU] KV-Log: 527 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10734 / 16384, vpc: 5650 
+[FEMU] KV-Log: 528 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10618 / 16384, vpc: 5766 
+[FEMU] KV-Log: 529 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11575 / 16384, vpc: 4809 
+[FEMU] KV-Log: 530 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11324 / 16384, vpc: 5060 
+[FEMU] KV-Log: 531 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 10379 / 16384, vpc: 6005 
+[FEMU] KV-Log: 532 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11050 / 16384, vpc: 5334 
+[FEMU] KV-Log: 533 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10763 / 16384, vpc: 5621 
+[FEMU] KV-Log: 534 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10760 / 16384, vpc: 5624 
+[FEMU] KV-Log: 535 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10287 / 16384, vpc: 6097 
+[FEMU] KV-Log: 536 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10236 / 16384, vpc: 6148 
+[FEMU] KV-Log: 537 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10184 / 16384, vpc: 6200 
+[FEMU] KV-Log: 538 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 10176 / 16384, vpc: 6208 
+[FEMU] KV-Log: 539 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10650 / 16384, vpc: 5734 
+[FEMU] KV-Log: 540 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 9734 / 16384, vpc: 6650 
+[FEMU] KV-Log: 541 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 9525 / 16384, vpc: 6859 
+[FEMU] KV-Log: 542 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11361 / 16384, vpc: 5023 
+[FEMU] KV-Log: 543 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10631 / 16384, vpc: 5753 
+[FEMU] KV-Log: d2m line(139): data lines(485), meta lines(27)
+[FEMU] KV-Log: d2m line(140): data lines(484), meta lines(28)
+[FEMU] KV-Log: d2m line(141): data lines(483), meta lines(29)
+[FEMU] KV-Log: 544 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 14443 / 16384, vpc: 1941 
+[FEMU] KV-Log: 545 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 14604 / 16384, vpc: 1780 
+[FEMU] KV-Log: 546 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 12758 / 16384, vpc: 3626 
+[FEMU] KV-Log: 547 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 12375 / 16384, vpc: 4009 
+[FEMU] KV-Log: 548 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 10631 / 16384, vpc: 5753 
+[FEMU] KV-Log: 549 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 11410 / 16384, vpc: 4974 
+[FEMU] KV-Log: 550 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10772 / 16384, vpc: 5612 
+[FEMU] KV-Log: 551 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11231 / 16384, vpc: 5153 
+[FEMU] KV-Log: 552 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 10760 / 16384, vpc: 5624 
+[FEMU] KV-Log: 553 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11333 / 16384, vpc: 5051 
+[FEMU] KV-Log: 554 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10629 / 16384, vpc: 5755 
+[FEMU] KV-Log: 555 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 11950 / 16384, vpc: 4434 
+[FEMU] KV-Log: 556 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 12551 / 16384, vpc: 3833 
+[FEMU] KV-Log: 557 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10886 / 16384, vpc: 5498 
+[FEMU] KV-Log: 558 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10946 / 16384, vpc: 5438 
+[FEMU] KV-Log: 559 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 10939 / 16384, vpc: 5445 
+[FEMU] KV-Log: 560 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 10972 / 16384, vpc: 5412 
+[FEMU] KV-Log: 561 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10909 / 16384, vpc: 5475 
+[FEMU] KV-Log: 562 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10870 / 16384, vpc: 5514 
+[FEMU] KV-Log: 563 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11005 / 16384, vpc: 5379 
+[FEMU] KV-Log: 564 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 10951 / 16384, vpc: 5433 
+[FEMU] KV-Log: 565 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11292 / 16384, vpc: 5092 
+[FEMU] KV-Log: 566 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11505 / 16384, vpc: 4879 
+[FEMU] KV-Log: 567 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11095 / 16384, vpc: 5289 
+[FEMU] KV-Log: 568 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11107 / 16384, vpc: 5277 
+[FEMU] KV-Log: 569 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11944 / 16384, vpc: 4440 
+[FEMU] KV-Log: 570 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 13012 / 16384, vpc: 3372 
+[FEMU] KV-Log: 571 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 12591 / 16384, vpc: 3793 
+[FEMU] KV-Log: 572 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11530 / 16384, vpc: 4854 
+[FEMU] KV-Log: 573 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10992 / 16384, vpc: 5392 
+[FEMU] KV-Log: 574 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10734 / 16384, vpc: 5650 
+[FEMU] KV-Log: 575 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 12389 / 16384, vpc: 3995 
+[FEMU] KV-Log: 576 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11863 / 16384, vpc: 4521 
+[FEMU] KV-Log: 577 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10658 / 16384, vpc: 5726 
+[FEMU] KV-Log: 578 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10760 / 16384, vpc: 5624 
+[FEMU] KV-Log: 579 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10594 / 16384, vpc: 5790 
+[FEMU] KV-Log: 580 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 11115 / 16384, vpc: 5269 
+[FEMU] KV-Log: 581 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10750 / 16384, vpc: 5634 
+[FEMU] KV-Log: 582 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11341 / 16384, vpc: 5043 
+[FEMU] KV-Log: 583 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11891 / 16384, vpc: 4493 
+[FEMU] KV-Log: 584 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 12204 / 16384, vpc: 4180 
+[FEMU] KV-Log: 585 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 10522 / 16384, vpc: 5862 
+[FEMU] KV-Log: 586 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 11044 / 16384, vpc: 5340 
+[FEMU] KV-Log: 587 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 10484 / 16384, vpc: 5900 
+[FEMU] KV-Log: 588 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 12360 / 16384, vpc: 4024 
+[FEMU] KV-Log: 589 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10519 / 16384, vpc: 5865 
+[FEMU] KV-Log: 590 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11481 / 16384, vpc: 4903 
+[FEMU] KV-Log: 591 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10588 / 16384, vpc: 5796 
+[FEMU] KV-Log: 592 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10333 / 16384, vpc: 6051 
+[FEMU] KV-Log: 593 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10839 / 16384, vpc: 5545 
+[FEMU] KV-Log: 594 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 10594 / 16384, vpc: 5790 
+[FEMU] KV-Log: 595 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 10568 / 16384, vpc: 5816 
+[FEMU] KV-Log: 596 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10195 / 16384, vpc: 6189 
+[FEMU] KV-Log: 597 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10251 / 16384, vpc: 6133 
+[FEMU] KV-Log: 598 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 9994 / 16384, vpc: 6390 
+[FEMU] KV-Log: 599 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 9967 / 16384, vpc: 6417 
+[FEMU] KV-Log: 600 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10224 / 16384, vpc: 6160 
+[FEMU] KV-Log: 601 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11508 / 16384, vpc: 4876 
+[FEMU] KV-Log: 602 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 10145 / 16384, vpc: 6239 
+[FEMU] KV-Log: 603 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 14385 / 16384, vpc: 1999 
+[FEMU] KV-Log: 604 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11218 / 16384, vpc: 5166 
+[FEMU] KV-Log: 605 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 11132 / 16384, vpc: 5252 
+[FEMU] KV-Log: 606 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11023 / 16384, vpc: 5361 
+[FEMU] KV-Log: 607 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10525 / 16384, vpc: 5859 
+[FEMU] KV-Log: 608 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 12497 / 16384, vpc: 3887 
+[FEMU] KV-Log: 609 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 10516 / 16384, vpc: 5868 
+[FEMU] KV-Log: 610 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11324 / 16384, vpc: 5060 
+[FEMU] KV-Log: 611 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11177 / 16384, vpc: 5207 
+[FEMU] KV-Log: 612 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 10406 / 16384, vpc: 5978 
+[FEMU] KV-Log: 613 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 10405 / 16384, vpc: 5979 
+[FEMU] KV-Log: 614 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10371 / 16384, vpc: 6013 
+[FEMU] KV-Log: 615 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10224 / 16384, vpc: 6160 
+[FEMU] KV-Log: 616 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10059 / 16384, vpc: 6325 
+[FEMU] KV-Log: 617 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 9854 / 16384, vpc: 6530 
+[FEMU] KV-Log: 618 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 9397 / 16384, vpc: 6987 
+[FEMU] KV-Log: 619 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10143 / 16384, vpc: 6241 
+[FEMU] KV-Log: 620 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 9726 / 16384, vpc: 6658 
+[FEMU] KV-Log: 621 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 9719 / 16384, vpc: 6665 
+[FEMU] KV-Log: 622 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 12404 / 16384, vpc: 3980 
+[FEMU] KV-Log: 623 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10969 / 16384, vpc: 5415 
+[FEMU] KV-Log: 624 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10385 / 16384, vpc: 5999 
+[FEMU] KV-Log: 625 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 10633 / 16384, vpc: 5751 
+[FEMU] KV-Log: 626 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10407 / 16384, vpc: 5977 
+[FEMU] KV-Log: 627 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10614 / 16384, vpc: 5770 
+[FEMU] KV-Log: 628 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 10034 / 16384, vpc: 6350 
+[FEMU] KV-Log: 629 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 9944 / 16384, vpc: 6440 
+[FEMU] KV-Log: 630 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 9879 / 16384, vpc: 6505 
+[FEMU] KV-Log: 631 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 11959 / 16384, vpc: 4425 
+[FEMU] KV-Log: 632 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10295 / 16384, vpc: 6089 
+[FEMU] KV-Log: 633 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 10907 / 16384, vpc: 5477 
+[FEMU] KV-Log: 634 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 9853 / 16384, vpc: 6531 
+[FEMU] KV-Log: 635 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 9745 / 16384, vpc: 6639 
+[FEMU] KV-Log: 636 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 11126 / 16384, vpc: 5258 
+[FEMU] KV-Log: 637 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10050 / 16384, vpc: 6334 
+[FEMU] KV-Log: 638 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 9793 / 16384, vpc: 6591 
+[FEMU] KV-Log: 639 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10743 / 16384, vpc: 5641 
+[FEMU] KV-Log: 640 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 13939 / 16384, vpc: 2445 
+[FEMU] KV-Log: 641 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10138 / 16384, vpc: 6246 
+[FEMU] KV-Log: 642 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 10069 / 16384, vpc: 6315 
+[FEMU] KV-Log: 643 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 9796 / 16384, vpc: 6588 
+[FEMU] KV-Log: 644 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 9708 / 16384, vpc: 6676 
+[FEMU] KV-Log: 645 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10701 / 16384, vpc: 5683 
+[FEMU] KV-Log: 646 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10143 / 16384, vpc: 6241 
+[FEMU] KV-Log: 647 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 9701 / 16384, vpc: 6683 
+[FEMU] KV-Log: 648 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 9766 / 16384, vpc: 6618 
+[FEMU] KV-Log: 649 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 10241 / 16384, vpc: 6143 
+[FEMU] KV-Log: 650 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11755 / 16384, vpc: 4629 
+[FEMU] KV-Log: 651 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11413 / 16384, vpc: 4971 
+[FEMU] KV-Log: 652 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10705 / 16384, vpc: 5679 
+[FEMU] KV-Log: 653 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10245 / 16384, vpc: 6139 
+[FEMU] KV-Log: 654 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11100 / 16384, vpc: 5284 
+[FEMU] KV-Log: 655 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10704 / 16384, vpc: 5680 
+[FEMU] KV-Log: 656 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10521 / 16384, vpc: 5863 
+[FEMU] KV-Log: 657 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11618 / 16384, vpc: 4766 
+[FEMU] KV-Log: 658 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11017 / 16384, vpc: 5367 
+[FEMU] KV-Log: 659 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 10800 / 16384, vpc: 5584 
+[FEMU] KV-Log: 660 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11485 / 16384, vpc: 4899 
+[FEMU] KV-Log: 661 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11432 / 16384, vpc: 4952 
+[FEMU] KV-Log: 662 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11473 / 16384, vpc: 4911 
+[FEMU] KV-Log: 663 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 11251 / 16384, vpc: 5133 
+[FEMU] KV-Log: 664 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11175 / 16384, vpc: 5209 
+[FEMU] KV-Log: 665 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10753 / 16384, vpc: 5631 
+[FEMU] KV-Log: 666 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10655 / 16384, vpc: 5729 
+[FEMU] KV-Log: 667 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11320 / 16384, vpc: 5064 
+[FEMU] KV-Log: 668 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11401 / 16384, vpc: 4983 
+[FEMU] KV-Log: 669 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10546 / 16384, vpc: 5838 
+[FEMU] KV-Log: 670 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10727 / 16384, vpc: 5657 
+[FEMU] KV-Log: 671 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 10328 / 16384, vpc: 6056 
+[FEMU] KV-Log: 672 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 9997 / 16384, vpc: 6387 
+[FEMU] KV-Log: 673 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 9941 / 16384, vpc: 6443 
+[FEMU] KV-Log: 674 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 9900 / 16384, vpc: 6484 
+[FEMU] KV-Log: 675 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 11051 / 16384, vpc: 5333 
+[FEMU] KV-Log: 676 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 9581 / 16384, vpc: 6803 
+[FEMU] KV-Log: 677 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 9585 / 16384, vpc: 6799 
+[FEMU] KV-Log: 678 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 9540 / 16384, vpc: 6844 
+[FEMU] KV-Log: 679 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 12810 / 16384, vpc: 3574 
+[FEMU] KV-Log: 680 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 10501 / 16384, vpc: 5883 
+[FEMU] KV-Log: 681 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 9910 / 16384, vpc: 6474 
+[FEMU] KV-Log: 682 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 9704 / 16384, vpc: 6680 
+[FEMU] KV-Log: 683 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 9586 / 16384, vpc: 6798 
+[FEMU] KV-Log: 684 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 9510 / 16384, vpc: 6874 
+[FEMU] KV-Log: 685 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 10590 / 16384, vpc: 5794 
+[FEMU] KV-Log: 686 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 9977 / 16384, vpc: 6407 
+[FEMU] KV-Log: 687 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 10077 / 16384, vpc: 6307 
+[FEMU] KV-Log: 688 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 9759 / 16384, vpc: 6625 
+[FEMU] KV-Log: 689 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10586 / 16384, vpc: 5798 
+[FEMU] KV-Log: 690 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 9942 / 16384, vpc: 6442 
+[FEMU] KV-Log: 691 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10321 / 16384, vpc: 6063 
+[FEMU] KV-Log: 692 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 9900 / 16384, vpc: 6484 
+[FEMU] KV-Log: 693 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 9774 / 16384, vpc: 6610 
+[FEMU] KV-Log: 694 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10169 / 16384, vpc: 6215 
+[FEMU] KV-Log: 695 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 9694 / 16384, vpc: 6690 
+[FEMU] KV-Log: 696 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 9629 / 16384, vpc: 6755 
+[FEMU] KV-Log: 697 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 12256 / 16384, vpc: 4128 
+[FEMU] KV-Log: 698 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 12102 / 16384, vpc: 4282 
+[FEMU] KV-Log: 699 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 12733 / 16384, vpc: 3651 
+[FEMU] KV-Log: 700 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10610 / 16384, vpc: 5774 
+[FEMU] KV-Log: 701 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10029 / 16384, vpc: 6355 
+[FEMU] KV-Log: 702 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10045 / 16384, vpc: 6339 
+[FEMU] KV-Log: 703 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 10476 / 16384, vpc: 5908 
+[FEMU] KV-Log: 704 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11376 / 16384, vpc: 5008 
+[FEMU] KV-Log: 705 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 9940 / 16384, vpc: 6444 
+[FEMU] KV-Log: 706 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 9504 / 16384, vpc: 6880 
+[FEMU] KV-Log: 707 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 9244 / 16384, vpc: 7140 
+[FEMU] KV-Log: 708 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 12879 / 16384, vpc: 3505 
+[FEMU] KV-Log: 709 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 9955 / 16384, vpc: 6429 
+[FEMU] KV-Log: 710 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11423 / 16384, vpc: 4961 
+[FEMU] KV-Log: 711 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 12301 / 16384, vpc: 4083 
+[FEMU] KV-Log: d2m line(164): data lines(482), meta lines(30)
+[FEMU] KV-Log: d2m line(165): data lines(481), meta lines(31)
+[FEMU] KV-Log: d2m line(166): data lines(480), meta lines(32)
+[FEMU] KV-Log: d2m line(167): data lines(479), meta lines(33)
+[FEMU] KV-Log: 712 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 16363 / 16384, vpc: 21 
+[FEMU] KV-Log: 713 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 14198 / 16384, vpc: 2186 
+[FEMU] KV-Log: 714 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 12481 / 16384, vpc: 3903 
+[FEMU] KV-Log: 715 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10920 / 16384, vpc: 5464 
+[FEMU] KV-Log: 716 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10686 / 16384, vpc: 5698 
+[FEMU] KV-Log: 717 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 10597 / 16384, vpc: 5787 
+[FEMU] KV-Log: 718 gc_meta! (line: 165) invalid_pgs / pgs_per_line: 12269 / 16384, vpc: 4115 
+[FEMU] KV-Log: 719 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10828 / 16384, vpc: 5556 
+[FEMU] KV-Log: 720 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12562 / 16384, vpc: 3822 
+[FEMU] KV-Log: 721 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 14816 / 16384, vpc: 1568 
+[FEMU] KV-Log: 722 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11509 / 16384, vpc: 4875 
+[FEMU] KV-Log: 723 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11640 / 16384, vpc: 4744 
+[FEMU] KV-Log: 724 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 11684 / 16384, vpc: 4700 
+[FEMU] KV-Log: 725 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11091 / 16384, vpc: 5293 
+[FEMU] KV-Log: 726 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 11367 / 16384, vpc: 5017 
+[FEMU] KV-Log: 727 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 13232 / 16384, vpc: 3152 
+[FEMU] KV-Log: 728 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11502 / 16384, vpc: 4882 
+[FEMU] KV-Log: 729 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 11348 / 16384, vpc: 5036 
+[FEMU] KV-Log: 730 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 11144 / 16384, vpc: 5240 
+[FEMU] KV-Log: 731 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 11645 / 16384, vpc: 4739 
+[FEMU] KV-Log: 732 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 12850 / 16384, vpc: 3534 
+[FEMU] KV-Log: 733 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10830 / 16384, vpc: 5554 
+[FEMU] KV-Log: 734 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10248 / 16384, vpc: 6136 
+[FEMU] KV-Log: 735 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10011 / 16384, vpc: 6373 
+[FEMU] KV-Log: 736 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10492 / 16384, vpc: 5892 
+[FEMU] KV-Log: 737 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10658 / 16384, vpc: 5726 
+[FEMU] KV-Log: 738 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11461 / 16384, vpc: 4923 
+[FEMU] KV-Log: 739 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10664 / 16384, vpc: 5720 
+[FEMU] KV-Log: 740 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11050 / 16384, vpc: 5334 
+[FEMU] KV-Log: 741 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10469 / 16384, vpc: 5915 
+[FEMU] KV-Log: 742 gc_meta! (line: 165) invalid_pgs / pgs_per_line: 12633 / 16384, vpc: 3751 
+[FEMU] KV-Log: 743 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 11068 / 16384, vpc: 5316 
+[FEMU] KV-Log: 744 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 10459 / 16384, vpc: 5925 
+[FEMU] KV-Log: 745 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11740 / 16384, vpc: 4644 
+[FEMU] KV-Log: 746 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11010 / 16384, vpc: 5374 
+[FEMU] KV-Log: 747 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 10585 / 16384, vpc: 5799 
+[FEMU] KV-Log: 748 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 10577 / 16384, vpc: 5807 
+[FEMU] KV-Log: 749 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10232 / 16384, vpc: 6152 
+[FEMU] KV-Log: 750 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 13336 / 16384, vpc: 3048 
+[FEMU] KV-Log: 751 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 10798 / 16384, vpc: 5586 
+[FEMU] KV-Log: 752 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 10431 / 16384, vpc: 5953 
+[FEMU] KV-Log: 753 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 9919 / 16384, vpc: 6465 
+[FEMU] KV-Log: 754 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 9829 / 16384, vpc: 6555 
+[FEMU] KV-Log: 755 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 9762 / 16384, vpc: 6622 
+[FEMU] KV-Log: 756 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 9755 / 16384, vpc: 6629 
+[FEMU] KV-Log: 757 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11965 / 16384, vpc: 4419 
+[FEMU] KV-Log: 758 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11513 / 16384, vpc: 4871 
+[FEMU] KV-Log: 759 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11167 / 16384, vpc: 5217 
+[FEMU] KV-Log: 760 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10924 / 16384, vpc: 5460 
+[FEMU] KV-Log: 761 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10470 / 16384, vpc: 5914 
+[FEMU] KV-Log: 762 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10831 / 16384, vpc: 5553 
+[FEMU] KV-Log: 763 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10829 / 16384, vpc: 5555 
+[FEMU] KV-Log: 764 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10355 / 16384, vpc: 6029 
+[FEMU] KV-Log: 765 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 9876 / 16384, vpc: 6508 
+[FEMU] KV-Log: 766 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 9758 / 16384, vpc: 6626 
+[FEMU] KV-Log: 767 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 10360 / 16384, vpc: 6024 
+[FEMU] KV-Log: 768 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 13572 / 16384, vpc: 2812 
+[FEMU] KV-Log: 769 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 9876 / 16384, vpc: 6508 
+[FEMU] KV-Log: 770 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10305 / 16384, vpc: 6079 
+[FEMU] KV-Log: 771 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 9689 / 16384, vpc: 6695 
+[FEMU] KV-Log: 772 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 9925 / 16384, vpc: 6459 
+[FEMU] KV-Log: 773 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10025 / 16384, vpc: 6359 
+[FEMU] KV-Log: 774 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 11547 / 16384, vpc: 4837 
+[FEMU] KV-Log: 775 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 10155 / 16384, vpc: 6229 
+[FEMU] KV-Log: 776 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10479 / 16384, vpc: 5905 
+[FEMU] KV-Log: 777 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 11971 / 16384, vpc: 4413 
+[FEMU] KV-Log: 778 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10122 / 16384, vpc: 6262 
+[FEMU] KV-Log: 779 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 10686 / 16384, vpc: 5698 
+[FEMU] KV-Log: 780 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10468 / 16384, vpc: 5916 
+[FEMU] KV-Log: 781 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 13180 / 16384, vpc: 3204 
+[FEMU] KV-Log: 782 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 12134 / 16384, vpc: 4250 
+[FEMU] KV-Log: 783 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 9631 / 16384, vpc: 6753 
+[FEMU] KV-Log: 784 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10022 / 16384, vpc: 6362 
+[FEMU] KV-Log: 785 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10274 / 16384, vpc: 6110 
+[FEMU] KV-Log: 786 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 9496 / 16384, vpc: 6888 
+[FEMU] KV-Log: 787 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 11344 / 16384, vpc: 5040 
+[FEMU] KV-Log: 788 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 11402 / 16384, vpc: 4982 
+[FEMU] KV-Log: 789 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 10707 / 16384, vpc: 5677 
+[FEMU] KV-Log: 790 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11642 / 16384, vpc: 4742 
+[FEMU] KV-Log: 791 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 11348 / 16384, vpc: 5036 
+[FEMU] KV-Log: 792 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11239 / 16384, vpc: 5145 
+[FEMU] KV-Log: 793 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10300 / 16384, vpc: 6084 
+[FEMU] KV-Log: 794 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10249 / 16384, vpc: 6135 
+[FEMU] KV-Log: 795 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10642 / 16384, vpc: 5742 
+[FEMU] KV-Log: 796 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10066 / 16384, vpc: 6318 
+[FEMU] KV-Log: 797 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10165 / 16384, vpc: 6219 
+[FEMU] KV-Log: 798 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10642 / 16384, vpc: 5742 
+[FEMU] KV-Log: 799 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 10008 / 16384, vpc: 6376 
+[FEMU] KV-Log: 800 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11656 / 16384, vpc: 4728 
+[FEMU] KV-Log: 801 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10496 / 16384, vpc: 5888 
+[FEMU] KV-Log: 802 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 10252 / 16384, vpc: 6132 
+[FEMU] KV-Log: 803 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 10149 / 16384, vpc: 6235 
+[FEMU] KV-Log: 804 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 10157 / 16384, vpc: 6227 
+[FEMU] KV-Log: 805 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 9852 / 16384, vpc: 6532 
+[FEMU] KV-Log: 806 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 11147 / 16384, vpc: 5237 
+[FEMU] KV-Log: 807 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 9749 / 16384, vpc: 6635 
+[FEMU] KV-Log: 808 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11468 / 16384, vpc: 4916 
+[FEMU] KV-Log: 809 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10102 / 16384, vpc: 6282 
+[FEMU] KV-Log: 810 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10462 / 16384, vpc: 5922 
+[FEMU] KV-Log: 811 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 9711 / 16384, vpc: 6673 
+[FEMU] KV-Log: 812 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10454 / 16384, vpc: 5930 
+[FEMU] KV-Log: 813 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11402 / 16384, vpc: 4982 
+[FEMU] KV-Log: 814 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 9758 / 16384, vpc: 6626 
+[FEMU] KV-Log: 815 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10970 / 16384, vpc: 5414 
+[FEMU] KV-Log: 816 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12007 / 16384, vpc: 4377 
+[FEMU] KV-Log: 817 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10888 / 16384, vpc: 5496 
+[FEMU] KV-Log: 818 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 9542 / 16384, vpc: 6842 
+[FEMU] KV-Log: 819 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 9703 / 16384, vpc: 6681 
+[FEMU] KV-Log: 820 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 9466 / 16384, vpc: 6918 
+[FEMU] KV-Log: 821 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 9218 / 16384, vpc: 7166 
+[FEMU] KV-Log: 822 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 9213 / 16384, vpc: 7171 
+[FEMU] KV-Log: 823 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 9574 / 16384, vpc: 6810 
+[FEMU] KV-Log: 824 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 9427 / 16384, vpc: 6957 
+[FEMU] KV-Log: 825 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 10256 / 16384, vpc: 6128 
+[FEMU] KV-Log: 826 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 9342 / 16384, vpc: 7042 
+[FEMU] KV-Log: 827 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 9637 / 16384, vpc: 6747 
+[FEMU] KV-Log: 828 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 9571 / 16384, vpc: 6813 
+[FEMU] KV-Log: 829 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 10035 / 16384, vpc: 6349 
+[FEMU] KV-Log: 830 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 9453 / 16384, vpc: 6931 
+[FEMU] KV-Log: 831 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11812 / 16384, vpc: 4572 
+[FEMU] KV-Log: 832 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 13536 / 16384, vpc: 2848 
+[FEMU] KV-Log: 833 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 11775 / 16384, vpc: 4609 
+[FEMU] KV-Log: 834 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10176 / 16384, vpc: 6208 
+[FEMU] KV-Log: 835 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 9991 / 16384, vpc: 6393 
+[FEMU] KV-Log: 836 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11844 / 16384, vpc: 4540 
+[FEMU] KV-Log: 837 gc_meta! (line: 165) invalid_pgs / pgs_per_line: 11360 / 16384, vpc: 5024 
+[FEMU] KV-Log: 838 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 10986 / 16384, vpc: 5398 
+[FEMU] KV-Log: 839 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 10325 / 16384, vpc: 6059 
+[FEMU] KV-Log: 840 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 9850 / 16384, vpc: 6534 
+[FEMU] KV-Log: 841 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 9483 / 16384, vpc: 6901 
+[FEMU] KV-Log: 842 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 11692 / 16384, vpc: 4692 
+[FEMU] KV-Log: 843 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11260 / 16384, vpc: 5124 
+[FEMU] KV-Log: 844 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 12110 / 16384, vpc: 4274 
+[FEMU] KV-Log: 845 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10498 / 16384, vpc: 5886 
+[FEMU] KV-Log: 846 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10063 / 16384, vpc: 6321 
+[FEMU] KV-Log: 847 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10062 / 16384, vpc: 6322 
+[FEMU] KV-Log: 848 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10963 / 16384, vpc: 5421 
+[FEMU] KV-Log: 849 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 10575 / 16384, vpc: 5809 
+[FEMU] KV-Log: 850 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 9501 / 16384, vpc: 6883 
+[FEMU] KV-Log: 851 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 9389 / 16384, vpc: 6995 
+[FEMU] KV-Log: 852 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 9477 / 16384, vpc: 6907 
+[FEMU] KV-Log: 853 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 12677 / 16384, vpc: 3707 
+[FEMU] KV-Log: 854 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 10753 / 16384, vpc: 5631 
+[FEMU] KV-Log: 855 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 9568 / 16384, vpc: 6816 
+[FEMU] KV-Log: 856 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 9438 / 16384, vpc: 6946 
+[FEMU] KV-Log: 857 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 12824 / 16384, vpc: 3560 
+[FEMU] KV-Log: 858 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10345 / 16384, vpc: 6039 
+[FEMU] KV-Log: 859 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10311 / 16384, vpc: 6073 
+[FEMU] KV-Log: 860 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 12191 / 16384, vpc: 4193 
+[FEMU] KV-Log: 861 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 11086 / 16384, vpc: 5298 
+[FEMU] KV-Log: 862 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10023 / 16384, vpc: 6361 
+[FEMU] KV-Log: 863 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 10424 / 16384, vpc: 5960 
+[FEMU] KV-Log: 864 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 10934 / 16384, vpc: 5450 
+[FEMU] KV-Log: 865 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10194 / 16384, vpc: 6190 
+[FEMU] KV-Log: 866 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10118 / 16384, vpc: 6266 
+[FEMU] KV-Log: 867 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 10093 / 16384, vpc: 6291 
+[FEMU] KV-Log: 868 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 9942 / 16384, vpc: 6442 
+[FEMU] KV-Log: 869 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 12053 / 16384, vpc: 4331 
+[FEMU] KV-Log: 870 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 9948 / 16384, vpc: 6436 
+[FEMU] KV-Log: 871 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 10123 / 16384, vpc: 6261 
+[FEMU] KV-Log: 872 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 9834 / 16384, vpc: 6550 
+[FEMU] KV-Log: 873 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 11277 / 16384, vpc: 5107 
+[FEMU] KV-Log: 874 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 11638 / 16384, vpc: 4746 
+[FEMU] KV-Log: 875 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10749 / 16384, vpc: 5635 
+[FEMU] KV-Log: 876 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 10864 / 16384, vpc: 5520 
+[FEMU] KV-Log: 877 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10748 / 16384, vpc: 5636 
+[FEMU] KV-Log: 878 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 10437 / 16384, vpc: 5947 
+[FEMU] KV-Log: 879 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 9999 / 16384, vpc: 6385 
+[FEMU] KV-Log: 880 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 9618 / 16384, vpc: 6766 
+[FEMU] KV-Log: 881 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10613 / 16384, vpc: 5771 
+[FEMU] KV-Log: 882 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 9496 / 16384, vpc: 6888 
+[FEMU] KV-Log: 883 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10135 / 16384, vpc: 6249 
+[FEMU] KV-Log: 884 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 9628 / 16384, vpc: 6756 
+[FEMU] KV-Log: 885 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 9663 / 16384, vpc: 6721 
+[FEMU] KV-Log: 886 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 11124 / 16384, vpc: 5260 
+[FEMU] KV-Log: 887 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 10861 / 16384, vpc: 5523 
+[FEMU] KV-Log: 888 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 9903 / 16384, vpc: 6481 
+[FEMU] KV-Log: 889 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 13123 / 16384, vpc: 3261 
+[FEMU] KV-Log: 890 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 10129 / 16384, vpc: 6255 
+[FEMU] KV-Log: 891 gc_meta! (line: 165) invalid_pgs / pgs_per_line: 9949 / 16384, vpc: 6435 
+[FEMU] KV-Log: 892 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 10875 / 16384, vpc: 5509 
+[FEMU] KV-Log: 893 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10238 / 16384, vpc: 6146 
+[FEMU] KV-Log: 894 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 11268 / 16384, vpc: 5116 
+[FEMU] KV-Log: 895 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10150 / 16384, vpc: 6234 
+[FEMU] KV-Log: 896 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 11287 / 16384, vpc: 5097 
+[FEMU] KV-Log: 897 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 10729 / 16384, vpc: 5655 
+[FEMU] KV-Log: 898 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10669 / 16384, vpc: 5715 
+[FEMU] KV-Log: 899 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 10394 / 16384, vpc: 5990 
+[FEMU] KV-Log: 900 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 11186 / 16384, vpc: 5198 
+[FEMU] KV-Log: 901 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 10661 / 16384, vpc: 5723 
+[FEMU] KV-Log: 902 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 10721 / 16384, vpc: 5663 
+[FEMU] KV-Log: 903 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 9930 / 16384, vpc: 6454 
+[FEMU] KV-Log: 904 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 9766 / 16384, vpc: 6618 
+[FEMU] KV-Log: d2m line(192): data lines(478), meta lines(34)
+[FEMU] KV-Log: d2m line(193): data lines(477), meta lines(35)
+[FEMU] KV-Log: d2m line(194): data lines(476), meta lines(36)
+[FEMU] KV-Log: d2m line(195): data lines(475), meta lines(37)
+[FEMU] KV-Log: 905 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 16384 / 16384, vpc: 0 
+[FEMU] KV-Log: 906 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 16362 / 16384, vpc: 22 
+[FEMU] KV-Log: 907 gc_meta! (line: 192) invalid_pgs / pgs_per_line: 14609 / 16384, vpc: 1775 
+[FEMU] KV-Log: 908 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 13885 / 16384, vpc: 2499 
+[FEMU] KV-Log: 909 gc_meta! (line: 193) invalid_pgs / pgs_per_line: 13967 / 16384, vpc: 2417 
+[FEMU] KV-Log: 910 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 11724 / 16384, vpc: 4660 
+[FEMU] KV-Log: 911 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 13291 / 16384, vpc: 3093 
+[FEMU] KV-Log: 912 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 10344 / 16384, vpc: 6040 
+[FEMU] KV-Log: 913 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 12094 / 16384, vpc: 4290 
+[FEMU] KV-Log: 914 gc_meta! (line: 192) invalid_pgs / pgs_per_line: 10701 / 16384, vpc: 5683 
+[FEMU] KV-Log: 915 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11255 / 16384, vpc: 5129 
+[FEMU] KV-Log: 916 gc_meta! (line: 116) invalid_pgs / pgs_per_line: 11572 / 16384, vpc: 4812 
+[FEMU] KV-Log: 917 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 10667 / 16384, vpc: 5717 
+[FEMU] KV-Log: 918 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 10416 / 16384, vpc: 5968 
+[FEMU] KV-Log: 919 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10499 / 16384, vpc: 5885 
+[FEMU] KV-Log: 920 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 12253 / 16384, vpc: 4131 
+[FEMU] KV-Log: 921 gc_meta! (line: 2) invalid_pgs / pgs_per_line: 10769 / 16384, vpc: 5615 
+[FEMU] KV-Log: 922 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11690 / 16384, vpc: 4694 
+[FEMU] KV-Log: 923 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10053 / 16384, vpc: 6331 
+[FEMU] KV-Log: 924 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11347 / 16384, vpc: 5037 
+[FEMU] KV-Log: 925 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 9963 / 16384, vpc: 6421 
+[FEMU] KV-Log: 926 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 9894 / 16384, vpc: 6490 
+[FEMU] KV-Log: 927 gc_meta! (line: 165) invalid_pgs / pgs_per_line: 10359 / 16384, vpc: 6025 
+[FEMU] KV-Log: 928 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 10030 / 16384, vpc: 6354 
+[FEMU] KV-Log: 929 gc_meta! (line: 195) invalid_pgs / pgs_per_line: 11856 / 16384, vpc: 4528 
+[FEMU] KV-Log: 930 gc_meta! (line: 194) invalid_pgs / pgs_per_line: 11576 / 16384, vpc: 4808 
+[FEMU] KV-Log: 931 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 11553 / 16384, vpc: 4831 
+[FEMU] KV-Log: 932 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 11346 / 16384, vpc: 5038 
+[FEMU] KV-Log: 933 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 11360 / 16384, vpc: 5024 
+[FEMU] KV-Log: 934 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 11345 / 16384, vpc: 5039 
+[FEMU] KV-Log: 935 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 10524 / 16384, vpc: 5860 
+[FEMU] KV-Log: 936 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10211 / 16384, vpc: 6173 
+[FEMU] KV-Log: 937 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11862 / 16384, vpc: 4522 
+[FEMU] KV-Log: 938 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 12744 / 16384, vpc: 3640 
+[FEMU] KV-Log: 939 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11562 / 16384, vpc: 4822 
+[FEMU] KV-Log: 940 gc_meta! (line: 192) invalid_pgs / pgs_per_line: 9966 / 16384, vpc: 6418 
+[FEMU] KV-Log: 941 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 10400 / 16384, vpc: 5984 
+[FEMU] KV-Log: 942 gc_meta! (line: 165) invalid_pgs / pgs_per_line: 10247 / 16384, vpc: 6137 
+[FEMU] KV-Log: 943 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 10433 / 16384, vpc: 5951 
+[FEMU] KV-Log: 944 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 11396 / 16384, vpc: 4988 
+[FEMU] KV-Log: 945 gc_meta! (line: 194) invalid_pgs / pgs_per_line: 11804 / 16384, vpc: 4580 
+[FEMU] KV-Log: 946 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10179 / 16384, vpc: 6205 
+[FEMU] KV-Log: 947 gc_meta! (line: 1) invalid_pgs / pgs_per_line: 10540 / 16384, vpc: 5844 
+[FEMU] KV-Log: 948 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10461 / 16384, vpc: 5923 
+[FEMU] KV-Log: 949 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10250 / 16384, vpc: 6134 
+[FEMU] KV-Log: 950 gc_meta! (line: 195) invalid_pgs / pgs_per_line: 10192 / 16384, vpc: 6192 
+[FEMU] KV-Log: 951 gc_meta! (line: 22) invalid_pgs / pgs_per_line: 10114 / 16384, vpc: 6270 
+[FEMU] KV-Log: 952 gc_meta! (line: 15) invalid_pgs / pgs_per_line: 9857 / 16384, vpc: 6527 
+[FEMU] KV-Log: 953 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 10254 / 16384, vpc: 6130 
+[FEMU] KV-Log: 954 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 10212 / 16384, vpc: 6172 
+[FEMU] KV-Log: 955 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 12038 / 16384, vpc: 4346 
+[FEMU] KV-Log: 956 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 12169 / 16384, vpc: 4215 
+[FEMU] KV-Log: 957 gc_meta! (line: 19) invalid_pgs / pgs_per_line: 11217 / 16384, vpc: 5167 
+[FEMU] KV-Log: 958 gc_meta! (line: 6) invalid_pgs / pgs_per_line: 10536 / 16384, vpc: 5848 
+[FEMU] KV-Log: 959 gc_meta! (line: 141) invalid_pgs / pgs_per_line: 11526 / 16384, vpc: 4858 
+[FEMU] KV-Log: 960 gc_meta! (line: 166) invalid_pgs / pgs_per_line: 10686 / 16384, vpc: 5698 
+[FEMU] KV-Log: 961 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 10219 / 16384, vpc: 6165 
+[FEMU] KV-Log: 962 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10159 / 16384, vpc: 6225 
+[FEMU] KV-Log: 963 gc_meta! (line: 193) invalid_pgs / pgs_per_line: 10066 / 16384, vpc: 6318 
+[FEMU] KV-Log: 964 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 9988 / 16384, vpc: 6396 
+[FEMU] KV-Log: 965 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 10058 / 16384, vpc: 6326 
+[FEMU] KV-Log: 966 gc_meta! (line: 0) invalid_pgs / pgs_per_line: 10169 / 16384, vpc: 6215 
+[FEMU] KV-Log: 967 gc_meta! (line: 14) invalid_pgs / pgs_per_line: 15049 / 16384, vpc: 1335 
+[FEMU] KV-Log: 968 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 11498 / 16384, vpc: 4886 
+[FEMU] KV-Log: 969 gc_meta! (line: 12) invalid_pgs / pgs_per_line: 10360 / 16384, vpc: 6024 
+[FEMU] KV-Log: 970 gc_meta! (line: 3) invalid_pgs / pgs_per_line: 11021 / 16384, vpc: 5363 
+[FEMU] KV-Log: 971 gc_meta! (line: 21) invalid_pgs / pgs_per_line: 11213 / 16384, vpc: 5171 
+[FEMU] KV-Log: 972 gc_meta! (line: 4) invalid_pgs / pgs_per_line: 11492 / 16384, vpc: 4892 
+[FEMU] KV-Log: 973 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 11389 / 16384, vpc: 4995 
+[FEMU] KV-Log: 974 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 10410 / 16384, vpc: 5974 
+[FEMU] KV-Log: 975 gc_meta! (line: 118) invalid_pgs / pgs_per_line: 10897 / 16384, vpc: 5487 
+[FEMU] KV-Log: 976 gc_meta! (line: 164) invalid_pgs / pgs_per_line: 10946 / 16384, vpc: 5438 
+[FEMU] KV-Log: 977 gc_meta! (line: 18) invalid_pgs / pgs_per_line: 10725 / 16384, vpc: 5659 
+[FEMU] KV-Log: 978 gc_meta! (line: 194) invalid_pgs / pgs_per_line: 10289 / 16384, vpc: 6095 
+[FEMU] KV-Log: 979 gc_meta! (line: 13) invalid_pgs / pgs_per_line: 11854 / 16384, vpc: 4530 
+[FEMU] KV-Log: 980 gc_meta! (line: 119) invalid_pgs / pgs_per_line: 11026 / 16384, vpc: 5358 
+[FEMU] KV-Log: 981 gc_meta! (line: 9) invalid_pgs / pgs_per_line: 10257 / 16384, vpc: 6127 
+[FEMU] KV-Log: 982 gc_meta! (line: 165) invalid_pgs / pgs_per_line: 9955 / 16384, vpc: 6429 
+[FEMU] KV-Log: 983 gc_meta! (line: 10) invalid_pgs / pgs_per_line: 14563 / 16384, vpc: 1821 
+[FEMU] KV-Log: 984 gc_meta! (line: 139) invalid_pgs / pgs_per_line: 12150 / 16384, vpc: 4234 
+[FEMU] KV-Log: 985 gc_meta! (line: 117) invalid_pgs / pgs_per_line: 10706 / 16384, vpc: 5678 
+[FEMU] KV-Log: 986 gc_meta! (line: 8) invalid_pgs / pgs_per_line: 10320 / 16384, vpc: 6064 
+[FEMU] KV-Log: 987 gc_meta! (line: 20) invalid_pgs / pgs_per_line: 10270 / 16384, vpc: 6114 
+[FEMU] KV-Log: 988 gc_meta! (line: 16) invalid_pgs / pgs_per_line: 10151 / 16384, vpc: 6233 
+[FEMU] KV-Log: 989 gc_meta! (line: 7) invalid_pgs / pgs_per_line: 9701 / 16384, vpc: 6683 
+[FEMU] KV-Log: 990 gc_meta! (line: 17) invalid_pgs / pgs_per_line: 13417 / 16384, vpc: 2967 
+[FEMU] KV-Log: 991 gc_meta! (line: 167) invalid_pgs / pgs_per_line: 11821 / 16384, vpc: 4563 
+[FEMU] KV-Log: 992 gc_meta! (line: 11) invalid_pgs / pgs_per_line: 10749 / 16384, vpc: 5635 
+[FEMU] KV-Log: 993 gc_meta! (line: 140) invalid_pgs / pgs_per_line: 11428 / 16384, vpc: 4956 
